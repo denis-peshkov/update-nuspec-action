@@ -1,0 +1,19 @@
+﻿name: 'Update *.nuspec'
+description: 'A Github action that scans .NET projects, and update nuspec-file.'
+branding:
+  icon: activity
+  color: yellow
+inputs:
+  dir:
+    description: 'The analyze directory'
+    required: true
+    default: '/.'
+#outputs:
+#  upgrade-projects:
+#    description: 'An array of projects that need to be upgraded.'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+#  image: 'docker://ghcr.io/some-user/some-registry' # Starting with docker:// is important!!
+  args:
+    - ${{ inputs.dir }}
