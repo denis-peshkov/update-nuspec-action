@@ -1,5 +1,5 @@
 ﻿name: 'Update *.nuspec'
-description: 'A Github action that scans .NET projects, and update nuspec-file.'
+description: 'A Github action that scans .NET projects, and update in nuspec-file dependencies node. It sets correct packages from the .csproj file.'
 branding:
   icon: activity
   color: yellow
