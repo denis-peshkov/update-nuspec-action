@@ -14,12 +14,21 @@ jobs:
     permissions: # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#defining-access-for-the-github_token-scopes
       contents: write
 
+    env:
+      BUILD_CONFIG: 'Release'
+      SOLUTION: 'UpdateNuspecTool.slnx'
+
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Disabling shallow clones is recommended for improving the relevancy of reporting
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
 
       - name: Setup GitVersion
         uses: gittools/actions/gitversion/setup@v1.1.1
@@ -32,12 +41,53 @@ jobs:
         with:
           useConfigFile: true
 
-      - name: Test
-        run: dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: |
+          dotnet build "$SOLUTION" --configuration "$BUILD_CONFIG" \
+            --no-restore \
+            -p:Configuration=$BUILD_CONFIG \
+            -p:Version=${GitVersion_SemVer} \
+            -p:AssemblyVersion=${GitVersion_AssemblySemVer} \
+            -p:FileVersion=${GitVersion_AssemblySemFileVer} \
+            -p:InformationalVersion="${GitVersion_InformationalVersion}" \
+            -p:Company="Denis Peshkov" \
+            -p:Product="update-nuspec-action" \
+            -p:Description="GitHub Action that syncs NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files." \
+            -p:RepositoryUrl="https://github.com/denis-peshkov/update-nuspec-action.git" \
+            -p:RepositoryType=git \
+            -p:CLSCompliant=true \
+            -p:NeutralLanguage=en
+
+      - name: Run tests
+        run: >
+          dotnet test "$SOLUTION"
+          --configuration "$BUILD_CONFIG"
+          --no-restore
+          --no-build
+          --verbosity normal
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+          --
+          DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarcloud-github-action@v5 # Ex: v4.0.0, See the latest version at https://github.com/marketplace/actions/sonarcloud-scan
+        with:
+          args: >
+            -Dsonar.organization=peshkov
+            -Dsonar.projectKey=update-nuspec-action
+            -Dsonar.cs.opencover.reportsPaths=TestResults/**/coverage.opencover.xml
+            -Dsonar.sources=UpdateNuspecTool/
+            -Dsonar.tests=UpdateNuspecTool.Tests/
+            -Dsonar.exclusions=UpdateNuspecTool.Tests/TestData/**
+            -Dsonar.verbose=true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
-        env:
-          BUILD_CONFIG: Release
         run: |
           docker build -t update-nuspec-action:ci . \
             --build-arg BUILD_CONFIG="${BUILD_CONFIG}" \
