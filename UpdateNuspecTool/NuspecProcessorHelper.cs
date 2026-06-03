@@ -34,10 +34,6 @@ public static class NuspecProcessorHelper
             ConsoleHelper.Write($"{projectFilePath} \n", ConsoleColor.Cyan);
 
             var projectData = XDocument.Load(projectFilePath);
-            var packageReferences = projectData.Descendants("ItemGroup")
-                .SelectMany(p => p.Elements("PackageReference"))
-                .Select(GetPackageReference)
-                .ToList();
 
             var dependenciesElement = nuspecData.Descendants(nuspecDocNamespace + "metadata")
                 .Select(p => p.Element(nuspecDocNamespace + "dependencies"))
@@ -45,33 +41,26 @@ public static class NuspecProcessorHelper
 
             var dependencyGroups = dependenciesElement.Elements(nuspecDocNamespace + "group").ToList();
 
-            DependencyComparisonResult comparisonResult;
             if (dependencyGroups.Any())
             {
                 foreach (var group in dependencyGroups)
                 {
-                    var targetFramework = group.Attribute("targetFramework")?.Value ?? "(unknown)";
-                    var groupDependencies = group.Elements(nuspecDocNamespace + "dependency")
-                        .Where(p => p.Attribute("id") != null && p.Attribute("version") != null)
-                        .Select(p => new Dependency(
-                            p.Attribute("id")!.Value,
-                            p.Attribute("version")!.Value))
-                        .ToList();
+                    var targetFramework = group.Attribute("targetFramework")?.Value ?? string.Empty;
+                    var groupDependencies = GetGroupDependencies(group, nuspecDocNamespace);
+                    var packageReferences = CsprojPackageReferenceResolver
+                        .GetPackageReferencesForTargetFramework(projectData, targetFramework);
 
                     var groupResult = CompareDependencies(groupDependencies, packageReferences);
-                    ConsoleHelper.ShowGroupResult(targetFramework, groupResult);
+                    ConsoleHelper.ShowGroupResult(
+                        string.IsNullOrWhiteSpace(targetFramework) ? "(unknown)" : targetFramework,
+                        groupResult);
+
+                    if (!dryRun)
+                    {
+                        var resultList = BuildOrderedResultList(groupResult);
+                        ApplyDependenciesToSingleGroup(group, resultList, nuspecDocNamespace);
+                    }
                 }
-
-                var allDependencies = nuspecData.Descendants(nuspecDocNamespace + "dependency")
-                    .Where(p => p.Attribute("id") != null && p.Attribute("version") != null)
-                    .Select(p => new Dependency(
-                        p.Attribute("id")!.Value,
-                        p.Attribute("version")!.Value))
-                    .GroupBy(p => p.Name)
-                    .Select(g => g.First())
-                    .ToList();
-
-                comparisonResult = CompareDependencies(allDependencies, packageReferences);
             }
             else
             {
@@ -82,24 +71,13 @@ public static class NuspecProcessorHelper
                         p.Attribute("version")!.Value))
                     .ToList();
 
-                comparisonResult = CompareDependencies(dependencies, packageReferences);
+                var packageReferences = CsprojPackageReferenceResolver.GetPackageReferences(projectData);
+                var comparisonResult = CompareDependencies(dependencies, packageReferences);
                 ConsoleHelper.ShowResult(comparisonResult);
-            }
 
-            var resultList = BuildOrderedResultList(comparisonResult);
-
-            if (dryRun)
-            {
-                ConsoleHelper.WriteLine("[DRY RUN] Skipped saving nuspec file.", ConsoleColor.Yellow);
-            }
-            else
-            {
-                if (dependencyGroups.Any())
+                if (!dryRun)
                 {
-                    ApplyDependenciesToGroups(dependencyGroups, resultList, nuspecDocNamespace);
-                }
-                else
-                {
+                    var resultList = BuildOrderedResultList(comparisonResult);
                     dependenciesElement.RemoveAll();
                     foreach (var value in resultList)
                     {
@@ -109,7 +87,14 @@ public static class NuspecProcessorHelper
                             new XAttribute("version", value.Version)));
                     }
                 }
+            }
 
+            if (dryRun)
+            {
+                ConsoleHelper.WriteLine("[DRY RUN] Skipped saving nuspec file.", ConsoleColor.Yellow);
+            }
+            else
+            {
                 nuspecData.Save(file);
             }
 
@@ -129,6 +114,16 @@ public static class NuspecProcessorHelper
         {
             throw;
         }
+    }
+
+    private static List<Dependency> GetGroupDependencies(XElement group, XNamespace nuspecDocNamespace)
+    {
+        return group.Elements(nuspecDocNamespace + "dependency")
+            .Where(p => p.Attribute("id") != null && p.Attribute("version") != null)
+            .Select(p => new Dependency(
+                p.Attribute("id")!.Value,
+                p.Attribute("version")!.Value))
+            .ToList();
     }
 
     private static DependencyComparisonResult CompareDependencies(
@@ -197,49 +192,36 @@ public static class NuspecProcessorHelper
         return resultList;
     }
 
-    private static Dependency GetPackageReference(XElement packageReference)
-    {
-        var name = packageReference.Attribute("Include")!.Value;
-        var version = packageReference.Attribute("Version")?.Value
-            ?? packageReference.Element("Version")?.Value
-            ?? string.Empty;
-
-        return new Dependency(name, version);
-    }
-
-    private static void ApplyDependenciesToGroups(
-        List<XElement> dependencyGroups,
+    private static void ApplyDependenciesToSingleGroup(
+        XElement group,
         List<Dependency> resultList,
         XNamespace nuspecDocNamespace)
     {
         var resultByName = resultList.ToDictionary(p => p.Name, p => p.Version);
 
-        foreach (var group in dependencyGroups)
+        foreach (var dependency in group.Elements(nuspecDocNamespace + "dependency").ToList())
         {
-            foreach (var dependency in group.Elements(nuspecDocNamespace + "dependency").ToList())
+            var id = dependency.Attribute("id")!.Value;
+            if (resultByName.TryGetValue(id, out var version))
             {
-                var id = dependency.Attribute("id")!.Value;
-                if (resultByName.TryGetValue(id, out var version))
-                {
-                    dependency.SetAttributeValue("version", version);
-                }
-                else
-                {
-                    dependency.Remove();
-                }
+                dependency.SetAttributeValue("version", version);
             }
-
-            var existingIds = group.Elements(nuspecDocNamespace + "dependency")
-                .Select(p => p.Attribute("id")!.Value)
-                .ToHashSet();
-
-            foreach (var added in resultList.Where(p => !existingIds.Contains(p.Name)))
+            else
             {
-                group.Add(new XElement(
-                    nuspecDocNamespace + "dependency",
-                    new XAttribute("id", added.Name),
-                    new XAttribute("version", added.Version)));
+                dependency.Remove();
             }
+        }
+
+        var existingIds = group.Elements(nuspecDocNamespace + "dependency")
+            .Select(p => p.Attribute("id")!.Value)
+            .ToHashSet();
+
+        foreach (var added in resultList.Where(p => !existingIds.Contains(p.Name)))
+        {
+            group.Add(new XElement(
+                nuspecDocNamespace + "dependency",
+                new XAttribute("id", added.Name),
+                new XAttribute("version", added.Version)));
         }
     }
 }

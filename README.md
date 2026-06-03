@@ -46,14 +46,12 @@ Equivalent to `/github/workspace/src/MyPackage` inside the container. An absolut
 - Reads versions from all `PackageReference` entries in the csproj.
 - Rewrites `<dependencies>` in each nuspec:
   - **Flat** — top-level `<dependency id="..." version="..." />` elements.
-  - **Grouped** — `<group targetFramework="net8.0">` (and other TFMs); each group is updated from the same csproj package list.
+  - **Grouped** — `<group targetFramework="net8.0">` (and other TFMs); each group is matched to the csproj for that TFM (including `PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'"` version properties and `Version="$(PropertyName)"` on `PackageReference`).
 - **Console report:** for grouped nuspecs, changes are printed **per** `<group targetFramework="...">`; flat nuspecs use a single report block.
 - Exits with code `0` if no `.nuspec` files are found (prints `*.nuspec files not found!`).
 - Prints an error and exits non-zero if `dir` does not exist.
 
-### Limitation (multi-TFM groups)
-
-When several `<group targetFramework="...">` blocks exist, file updates apply **the same** package versions (from the single csproj) to every group. Per-TFM versions from multi-targeting projects are not resolved separately yet.
+`PrivateAssets="All"` package references (for example SourceLink) are not written into nuspec.
 
 ## Requirements
 

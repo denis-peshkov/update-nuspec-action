@@ -1,0 +1,50 @@
+namespace UpdateNuspecTool.Tests;
+
+[TestFixture]
+public sealed class CsprojPackageReferenceResolverTests
+{
+    [Test]
+    public void GetPackageReferencesForTargetFramework_resolves_property_versions_per_tfm()
+    {
+        var projectPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "Cross.Messaging.csproj");
+        var project = XDocument.Load(projectPath);
+
+        var net8 = CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net8.0");
+        net8.Should().Contain(p => p.Name == "MailKit" && p.Version == "4.16.0");
+        net8.Should().Contain(p => p.Name == "Microsoft.Extensions.Configuration" && p.Version == "8.0.0");
+        net8.Should().Contain(p => p.Name == "Microsoft.Extensions.Configuration.Binder" && p.Version == "8.0.2");
+
+        var net9 = CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net9.0");
+        net9.Select(p => p.Name).Should().NotContain("Microsoft.Extensions.Configuration.Binder");
+        net9.Should().Contain(p => p.Name == "Microsoft.Extensions.Configuration" && p.Version == "9.0.15");
+
+        var net10 = CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net10.0");
+        net10.Should().Contain(p => p.Name == "Microsoft.Extensions.Configuration" && p.Version == "10.0.7");
+    }
+
+    [Test]
+    public void GetPackageReferencesForTargetFramework_excludes_PrivateAssets_All()
+    {
+        var projectPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "Cross.Messaging.csproj");
+        var project = XDocument.Load(projectPath);
+
+        var packages = CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net8.0");
+        packages.Select(p => p.Name).Should().NotContain("Microsoft.SourceLink.GitHub");
+    }
+
+    [TestCase("'$(TargetFramework)' == 'net6.0'", "net6.0", true)]
+    [TestCase("'$(TargetFramework)' == 'net6.0'", "net7.0", false)]
+    [TestCase("$(TargetFramework) == 'net8.0'", "net8.0", true)]
+    [TestCase("'$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net7.0' or '$(TargetFramework)' == 'net8.0'", "net7.0", true)]
+    [TestCase("'$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net7.0' or '$(TargetFramework)' == 'net8.0'", "net9.0", false)]
+    [TestCase(null, "net8.0", true)]
+    public void ConditionAppliesToTargetFramework_matches_standard_msbuild_condition(
+        string? condition,
+        string targetFramework,
+        bool expected)
+    {
+        CsprojPackageReferenceResolver.ConditionAppliesToTargetFramework(condition, targetFramework)
+            .Should()
+            .Be(expected);
+    }
+}

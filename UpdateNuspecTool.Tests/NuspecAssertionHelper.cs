@@ -17,4 +17,23 @@ internal static class NuspecAssertionHelper
     {
         return GetDependencyVersions(nuspecPath, packageId).Any();
     }
+
+    public static string? GetDependencyVersionInGroup(string nuspecPath, string targetFramework, string packageId)
+    {
+        var document = XDocument.Load(nuspecPath);
+        var group = document
+            .Descendants()
+            .FirstOrDefault(e => e.Name.LocalName == "group" && e.Attribute("targetFramework")?.Value == targetFramework);
+
+        if (group == null)
+        {
+            return null;
+        }
+
+        return group
+            .Elements()
+            .FirstOrDefault(e => e.Name.LocalName == "dependency" && e.Attribute("id")?.Value == packageId)
+            ?.Attribute("version")
+            ?.Value;
+    }
 }
