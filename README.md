@@ -41,26 +41,31 @@ Equivalent to `/github/workspace/src/MyPackage` inside the container. An absolut
 
 ## Behavior
 
-- Recursively looks for `*.nuspec` under `dir`.
-- Finds `ProjectName.csproj` where `ProjectName` equals `<metadata><id>` in the nuspec.
-- Reads versions from all `PackageReference` entries in the csproj.
-- Rewrites `<dependencies>` in each nuspec:
-  - **Flat** — top-level `<dependency id="..." version="..." />` elements.
-  - **Grouped** — `<group targetFramework="net8.0">` (and other TFMs); each group is matched to the csproj for that TFM (including `PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'"` version properties and `Version="$(PropertyName)"` on `PackageReference`).
-- **Console report:** for grouped nuspecs, changes are printed **per** `<group targetFramework="...">`; flat nuspecs use a single report block.
+- Looks for `*.nuspec` in `dir` (top level only, not subfolders).
+- Loads `{id}.csproj` from the same `dir`, where `{id}` is `<metadata><id>`.
+- **Flat** nuspec — top-level `<dependency id="..." version="..." />` under `<dependencies>`. Package list is taken for `TargetFramework`, or the first TFM from `TargetFrameworks`.
+- **Grouped** nuspec — `<group targetFramework="net8.0">` (and other TFMs). Each group is synced only with packages that apply to that TFM in the csproj:
+  - `PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'"` (and similar) for version properties;
+  - `PackageReference` with `Version="$(PropertyName)"` resolved per TFM;
+  - `Condition` on `PackageReference` / `ItemGroup`, including `or` (for example `'$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net7.0' or '$(TargetFramework)' == 'net8.0'`).
+- Updates versions, adds packages from the csproj, removes dependencies that are not in the csproj for that TFM / flat list.
+- Saved dependency order: `Cross.*`, then `*Boilerplate*`, then `*.Api.Contract*`, then the rest (A–Z).
+- **Console report:** grouped nuspec — one block per `<group targetFramework="...">`; flat nuspec — single block. Categories: deleted, updated, added, not changed.
+- `PrivateAssets="All"` references (for example SourceLink) are not written to nuspec.
 - Exits with code `0` if no `.nuspec` files are found (prints `*.nuspec files not found!`).
-- Prints an error and exits non-zero if `dir` does not exist.
+- Prints an error if `dir` does not exist (`Path '…' is not valid!`).
+- **Dry-run** (`--dry-run`, `-d`, `--demo`, or positional `true`): full report, no file save (`[DRY RUN]` in the log).
 
-`PrivateAssets="All"` package references (for example SourceLink) are not written into nuspec.
+Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.csproj` + `Cross.Messaging.nuspec`.
 
 ## Requirements
 
 - **Runner:** `ubuntu-latest` (or another **linux/amd64** host). The bundled tool is published for `linux-x64`.
-- **.NET:** The image includes .NET 8 runtime (framework-dependent publish).
+- **.NET:** The image includes .NET 8 runtime (framework-dependent apphost).
 
 ## Versioning (this repository)
 
-CI (`.github/workflows/ci.yml`) on push to `master` / `release/*` / `hotfix/*` and on pull requests:
+On push to `master` / `release/*` / `hotfix/*`, CI runs [GitVersion](https://gitversion.net/) and exports **`env.semVer`**, then creates tag **`v${{ env.semVer }}`** (for example `v0.2.1`).
 
 1. Checks out with `fetch-depth: 0` (full history for [GitVersion](https://gitversion.net/)).
 2. Runs `dotnet test`.
@@ -68,12 +73,12 @@ CI (`.github/workflows/ci.yml`) on push to `master` / `release/*` / `hotfix/*` a
 4. Smoke-tests the image.
 5. On protected branches, creates and pushes tag **`v${{ env.semVer }}`**.
 
-`GitVersion.yml` sets `next-version: 0.2.0`. Further increments follow GitVersion branch rules and commit history.
+CI (`.github/workflows/ci.yml`) also runs `dotnet test`, builds the Docker image with GitVersion MSBuild properties (`Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion`, …), and smoke-tests the image. Checkout uses `fetch-depth: 0` for GitVersion only.
 
-To ship a new action version after CI pushed tag `vX.Y.Z`:
+To publish a new action version after CI pushed tag `vX.Y.Z`:
 
-1. Open [Releases](https://github.com/denis-peshkov/update-nuspec-action/releases) and publish a release for the tag (or `gh release create vX.Y.Z`).
-2. Point consumer workflows at `@vX.Y.Z` (or update `vars.semVer` if you centralize the pin).
+1. Open [Releases](https://github.com/denis-peshkov/update-nuspec-action/releases) and create a release for the new tag (or use `gh release create vX.Y.Z`).
+2. In other repositories, set `uses: denis-peshkov/update-nuspec-action@vX.Y.Z` to that tag.
 
 ## Development
 
@@ -86,8 +91,6 @@ To ship a new action version after CI pushed tag `vX.Y.Z`:
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
 | `Dockerfile` | Multi-stage image: SDK build → runtime + `entrypoint.sh` |
 | `action.yml` | Action metadata; runs the Docker image |
-
-The action image builds **`UpdateNuspecTool`** from source during `docker build`. The old binary in `tools/` is not used.
 
 ### Tests
 
@@ -103,12 +106,13 @@ Options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or 
 
 ```bash
 dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --help
+dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --version
 dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- UpdateNuspecTool.Tests/TestData --dry-run
 ```
 
-Publish the tool locally (change `-r` and output folder per OS/CPU):
+Publish the tool locally (same flags; change `-r` and output folder per OS/CPU):
 
-**Linux (x64)** — same RID as the action image:
+**Linux (x64)** — used in the action Docker image and `ubuntu-latest`:
 
 ```bash
 dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
@@ -119,6 +123,8 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
   -o ./artifacts/publish/linux-x64
 
 ./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
+
+# Demo / test run: full report in console, no file changes
 ./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData --dry-run
 ```
 
@@ -135,7 +141,7 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj `
 ./artifacts/publish/win-x64/UpdateNuspecTool.exe ./UpdateNuspecTool.Tests/TestData
 ```
 
-**macOS (Apple Silicon):**
+**macOS (Apple Silicon, ARM64):**
 
 ```bash
 dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
@@ -148,17 +154,17 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
 ./artifacts/publish/osx-arm64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
 ```
 
-| Platform | Runtime ID (`-r`) | Executable |
-|----------|-------------------|------------|
+| Platform | Runtime ID (`-r`) | Output executable |
+|----------|-------------------|-------------------|
 | Linux x64 | `linux-x64` | `UpdateNuspecTool` |
 | Windows x64 | `win-x64` | `UpdateNuspecTool.exe` |
 | macOS ARM64 | `osx-arm64` | `UpdateNuspecTool` |
 
-Other RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
+Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
 
 ### Docker image
 
-Local build (defaults in `Dockerfile` `ARG`, e.g. `VERSION=0.2.0`):
+Build and run the action image (Linux x64 only):
 
 ```bash
 docker build --platform linux/amd64 -t update-nuspec-action:local .
@@ -180,6 +186,8 @@ docker build --platform linux/amd64 -t update-nuspec-action:local . \
 Optional metadata args: `COMPANY`, `PRODUCT`, `DESCRIPTION`, `REPOSITORY_URL`, `REPOSITORY_TYPE`, `CLS_COMPLIANT`, `NEUTRAL_LANGUAGE`, `BUILD_CONFIG`.
 
 On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub-hosted runners.
+
+CI runs `dotnet test`, `docker build`, and smoke tests on push/PR (see `.github/workflows/ci.yml`).
 
 ## License
 
