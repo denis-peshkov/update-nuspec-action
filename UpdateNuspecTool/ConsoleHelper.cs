@@ -21,6 +21,22 @@ public static class ConsoleHelper
         Console.ResetColor();
     }
 
+    public static void ShowGroupResult(string targetFramework, DependencyComparisonResult result)
+    {
+        WriteLine($"<group targetFramework=\"{targetFramework}\">", ConsoleColor.Cyan);
+        ShowResult(result);
+    }
+
+    public static void ShowResult(DependencyComparisonResult result)
+    {
+        ShowResult(
+            result.UpdatedReferences,
+            result.NoChangesReferences,
+            result.AddedReferences,
+            result.DeletedReferences,
+            result.OutdatedReferences);
+    }
+
     public static void ShowResult(
         List<Dependency> updatedReferences,
         List<Dependency> noChangesReferences,
@@ -33,14 +49,22 @@ public static class ConsoleHelper
         columnWidthHelperList.AddRange(noChangesReferences);
         columnWidthHelperList.AddRange(addedReferences);
         columnWidthHelperList.AddRange(deletedReferences);
+
+        if (!columnWidthHelperList.Any())
+        {
+            WriteLine("\t (no dependency changes)", ConsoleColor.Gray);
+            Console.WriteLine();
+            return;
+        }
+
         var columnWidth = columnWidthHelperList.DetermineColumnNameWidth() + 5;
 
         if (deletedReferences.Any())
         {
-            WriteLine($"Deleted references {deletedReferences.Count}:", _deletedColor);
+            WriteLine($"\t Deleted references {deletedReferences.Count}:", _deletedColor);
             foreach (var item in deletedReferences)
             {
-                Write($"\t Name:", ConsoleColor.Gray);
+                Write($"\t\t Name:", ConsoleColor.Gray);
                 Write($" {item.Name}", _deletedColor, columnWidth);
                 Write($"Version: ", ConsoleColor.Gray);
                 Write($"{item.Version}", _deletedColor);
@@ -53,10 +77,10 @@ public static class ConsoleHelper
         if (updatedReferences.Any())
         {
             var columnVersionWidth = outdatedReferences.DetermineColumnVersionWidth() + 5;
-            WriteLine($"Updated references {updatedReferences.Count}:", _updatedColor);
+            WriteLine($"\t Updated references {updatedReferences.Count}:", _updatedColor);
             foreach (var item in updatedReferences)
             {
-                Write($"\t Name:", ConsoleColor.Gray);
+                Write($"\t\t Name:", ConsoleColor.Gray);
                 Write($" {item.Name}", _updatedColor, columnWidth);
                 Write($"Version: ", ConsoleColor.Gray);
                 Write($"{outdatedReferences[item.Name]} ", ConsoleColor.Gray, columnVersionWidth);
@@ -69,10 +93,10 @@ public static class ConsoleHelper
 
         if (addedReferences.Any())
         {
-            WriteLine($"Added references {addedReferences.Count}:", _addedColor);
+            WriteLine($"\t Added references {addedReferences.Count}:", _addedColor);
             foreach (var item in addedReferences)
             {
-                Write($"\t Name:", ConsoleColor.Gray);
+                Write($"\t\t Name:", ConsoleColor.Gray);
                 Write($" {item.Name}", _addedColor, columnWidth);
                 Write($"Version: ", ConsoleColor.Gray);
                 Write($"{item.Version}", _addedColor);
@@ -84,10 +108,10 @@ public static class ConsoleHelper
 
         if (noChangesReferences.Any())
         {
-            Console.WriteLine($"Not changed references {noChangesReferences.Count}:");
+            WriteLine($"\t Not changed references {noChangesReferences.Count}:", ConsoleColor.Gray);
             foreach (var item in noChangesReferences)
             {
-                Write($"\t Name:", ConsoleColor.Gray);
+                Write($"\t\t Name:", ConsoleColor.Gray);
                 Write($" {item.Name}", _notChangedColor, columnWidth);
                 Write($"Version: ", ConsoleColor.Gray);
                 Write($"{item.Version}", _notChangedColor);
