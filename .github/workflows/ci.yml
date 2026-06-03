@@ -102,11 +102,11 @@ jobs:
       - name: Build Docker image
         run: docker build -t update-nuspec-action:ci .
 
-      - name: Smoke test (repo root, relative dir ".")
+      - name: Smoke test (repo root, recursive scan)
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/github/workspace" \
-            update-nuspec-action:ci . | grep -q 'nuspec files not found'
+            update-nuspec-action:ci . | grep -q 'Start processing file'
 
       - name: Smoke test (relative path under workspace)
         run: |
