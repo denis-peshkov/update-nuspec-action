@@ -1,6 +1,6 @@
 [![License](https://img.shields.io/github/license/denis-peshkov/update-nuspec-action)](LICENSE)
 [![GitHub Release Date](https://img.shields.io/github/release-date/denis-peshkov/update-nuspec-action?label=released)](https://github.com/denis-peshkov/update-nuspec-action/releases)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=update-nuspec-action&metric=coverage)](https://sonarcloud.io/summary/new_code?id=update-nuspec-action)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=UpdateNuspecTool&metric=coverage)](https://sonarcloud.io/summary/new_code?id=UpdateNuspecTool)
 [![issues](https://img.shields.io/github/issues/denis-peshkov/update-nuspec-action)](https://github.com/denis-peshkov/update-nuspec-action/issues)
 [![CI](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml)
 
@@ -68,12 +68,10 @@ Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.cspr
 On push to `master` / `release/*` / `hotfix/*`, CI runs [GitVersion](https://gitversion.net/) and exports **`env.semVer`**, then creates tag **`v${{ env.semVer }}`** (for example `v0.2.1`).
 
 1. Checks out with `fetch-depth: 0` (full history for [GitVersion](https://gitversion.net/)).
-2. Runs `dotnet test`.
-3. Builds the Docker image with GitVersion MSBuild properties (`Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion`, assembly metadata).
-4. Smoke-tests the image.
+2. Builds tests (and tool for test host), then publishes `UpdateNuspecTool` for `linux-x64` (single-file).
+3. Runs `dotnet test` on the test project.
+4. Builds and smoke-tests the Docker image.
 5. On protected branches, creates and pushes tag **`v${{ env.semVer }}`**.
-
-CI (`.github/workflows/ci.yml`) also runs `dotnet test`, builds the Docker image with GitVersion MSBuild properties (`Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion`, …), and smoke-tests the image. Checkout uses `fetch-depth: 0` for GitVersion only.
 
 To publish a new action version after CI pushed tag `vX.Y.Z`:
 
@@ -164,9 +162,11 @@ Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
 
 ### Docker image
 
-Build, publish single-file for `linux-x64`, then the image (same as CI):
+Build, publish single-file for `linux-x64`, then the image (same order as CI):
 
 ```bash
+dotnet build UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj -c Release
+dotnet restore UpdateNuspecTool/UpdateNuspecTool.csproj -r linux-x64
 dotnet build UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-restore -r linux-x64
 dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-restore --no-build \
   -r linux-x64 --self-contained false -o artifacts/publish/linux-x64

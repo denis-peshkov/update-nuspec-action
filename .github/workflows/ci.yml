@@ -16,7 +16,6 @@ jobs:
 
     env:
       BUILD_CONFIG: 'Release'
-      SOLUTION: 'UpdateNuspecTool.slnx'
 
     runs-on: ubuntu-latest
 
@@ -43,7 +42,7 @@ jobs:
 
       - name: Restore dependencies
         run: |
-          dotnet restore UpdateNuspecTool/UpdateNuspecTool.csproj -r linux-x64
+          dotnet restore UpdateNuspecTool.slnx
 
       - name: Build
         run: |
@@ -79,8 +78,6 @@ jobs:
       - name: Run tests
         run: >
           dotnet test /p:Configuration=$BUILD_CONFIG
-          --no-restore
-          --no-build
           --verbosity normal
           --collect:"XPlat Code Coverage"
           --results-directory ./TestResults
