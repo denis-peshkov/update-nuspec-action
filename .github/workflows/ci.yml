@@ -103,22 +103,22 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
-        run: docker build -t UpdateNuspecTool:ci .
+        run: docker build -t update-nuspec-action:ci .
 
       - name: Smoke test (repo root, relative dir ".")
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/github/workspace" \
-            UpdateNuspecTool:ci . | grep -q 'nuspec files not found'
+            update-nuspec-action:ci . | grep -q 'nuspec files not found'
 
       - name: Smoke test (relative path under workspace)
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/github/workspace" \
-            UpdateNuspecTool:ci .github | grep -q 'nuspec files not found'
+            update-nuspec-action:ci .github | grep -q 'nuspec files not found'
 
       - name: Create git Tag
-        if: ${{ contains('refs/heads/master', github.ref) || contains('refs/heads/release', github.ref) || contains('refs/heads/hotfix', github.ref) }}
+        if: ${{ contains('refs/heads/master', github.ref) || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
         run: |
           git tag v${{ env.semVer }}
 

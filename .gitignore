@@ -12,6 +12,3 @@ artifacts/
 *.user
 *.suo
 .run/
-
-# Prebuilt tool (built in Docker from UpdateNuspecTool/)
-tools/
