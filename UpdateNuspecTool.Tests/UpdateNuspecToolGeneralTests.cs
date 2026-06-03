@@ -46,6 +46,33 @@ public sealed class UpdateNuspecToolGeneralTests
         File.ReadAllText(nuspecPath).Should().Be(before);
     }
 
+    [Test]
+    public void Recursive_scan_finds_nuspec_in_subdirectory()
+    {
+        var workspace = Path.Combine(Path.GetTempPath(), "UpdateNuspecTool.Tests", Guid.NewGuid().ToString("N"));
+        var nestedDir = Path.Combine(workspace, "Cross.Identity");
+        Directory.CreateDirectory(nestedDir);
+
+        File.Copy(
+            Path.Combine(TestWorkspace.TestDataDirectory, "MyPackage.nuspec"),
+            Path.Combine(nestedDir, "MyPackage.nuspec"));
+        File.Copy(
+            Path.Combine(TestWorkspace.TestDataDirectory, "MyPackage.csproj"),
+            Path.Combine(nestedDir, "MyPackage.csproj"));
+
+        var nuspecFiles = Directory
+            .EnumerateFiles(workspace, "*.nuspec", SearchOption.AllDirectories)
+            .ToList();
+
+        nuspecFiles.Should().ContainSingle();
+        var nuspecPath = nuspecFiles[0];
+        var nuspecDirectory = Path.GetDirectoryName(nuspecPath)!;
+
+        var action = () => NuspecProcessorHelper.Process(nuspecPath, nuspecDirectory, dryRun: true);
+
+        action.Should().NotThrow();
+    }
+
     [TestCase("--dry-run", true)]
     [TestCase("-d", true)]
     [TestCase("--demo", true)]

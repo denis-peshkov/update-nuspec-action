@@ -46,15 +46,18 @@ static void UpdateNuspec(string path, bool dryRun)
     var isPathValid = Path.Exists(path);
     if (isPathValid)
     {
-        var nuspecFiles = Directory.EnumerateFiles(path, "*.nuspec").ToList();
+        var nuspecFiles = Directory
+            .EnumerateFiles(path, "*.nuspec", SearchOption.AllDirectories)
+            .ToList();
 
         if (nuspecFiles.Any())
         {
             foreach (var nuspec in nuspecFiles)
             {
+                var nuspecDirectory = Path.GetDirectoryName(nuspec)!;
                 ConsoleHelper.Write($"Start processing file: ", ConsoleColor.Gray);
                 ConsoleHelper.Write($"{nuspec} \n", ConsoleColor.Cyan);
-                NuspecProcessorHelper.Process(nuspec, path, dryRun);
+                NuspecProcessorHelper.Process(nuspec, nuspecDirectory, dryRun);
                 ConsoleHelper.Write($"End processing file: ", ConsoleColor.Gray);
                 ConsoleHelper.Write($"{nuspec} \n \n", ConsoleColor.Cyan);
             }

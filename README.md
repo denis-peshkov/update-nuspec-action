@@ -37,12 +37,12 @@ Equivalent to `/github/workspace/src/MyPackage` inside the container. An absolut
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `dir` | No | `.` | Folder with `.csproj` and `.nuspec`, relative to `/github/workspace` (`.` = repo root) |
+| `dir` | No | `.` | Root folder to scan recursively for `.csproj` / `.nuspec` pairs, relative to `/github/workspace` (`.` = repo root) |
 
 ## Behavior
 
-- Looks for `*.nuspec` in `dir` (top level only, not subfolders).
-- Loads `{id}.csproj` from the same `dir`, where `{id}` is `<metadata><id>`.
+- Recursively looks for `*.nuspec` under `dir` (all subfolders).
+- Loads `{id}.csproj` from the **same folder as each** `.nuspec`, where `{id}` is `<metadata><id>`.
 - **Flat** nuspec — top-level `<dependency id="..." version="..." />` under `<dependencies>`. Package list is taken for `TargetFramework`, or the first TFM from `TargetFrameworks`.
 - **Grouped** nuspec — `<group targetFramework="net8.0">` (and other TFMs). Each group is synced only with packages that apply to that TFM in the csproj:
   - `PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'"` (and similar) for version properties;

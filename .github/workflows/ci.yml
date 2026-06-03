@@ -92,6 +92,13 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+      - name: SonarQube Quality Gate check
+        uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
+        with:
+          pollingTimeoutSec: 60
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
       - name: Build Docker image
         run: docker build -t update-nuspec-action:ci .
 

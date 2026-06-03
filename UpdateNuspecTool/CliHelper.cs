@@ -47,15 +47,16 @@ internal static class CliHelper
              Sync NuGet <dependencies> in *.nuspec with PackageReference versions from matching *.csproj files.
 
              DESCRIPTION
-               Scans a directory for .nuspec files, finds a .csproj with the same name as <id> in nuspec metadata,
-               compares package versions, and rewrites the <dependencies> section (flat or per targetFramework group).
+               Recursively scans a directory for .nuspec files, finds a .csproj with the same name as <id>
+               in nuspec metadata in each file's folder, compares package versions, and rewrites the
+               <dependencies> section (flat or per targetFramework group).
                Use dry-run to preview changes without saving files.
 
              USAGE
                UpdateNuspecTool [path] [options]
 
              ARGUMENTS
-               path                    Directory to scan (default: current directory).
+               path                    Root directory to scan recursively (default: current directory).
                                        In GitHub Actions the action passes a path relative to /github/workspace.
 
              OPTIONS
