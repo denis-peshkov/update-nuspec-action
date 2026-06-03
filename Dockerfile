@@ -12,7 +12,9 @@ LABEL com.github.actions.icon="activity"
 LABEL com.github.actions.color="yellow"
 
 COPY /tools/UpdateNuspecTool .
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 WORKDIR /github/workspace
 
-ENTRYPOINT ["/UpdateNuspecTool"]
+ENTRYPOINT ["/entrypoint.sh"]

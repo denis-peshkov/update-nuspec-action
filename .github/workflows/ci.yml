@@ -4,19 +4,68 @@ on:
   push:
     branches:
       - master
+      - release/*
+      - hotfix/*
   pull_request:
+  workflow_dispatch: # allows manual runs from the Actions tab
 
 jobs:
-  docker:
+  build:
+    permissions: # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#defining-access-for-the-github_token-scopes
+      contents: read
+
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Disabling shallow clones is recommended for improving the relevancy of reporting
+
+      - name: Setup GitVersion
+        uses: gittools/actions/gitversion/setup@v1.1.1
+        with:
+          versionSpec: 5.12.0
+
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v1.1.1
+        with:
+          useConfigFile: true
 
       - name: Build Docker image
         run: docker build -t update-nuspec-action:ci .
 
-      - name: Smoke test (default workspace, no .nuspec in repo)
+      - name: Smoke test (repo root, relative dir ".")
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/github/workspace" \
-            update-nuspec-action:ci | grep -q 'nuspec files not found'
+            update-nuspec-action:ci . | grep -q 'nuspec files not found'
+
+      - name: Smoke test (relative path under workspace)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/github/workspace" \
+            update-nuspec-action:ci .github | grep -q 'nuspec files not found'
+
+      - name: Create git tag
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+        run: |
+          tag="v${{ env.semVer }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists, skipping"
+            exit 0
+          fi
+          git tag "$tag"
+
+      - name: Push git tag
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+        run: |
+          tag="v${{ env.semVer }}"
+          if ! git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag was not created, skipping push"
+            exit 0
+          fi
+          git config user.name 'Denis Peshkov'
+          git config user.email 'denis.peshkov@outlook.com'
+          git remote set-url origin "https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}"
+          git push origin "$tag"

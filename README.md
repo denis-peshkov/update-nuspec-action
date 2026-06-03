@@ -4,25 +4,46 @@ GitHub Action (Docker) that scans .NET projects in a directory and updates the `
 
 ## Usage
 
-```yaml
-- uses: denis-peshkov/update-nuspec-action@v1
-```
-
-With a custom scan directory:
+Pin the action version via `env.semVer` (or a repository variable — see below):
 
 ```yaml
-- uses: denis-peshkov/update-nuspec-action@v1
-  with:
-    dir: /github/workspace/src/MyPackage
+env:
+  semVer: v0.1.0-alpha.1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # GitHub Actions allows only github, inputs and vars in `uses` (not env).
+      # Keep semVer in env for other steps; reference the same value in `uses`:
+      - uses: denis-peshkov/update-nuspec-action@${{ vars.semVer }}
+        with:
+          dir: .
 ```
+
+Set the repository variable **semVer** (Settings → Secrets and variables → Actions → Variables) to the same value as `env.semVer`, for example `v0.1.0-alpha.1`.
+
+With a subdirectory (path is **relative to** `/github/workspace`, not the server root):
+
+```yaml
+env:
+  semVer: v0.1.0-alpha.1
+
+steps:
+  - uses: denis-peshkov/update-nuspec-action@${{ vars.semVer }}
+    with:
+      dir: src/MyPackage
+```
+
+Equivalent to `/github/workspace/src/MyPackage` inside the container. An absolute path (starting with `/`) is used as-is.
 
 ## Inputs
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `dir` | No | `/github/workspace` | Path inside the container to the folder with `.csproj` and `.nuspec` files |
-
-In a typical workflow the repository is checked out into `/github/workspace`, so the default covers the repo root.
+| `dir` | No | `.` | Folder with `.csproj` and `.nuspec`, relative to `/github/workspace` (`.` = repo root) |
 
 ## Behavior
 
@@ -37,13 +58,24 @@ In a typical workflow the repository is checked out into `/github/workspace`, so
 - **Runner:** `ubuntu-latest` (or another **linux/amd64** host). The bundled tool is published for `linux-x64`.
 - **.NET:** The image includes .NET 8 runtime (framework-dependent apphost).
 
+## Versioning (this repository)
+
+On push to `master` / `release/*` / `hotfix/*`, CI runs [GitVersion](https://gitversion.net/) and exports **`env.semVer`**, then creates tag **`v${{ env.semVer }}`** (for example `v1.0.1`).
+
+`GitVersion.yml` sets `next-version: 1.0.0`. After the first tagged release, version increments follow GitVersion rules and commit history.
+
+To publish a new action version after CI pushed tag `vX.Y.Z`:
+
+1. Open [Releases](https://github.com/denis-peshkov/update-nuspec-action/releases) and create a release for the new tag (or use `gh release create vX.Y.Z`).
+2. Update **`vars.semVer`** (and `env.semVer` in your consumer workflows) to `vX.Y.Z`.
+
 ## Development
 
 Build and run locally (amd64):
 
 ```bash
 docker build -t update-nuspec-action:local .
-docker run --rm -v "$PWD/.github/fixtures/sample:/work" update-nuspec-action:local /work
+docker run --rm -v "$PWD:/github/workspace" update-nuspec-action:local .github/fixtures/sample
 ```
 
 CI runs `docker build` and a smoke test on push/PR (see `.github/workflows/ci.yml`).

@@ -5,9 +5,9 @@ branding:
   color: yellow
 inputs:
   dir:
-    description: 'Directory to scan for .csproj and .nuspec files (repository root in workflows: /github/workspace)'
+    description: 'Directory to scan, relative to /github/workspace (e.g. src/MyPackage). Use "." for repo root. Absolute paths are passed through unchanged.'
     required: false
-    default: '/github/workspace'
+    default: '.'
 #outputs:
 #  upgrade-projects:
 #    description: 'An array of projects that need to be upgraded.'
