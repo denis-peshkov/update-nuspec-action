@@ -1,24 +1,93 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>disable</ImplicitUsings>
+    <TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <LangVersion>11</LangVersion>
     <Nullable>enable</Nullable>
-    <LangVersion>12</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnablePreviewFeatures>false</EnablePreviewFeatures>
     <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU</Platforms>
-    <EnablePreviewFeatures>false</EnablePreviewFeatures>
-    <NoWarn>1701;1702;1591;CS8618;NU1701;</NoWarn>
+    <NoWarn>1701;1702;1591;CS8618;</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <MailKit>4.16.0</MailKit>
+    <MicrosoftAspNetCoreHttpAbstractions>2.3.0</MicrosoftAspNetCoreHttpAbstractions>
+    <MicrosoftExtensionsConfiguration>8.0.0</MicrosoftExtensionsConfiguration>
+    <MicrosoftExtensionsDependencyInjectionAbstractions>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractions>
+    <MicrosoftExtensionsLoggingAbstractions>8.0.3</MicrosoftExtensionsLoggingAbstractions>
+    <MicrosoftExtensionsOptions>8.0.2</MicrosoftExtensionsOptions>
+    <MicrosoftExtensionsOptionsConfigurationExtensions>8.0.0</MicrosoftExtensionsOptionsConfigurationExtensions>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <MailKit>4.16.0</MailKit>
+    <MicrosoftAspNetCoreHttpAbstractions>2.3.0</MicrosoftAspNetCoreHttpAbstractions>
+    <MicrosoftExtensionsConfiguration>8.0.0</MicrosoftExtensionsConfiguration>
+    <MicrosoftExtensionsDependencyInjectionAbstractions>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractions>
+    <MicrosoftExtensionsLoggingAbstractions>8.0.3</MicrosoftExtensionsLoggingAbstractions>
+    <MicrosoftExtensionsOptions>8.0.2</MicrosoftExtensionsOptions>
+    <MicrosoftExtensionsOptionsConfigurationExtensions>8.0.0</MicrosoftExtensionsOptionsConfigurationExtensions>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net7.0'">
+    <MailKit>4.16.0</MailKit>
+    <MicrosoftAspNetCoreHttpAbstractions>2.3.0</MicrosoftAspNetCoreHttpAbstractions>
+    <MicrosoftExtensionsConfiguration>8.0.0</MicrosoftExtensionsConfiguration>
+    <MicrosoftExtensionsDependencyInjectionAbstractions>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractions>
+    <MicrosoftExtensionsLoggingAbstractions>8.0.3</MicrosoftExtensionsLoggingAbstractions>
+    <MicrosoftExtensionsOptions>8.0.2</MicrosoftExtensionsOptions>
+    <MicrosoftExtensionsOptionsConfigurationExtensions>8.0.0</MicrosoftExtensionsOptionsConfigurationExtensions>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <MailKit>4.16.0</MailKit>
+    <MicrosoftAspNetCoreHttpAbstractions>2.3.0</MicrosoftAspNetCoreHttpAbstractions>
+    <MicrosoftExtensionsConfiguration>8.0.0</MicrosoftExtensionsConfiguration>
+    <MicrosoftExtensionsDependencyInjectionAbstractions>8.0.2</MicrosoftExtensionsDependencyInjectionAbstractions>
+    <MicrosoftExtensionsLoggingAbstractions>8.0.3</MicrosoftExtensionsLoggingAbstractions>
+    <MicrosoftExtensionsOptions>8.0.2</MicrosoftExtensionsOptions>
+    <MicrosoftExtensionsOptionsConfigurationExtensions>8.0.0</MicrosoftExtensionsOptionsConfigurationExtensions>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <MailKit>4.16.0</MailKit>
+    <MicrosoftAspNetCoreHttpAbstractions>2.3.0</MicrosoftAspNetCoreHttpAbstractions>
+    <MicrosoftExtensionsConfiguration>9.0.15</MicrosoftExtensionsConfiguration>
+    <MicrosoftExtensionsDependencyInjectionAbstractions>9.0.15</MicrosoftExtensionsDependencyInjectionAbstractions>
+    <MicrosoftExtensionsLoggingAbstractions>9.0.15</MicrosoftExtensionsLoggingAbstractions>
+    <MicrosoftExtensionsOptions>9.0.15</MicrosoftExtensionsOptions>
+    <MicrosoftExtensionsOptionsConfigurationExtensions>9.0.15</MicrosoftExtensionsOptionsConfigurationExtensions>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <MailKit>4.16.0</MailKit>
+    <MicrosoftAspNetCoreHttpAbstractions>2.3.0</MicrosoftAspNetCoreHttpAbstractions>
+    <MicrosoftExtensionsConfiguration>10.0.7</MicrosoftExtensionsConfiguration>
+    <MicrosoftExtensionsDependencyInjectionAbstractions>10.0.7</MicrosoftExtensionsDependencyInjectionAbstractions>
+    <MicrosoftExtensionsLoggingAbstractions>10.0.7</MicrosoftExtensionsLoggingAbstractions>
+    <MicrosoftExtensionsOptions>10.0.7</MicrosoftExtensionsOptions>
+    <MicrosoftExtensionsOptionsConfigurationExtensions>10.0.7</MicrosoftExtensionsOptionsConfigurationExtensions>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.17.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+    <Folder Include="Viber\" />
+    <Folder Include="WatsApp\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MailKit" Version="$(MailKit)" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="$(MicrosoftAspNetCoreHttpAbstractions)" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="$(MicrosoftExtensionsConfiguration)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftExtensionsDependencyInjectionAbstractions)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsLoggingAbstractions)" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="$(MicrosoftExtensionsOptions)" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="$(MicrosoftExtensionsOptionsConfigurationExtensions)" />
+
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.203" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
