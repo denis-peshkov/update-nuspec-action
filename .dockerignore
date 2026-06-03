@@ -10,12 +10,12 @@
 *.md
 LICENSE
 TestResults/
+artifacts/
 GitVersion.yml
 UpdateNuspecTool.slnx
 UpdateNuspecTool.sln.DotSettings.user
 action.yml
 
-UpdateNuspecTool/
 UpdateNuspecTool.Tests/
-
-!artifacts/publish/linux-x64/UpdateNuspecTool
+**/bin/
+**/obj/

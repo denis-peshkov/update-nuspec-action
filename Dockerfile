@@ -1,4 +1,12 @@
-﻿# Runtime image; single-file publish from CI (artifacts/publish/linux-x64)
+﻿# Publish in image so `uses: …@v1` works without artifacts/ in git
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY UpdateNuspecTool/ UpdateNuspecTool/
+RUN dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
+    -c Release \
+    -r linux-x64 \
+    -o /app/publish
+
 FROM mcr.microsoft.com/dotnet/runtime:8.0
 
 LABEL maintainer="Denis Peshkov <denis.peshkov@outlook.com>"
@@ -10,7 +18,7 @@ LABEL com.github.actions.description="A Github action that scans .NET projects, 
 LABEL com.github.actions.icon="activity"
 LABEL com.github.actions.color="yellow"
 
-COPY artifacts/publish/linux-x64/UpdateNuspecTool /UpdateNuspecTool
+COPY --from=build /app/publish/UpdateNuspecTool /UpdateNuspecTool
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /UpdateNuspecTool /entrypoint.sh
 

@@ -66,13 +66,6 @@ jobs:
             -p:CLSCompliant=true \
             -p:NeutralLanguage=en
 
-          dotnet publish "$TOOL_PROJECT" \
-            --configuration "$BUILD_CONFIG" \
-            --no-restore \
-            --no-build \
-            -r linux-x64 \
-            -o artifacts/publish/linux-x64
-
       - name: Run tests
         run: >
           dotnet test "$TEST_PROJECT"
