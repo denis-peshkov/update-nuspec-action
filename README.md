@@ -68,10 +68,11 @@ Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.cspr
 On push to `master` / `release/*` / `hotfix/*`, CI runs [GitVersion](https://gitversion.net/) and exports **`env.semVer`**, then creates tag **`v${{ env.semVer }}`** (for example `v0.2.1`).
 
 1. Checks out with `fetch-depth: 0` (full history for [GitVersion](https://gitversion.net/)).
-2. Builds tests (and tool for test host), then publishes `UpdateNuspecTool` for `linux-x64` (single-file).
-3. Runs `dotnet test` on the test project.
-4. Builds and smoke-tests the Docker image.
-5. On protected branches, creates and pushes tag **`v${{ env.semVer }}`**.
+2. Restores the test and tool projects (`linux-x64` RID for the tool).
+3. Builds and publishes `UpdateNuspecTool` as a single-file app for `linux-x64` (GitVersion MSBuild properties).
+4. Runs `dotnet test` on the test project (OpenCover for SonarCloud).
+5. SonarCloud scan, then builds and smoke-tests the Docker image.
+6. On `master` / `release/*` / `hotfix/*`, creates and pushes tag **`v${{ env.semVer }}`**.
 
 To publish a new action version after CI pushed tag `vX.Y.Z`:
 
@@ -93,8 +94,11 @@ To publish a new action version after CI pushed tag `vX.Y.Z`:
 ### Tests
 
 ```bash
-dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release
+dotnet restore UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
+dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release --no-restore
 ```
+
+CI restores the test project in **Restore dependencies**, then runs tests after the tool is published (see `.github/workflows/ci.yml`).
 
 Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `config.nuspec`, `cgf.nuspec`, …).
 
@@ -113,13 +117,18 @@ Publish the tool locally (same flags; change `-r` and output folder per OS/CPU):
 **Linux (x64)** — used in the action Docker image and `ubuntu-latest`:
 
 ```bash
+dotnet restore UpdateNuspecTool/UpdateNuspecTool.csproj -r linux-x64
 dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
   -c Release \
+  --no-restore \
   -r linux-x64 \
   --self-contained false \
-  -p:PublishSingleFile=true \
   -o ./artifacts/publish/linux-x64
+```
 
+(`PublishSingleFile` is enabled in the `.csproj` when `-r linux-x64` is set.)
+
+```bash
 ./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
 
 # Demo / test run: full report in console, no file changes
@@ -162,10 +171,10 @@ Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
 
 ### Docker image
 
-Build, publish single-file for `linux-x64`, then the image (same order as CI):
+Restore, build, and publish the tool for `linux-x64` (same as the CI **Build** step), then build the image:
 
 ```bash
-dotnet build UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj -c Release
+dotnet restore UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
 dotnet restore UpdateNuspecTool/UpdateNuspecTool.csproj -r linux-x64
 dotnet build UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-restore -r linux-x64
 dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-restore --no-build \
@@ -179,7 +188,7 @@ docker run --rm --platform linux/amd64 \
 
 On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub-hosted runners.
 
-CI runs `dotnet test`, `docker build`, and smoke tests on push/PR (see `.github/workflows/ci.yml`).
+Full pipeline on push/PR: restore → publish tool → tests → SonarCloud → `docker build` and smoke tests (`.github/workflows/ci.yml`).
 
 ## License
 

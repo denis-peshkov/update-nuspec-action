@@ -16,6 +16,8 @@ jobs:
 
     env:
       BUILD_CONFIG: 'Release'
+      TEST_PROJECT: 'UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj'
+      TOOL_PROJECT: 'UpdateNuspecTool/UpdateNuspecTool.csproj'
 
     runs-on: ubuntu-latest
 
@@ -42,11 +44,12 @@ jobs:
 
       - name: Restore dependencies
         run: |
-          dotnet restore UpdateNuspecTool.slnx
+          dotnet restore "$TEST_PROJECT"
+          dotnet restore "$TOOL_PROJECT" -r linux-x64
 
       - name: Build
         run: |
-          dotnet build UpdateNuspecTool/UpdateNuspecTool.csproj \
+          dotnet build "$TOOL_PROJECT" \
             --configuration "$BUILD_CONFIG" \
             --no-restore \
             -r linux-x64 \
@@ -63,21 +66,18 @@ jobs:
             -p:CLSCompliant=true \
             -p:NeutralLanguage=en
 
-          dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
+          dotnet publish "$TOOL_PROJECT" \
             --configuration "$BUILD_CONFIG" \
             --no-restore \
             --no-build \
             -r linux-x64 \
-            --self-contained false \
-            -p:Version=${GitVersion_SemVer} \
-            -p:AssemblyVersion=${GitVersion_AssemblySemVer} \
-            -p:FileVersion=${GitVersion_AssemblySemFileVer} \
-            -p:InformationalVersion="${GitVersion_InformationalVersion}" \
             -o artifacts/publish/linux-x64
 
       - name: Run tests
         run: >
-          dotnet test /p:Configuration=$BUILD_CONFIG
+          dotnet test "$TEST_PROJECT"
+          --configuration "$BUILD_CONFIG"
+          --no-restore
           --verbosity normal
           --collect:"XPlat Code Coverage"
           --results-directory ./TestResults
@@ -115,12 +115,12 @@ jobs:
             update-nuspec-action:ci .github | grep -q 'nuspec files not found'
 
       - name: Create git Tag
-        if: ${{ contains('refs/heads/master', github.ref) || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
+        if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
         run: |
           git tag v${{ env.semVer }}
 
       - name: Push git Tag
-        if: ${{ contains('refs/heads/master', github.ref) || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
+        if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
         run: |
           git config --global user.name 'Denis Peshkov'
           git config --global user.email 'denis.peshkov@outlook.com'
