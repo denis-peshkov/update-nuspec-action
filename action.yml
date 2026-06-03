@@ -5,9 +5,9 @@ branding:
   color: yellow
 inputs:
   dir:
-    description: 'The analyze directory'
-    required: true
-    default: '/.'
+    description: 'Directory to scan for .csproj and .nuspec files (repository root in workflows: /github/workspace)'
+    required: false
+    default: '/github/workspace'
 #outputs:
 #  upgrade-projects:
 #    description: 'An array of projects that need to be upgraded.'

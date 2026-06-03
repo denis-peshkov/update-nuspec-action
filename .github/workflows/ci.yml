@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t update-nuspec-action:ci .
+
+      - name: Smoke test (default workspace, no .nuspec in repo)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/github/workspace" \
+            update-nuspec-action:ci | grep -q 'nuspec files not found'

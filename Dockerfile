@@ -7,10 +7,12 @@ LABEL repository="https://github.com/denis-peshkov/update-nuspec-action"
 LABEL homepage="https://github.com/denis-peshkov/update-nuspec-action"
 
 LABEL com.github.actions.name="Update *.nuspec"
-LABEL com.github.actions.description="A Github action that scans .NET projects, and update nuspec-file."
+LABEL com.github.actions.description="A Github action that scans .NET projects, and update in nuspec-file dependencies node."
 LABEL com.github.actions.icon="activity"
 LABEL com.github.actions.color="yellow"
 
 COPY /tools/UpdateNuspecTool .
 
-ENTRYPOINT [ "dotnet", "/UpdateNuspecTool" ]
+WORKDIR /github/workspace
+
+ENTRYPOINT ["/UpdateNuspecTool"]
