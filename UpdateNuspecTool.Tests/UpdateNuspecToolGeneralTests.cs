@@ -1,5 +1,3 @@
-using UpdateNuspecTool;
-
 namespace UpdateNuspecTool.Tests;
 
 [TestFixture]
@@ -90,11 +88,15 @@ public sealed class UpdateNuspecToolGeneralTests
     }
 
     [Test]
-    public void GetVersionText_contains_tool_name_and_semver()
+    public void GetVersionText_matches_assembly_version()
     {
-        var text = CliHelper.GetVersionText();
+        var assembly = typeof(CliHelper).Assembly;
+        var expected = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion
+            ?? assembly.GetName().Version?.ToString(3)
+            ?? "unknown";
 
-        text.Should().StartWith("UpdateNuspecTool ");
-        text.Should().Contain("0.2.0");
+        CliHelper.GetVersionText().Should().Be($"UpdateNuspecTool {expected}");
     }
 }
