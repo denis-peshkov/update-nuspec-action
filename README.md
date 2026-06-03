@@ -13,9 +13,11 @@
 
 # update-nuspec-action
 
-GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from `.csproj`.
+GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from the related `.csproj` (project name = `<id>` in nuspec metadata).
 
 ## Usage
+
+Pin a [release tag](https://github.com/denis-peshkov/update-nuspec-action/releases) (recommended):
 
 ```yaml
 - uses: denis-peshkov/update-nuspec-action@v1
@@ -40,34 +42,75 @@ Equivalent to `/github/workspace/src/MyPackage` inside the container. An absolut
 ## Behavior
 
 - Recursively looks for `*.nuspec` under `dir`.
-- Reads package versions from related `.csproj` (`PackageReference`).
-- Rewrites the `<dependencies>` node in each `.nuspec`.
+- Finds `ProjectName.csproj` where `ProjectName` equals `<metadata><id>` in the nuspec.
+- Reads versions from all `PackageReference` entries in the csproj.
+- Rewrites `<dependencies>` in each nuspec:
+  - **Flat** — top-level `<dependency id="..." version="..." />` elements.
+  - **Grouped** — `<group targetFramework="net8.0">` (and other TFMs); each group is updated from the same csproj package list.
+- **Console report:** for grouped nuspecs, changes are printed **per** `<group targetFramework="...">`; flat nuspecs use a single report block.
 - Exits with code `0` if no `.nuspec` files are found (prints `*.nuspec files not found!`).
 - Prints an error and exits non-zero if `dir` does not exist.
+
+### Limitation (multi-TFM groups)
+
+When several `<group targetFramework="...">` blocks exist, file updates apply **the same** package versions (from the single csproj) to every group. Per-TFM versions from multi-targeting projects are not resolved separately yet.
 
 ## Requirements
 
 - **Runner:** `ubuntu-latest` (or another **linux/amd64** host). The bundled tool is published for `linux-x64`.
-- **.NET:** The image includes .NET 8 runtime (framework-dependent apphost).
+- **.NET:** The image includes .NET 8 runtime (framework-dependent publish).
 
 ## Versioning (this repository)
 
-On push to `master` / `release/*` / `hotfix/*`, CI runs [GitVersion](https://gitversion.net/) and exports **`env.semVer`**, then creates tag **`v${{ env.semVer }}`** (for example `v1.0.1`).
+CI (`.github/workflows/ci.yml`) on push to `master` / `release/*` / `hotfix/*` and on pull requests:
 
-`GitVersion.yml` sets `next-version: 1.0.0`. After the first tagged release, version increments follow GitVersion rules and commit history.
+1. Checks out with `fetch-depth: 0` (full history for [GitVersion](https://gitversion.net/)).
+2. Runs `dotnet test`.
+3. Builds the Docker image with GitVersion MSBuild properties (`Version`, `AssemblyVersion`, `FileVersion`, `InformationalVersion`, assembly metadata).
+4. Smoke-tests the image.
+5. On protected branches, creates and pushes tag **`v${{ env.semVer }}`**.
 
-To publish a new action version after CI pushed tag `vX.Y.Z`:
+`GitVersion.yml` sets `next-version: 0.2.0`. Further increments follow GitVersion branch rules and commit history.
 
-1. Open [Releases](https://github.com/denis-peshkov/update-nuspec-action/releases) and create a release for the new tag (or use `gh release create vX.Y.Z`).
-2. Update **`vars.semVer`** (and `env.semVer` in your consumer workflows) to `vX.Y.Z`.
+To ship a new action version after CI pushed tag `vX.Y.Z`:
+
+1. Open [Releases](https://github.com/denis-peshkov/update-nuspec-action/releases) and publish a release for the tag (or `gh release create vX.Y.Z`).
+2. Point consumer workflows at `@vX.Y.Z` (or update `vars.semVer` if you centralize the pin).
 
 ## Development
 
-The action image builds **`UpdateNuspecTool`** from source (`UpdateNuspecTool/`) for `linux-x64` during `docker build` (multi-stage `Dockerfile`). The old binary in `tools/` is not used.
+### Repository layout
 
-Publish the tool locally (same flags; change `-r` and output folder per OS/CPU):
+| Path | Role |
+|------|------|
+| `UpdateNuspecTool/` | CLI source |
+| `UpdateNuspecTool.Tests/` | NUnit tests and fixtures |
+| `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
+| `Dockerfile` | Multi-stage image: SDK build → runtime + `entrypoint.sh` |
+| `action.yml` | Action metadata; runs the Docker image |
 
-**Linux (x64)** — used in the action Docker image and `ubuntu-latest`:
+The action image builds **`UpdateNuspecTool`** from source during `docker build`. The old binary in `tools/` is not used.
+
+### Tests
+
+```bash
+dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release
+```
+
+Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `config.nuspec`, `cgf.nuspec`, …).
+
+### CLI (local)
+
+Options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`).
+
+```bash
+dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --help
+dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- UpdateNuspecTool.Tests/TestData --dry-run
+```
+
+Publish the tool locally (change `-r` and output folder per OS/CPU):
+
+**Linux (x64)** — same RID as the action image:
 
 ```bash
 dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
@@ -78,16 +121,7 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
   -o ./artifacts/publish/linux-x64
 
 ./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
-
-# Demo / test run: full report in console, no file changes
 ./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData --dry-run
-```
-
-CLI options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`).
-
-```bash
-dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --help
-dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --version
 ```
 
 **Windows (x64):**
@@ -103,7 +137,7 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj `
 ./artifacts/publish/win-x64/UpdateNuspecTool.exe ./UpdateNuspecTool.Tests/TestData
 ```
 
-**macOS (Apple Silicon, ARM64):**
+**macOS (Apple Silicon):**
 
 ```bash
 dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
@@ -116,15 +150,17 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
 ./artifacts/publish/osx-arm64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
 ```
 
-| Platform | Runtime ID (`-r`) | Output executable |
-|----------|-------------------|-------------------|
+| Platform | Runtime ID (`-r`) | Executable |
+|----------|-------------------|------------|
 | Linux x64 | `linux-x64` | `UpdateNuspecTool` |
 | Windows x64 | `win-x64` | `UpdateNuspecTool.exe` |
 | macOS ARM64 | `osx-arm64` | `UpdateNuspecTool` |
 
-Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
+Other RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
 
-Build and run the action image (Linux x64 only):
+### Docker image
+
+Local build (defaults in `Dockerfile` `ARG`, e.g. `VERSION=0.2.0`):
 
 ```bash
 docker build --platform linux/amd64 -t update-nuspec-action:local .
@@ -133,13 +169,19 @@ docker run --rm --platform linux/amd64 \
   update-nuspec-action:local UpdateNuspecTool.Tests/TestData/
 ```
 
-CI runs `dotnet test`, `docker build`, and smoke tests on push/PR (see `.github/workflows/ci.yml`).
+CI passes GitVersion values as build arguments (same idea as `dotnet build` with `-p:Version=...`):
 
 ```bash
-dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
+docker build --platform linux/amd64 -t update-nuspec-action:local . \
+  --build-arg VERSION="0.2.0" \
+  --build-arg ASSEMBLY_VERSION="0.2.0.0" \
+  --build-arg FILE_VERSION="0.2.0.0" \
+  --build-arg INFORMATIONAL_VERSION="0.2.0+abc123"
 ```
 
-Test fixtures: `UpdateNuspecTool.Tests/TestData/` (`config.nuspec`, `cgf.nuspec`, `Cross.Messaging.nuspec`, …).
+Optional metadata args: `COMPANY`, `PRODUCT`, `DESCRIPTION`, `REPOSITORY_URL`, `REPOSITORY_TYPE`, `CLS_COMPLIANT`, `NEUTRAL_LANGUAGE`, `BUILD_CONFIG`.
+
+On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub-hosted runners.
 
 ## License
 

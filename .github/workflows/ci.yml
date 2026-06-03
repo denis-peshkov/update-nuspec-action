@@ -36,7 +36,22 @@ jobs:
         run: dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release
 
       - name: Build Docker image
-        run: docker build -t update-nuspec-action:ci .
+        env:
+          BUILD_CONFIG: Release
+        run: |
+          docker build -t update-nuspec-action:ci . \
+            --build-arg BUILD_CONFIG="${BUILD_CONFIG}" \
+            --build-arg VERSION="${GitVersion_SemVer}" \
+            --build-arg ASSEMBLY_VERSION="${GitVersion_AssemblySemVer}" \
+            --build-arg FILE_VERSION="${GitVersion_AssemblySemFileVer}" \
+            --build-arg INFORMATIONAL_VERSION="${GitVersion_InformationalVersion}" \
+            --build-arg COMPANY="Denis Peshkov" \
+            --build-arg PRODUCT="update-nuspec-action" \
+            --build-arg DESCRIPTION="GitHub Action that syncs NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files." \
+            --build-arg REPOSITORY_URL="https://github.com/denis-peshkov/update-nuspec-action.git" \
+            --build-arg REPOSITORY_TYPE=git \
+            --build-arg CLS_COMPLIANT=true \
+            --build-arg NEUTRAL_LANGUAGE=en
 
       - name: Smoke test (repo root, relative dir ".")
         run: |
@@ -50,25 +65,15 @@ jobs:
             -v "${{ github.workspace }}:/github/workspace" \
             update-nuspec-action:ci .github | grep -q 'nuspec files not found'
 
-      - name: Create git tag
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+      - name: Create git Tag
+        if: ${{ contains('refs/heads/master', github.ref) || contains('refs/heads/release', github.ref) || contains('refs/heads/hotfix', github.ref) }}
         run: |
-          tag="v${{ env.semVer }}"
-          if git rev-parse "$tag" >/dev/null 2>&1; then
-            echo "Tag $tag already exists, skipping"
-            exit 0
-          fi
-          git tag "$tag"
+          git tag v${{ env.semVer }}
 
-      - name: Push git tag
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+      - name: Push git Tag
+        if: ${{ contains(fromJson('["refs/heads/master", "refs/heads/release", "refs/heads/hotfix"]'), github.ref) }}
         run: |
-          tag="v${{ env.semVer }}"
-          if ! git rev-parse "$tag" >/dev/null 2>&1; then
-            echo "Tag $tag was not created, skipping push"
-            exit 0
-          fi
-          git config user.name 'Denis Peshkov'
-          git config user.email 'denis.peshkov@outlook.com'
-          git remote set-url origin "https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}"
-          git push origin "$tag"
+          git config --global user.name 'Denis Peshkov'
+          git config --global user.email 'denis.peshkov@outlook.com'
+          git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
+          git push origin v${{ env.semVer }}
