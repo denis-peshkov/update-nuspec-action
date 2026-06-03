@@ -25,11 +25,6 @@ jobs:
         with:
           fetch-depth: 0 # Disabling shallow clones is recommended for improving the relevancy of reporting
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
       - name: Setup GitVersion
         uses: gittools/actions/gitversion/setup@v1.1.1
         with:
@@ -41,8 +36,15 @@ jobs:
         with:
           useConfigFile: true
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
       - name: Restore dependencies
-        run: dotnet restore
+        run: |
+          dotnet restore "$SOLUTION"
+          dotnet restore UpdateNuspecTool/UpdateNuspecTool.csproj -r linux-x64
 
       - name: Build
         run: |
@@ -54,12 +56,24 @@ jobs:
             -p:FileVersion=${GitVersion_AssemblySemFileVer} \
             -p:InformationalVersion="${GitVersion_InformationalVersion}" \
             -p:Company="Denis Peshkov" \
-            -p:Product="update-nuspec-action" \
+            -p:Product="UpdateNuspecTool" \
             -p:Description="GitHub Action that syncs NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files." \
             -p:RepositoryUrl="https://github.com/denis-peshkov/update-nuspec-action.git" \
             -p:RepositoryType=git \
             -p:CLSCompliant=true \
             -p:NeutralLanguage=en
+
+          dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
+            --configuration "$BUILD_CONFIG" \
+            --no-restore \
+            --no-build \
+            -r linux-x64 \
+            --self-contained false \
+            -p:Version=${GitVersion_SemVer} \
+            -p:AssemblyVersion=${GitVersion_AssemblySemVer} \
+            -p:FileVersion=${GitVersion_AssemblySemFileVer} \
+            -p:InformationalVersion="${GitVersion_InformationalVersion}" \
+            -o artifacts/publish/linux-x64
 
       - name: Run tests
         run: >
@@ -78,7 +92,8 @@ jobs:
         with:
           args: >
             -Dsonar.organization=peshkov
-            -Dsonar.projectKey=update-nuspec-action
+            -Dsonar.projectKey=UpdateNuspecTool
+            -Dsonar.projectName=UpdateNuspecTool
             -Dsonar.cs.opencover.reportsPaths=TestResults/**/coverage.opencover.xml
             -Dsonar.sources=UpdateNuspecTool/
             -Dsonar.tests=UpdateNuspecTool.Tests/
@@ -88,32 +103,19 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
-        run: |
-          docker build -t update-nuspec-action:ci . \
-            --build-arg BUILD_CONFIG="${BUILD_CONFIG}" \
-            --build-arg VERSION="${GitVersion_SemVer}" \
-            --build-arg ASSEMBLY_VERSION="${GitVersion_AssemblySemVer}" \
-            --build-arg FILE_VERSION="${GitVersion_AssemblySemFileVer}" \
-            --build-arg INFORMATIONAL_VERSION="${GitVersion_InformationalVersion}" \
-            --build-arg COMPANY="Denis Peshkov" \
-            --build-arg PRODUCT="update-nuspec-action" \
-            --build-arg DESCRIPTION="GitHub Action that syncs NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files." \
-            --build-arg REPOSITORY_URL="https://github.com/denis-peshkov/update-nuspec-action.git" \
-            --build-arg REPOSITORY_TYPE=git \
-            --build-arg CLS_COMPLIANT=true \
-            --build-arg NEUTRAL_LANGUAGE=en
+        run: docker build -t UpdateNuspecTool:ci .
 
       - name: Smoke test (repo root, relative dir ".")
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/github/workspace" \
-            update-nuspec-action:ci . | grep -q 'nuspec files not found'
+            UpdateNuspecTool:ci . | grep -q 'nuspec files not found'
 
       - name: Smoke test (relative path under workspace)
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/github/workspace" \
-            update-nuspec-action:ci .github | grep -q 'nuspec files not found'
+            UpdateNuspecTool:ci .github | grep -q 'nuspec files not found'
 
       - name: Create git Tag
         if: ${{ contains('refs/heads/master', github.ref) || contains('refs/heads/release', github.ref) || contains('refs/heads/hotfix', github.ref) }}

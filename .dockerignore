@@ -1,4 +1,3 @@
-.dockerignore
 .editorconfig
 .env
 .git
@@ -6,11 +5,18 @@
 .vs/
 .vscode/
 .idea/
+.github/
 **/docker-compose*.yml
 *.md
 LICENSE
 tools/
+TestResults/
+GitVersion.yml
+UpdateNuspecTool.slnx
+UpdateNuspecTool.sln.DotSettings.user
+action.yml
 
-UpdateNuspecTool/**/bin/
-UpdateNuspecTool/**/obj/
-UpdateNuspecTool/.run/
+UpdateNuspecTool/
+UpdateNuspecTool.Tests/
+
+!artifacts/publish/linux-x64/UpdateNuspecTool

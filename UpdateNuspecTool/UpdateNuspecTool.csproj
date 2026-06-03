@@ -5,15 +5,17 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>false</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Version>0.2.0</Version>
-<!--        <PackAsTool>true</PackAsTool>-->
-        <PublishSingleFile>true</PublishSingleFile>
-<!--        <ToolCommandName>update-nuspec</ToolCommandName>-->
-<!--        <PackageOutputPath>./nupkg</PackageOutputPath>-->
     </PropertyGroup>
 
-    <ItemGroup>
-        <InternalsVisibleTo Include="UpdateNuspecTool.Tests" />
-    </ItemGroup>
+    <!-- Single-file only for linux-x64 publish (CI / Docker), not for Debug build in IDE -->
+    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>false</SelfContained>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' and '$(Configuration)' == 'Release'">
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+    </PropertyGroup>
 
 </Project>

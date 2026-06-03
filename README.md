@@ -89,7 +89,7 @@ To publish a new action version after CI pushed tag `vX.Y.Z`:
 | `UpdateNuspecTool/` | CLI source |
 | `UpdateNuspecTool.Tests/` | NUnit tests and fixtures |
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
-| `Dockerfile` | Multi-stage image: SDK build → runtime + `entrypoint.sh` |
+| `Dockerfile` | Runtime image; copies single-file `artifacts/publish/linux-x64/UpdateNuspecTool` from CI **Build** |
 | `action.yml` | Action metadata; runs the Docker image |
 
 ### Tests
@@ -164,26 +164,18 @@ Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
 
 ### Docker image
 
-Build and run the action image (Linux x64 only):
+Build, publish single-file for `linux-x64`, then the image (same as CI):
 
 ```bash
+dotnet build UpdateNuspecTool.slnx -c Release
+dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-build \
+  -r linux-x64 --self-contained false -o artifacts/publish/linux-x64
+
 docker build --platform linux/amd64 -t update-nuspec-action:local .
 docker run --rm --platform linux/amd64 \
   -v "$PWD:/github/workspace" \
   update-nuspec-action:local UpdateNuspecTool.Tests/TestData/
 ```
-
-CI passes GitVersion values as build arguments (same idea as `dotnet build` with `-p:Version=...`):
-
-```bash
-docker build --platform linux/amd64 -t update-nuspec-action:local . \
-  --build-arg VERSION="0.2.0" \
-  --build-arg ASSEMBLY_VERSION="0.2.0.0" \
-  --build-arg FILE_VERSION="0.2.0.0" \
-  --build-arg INFORMATIONAL_VERSION="0.2.0+abc123"
-```
-
-Optional metadata args: `COMPANY`, `PRODUCT`, `DESCRIPTION`, `REPOSITORY_URL`, `REPOSITORY_TYPE`, `CLS_COMPLIANT`, `NEUTRAL_LANGUAGE`, `BUILD_CONFIG`.
 
 On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub-hosted runners.
 
