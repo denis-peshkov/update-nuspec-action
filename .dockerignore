@@ -9,3 +9,8 @@
 **/docker-compose*.yml
 *.md
 LICENSE
+tools/
+
+UpdateNuspecTool/**/bin/
+UpdateNuspecTool/**/obj/
+UpdateNuspecTool/.run/

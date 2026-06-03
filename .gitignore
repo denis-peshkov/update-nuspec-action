@@ -1,6 +1,15 @@
-
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 
 # JetBrains Rider
 .idea/
+
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+.run/
+
+# Prebuilt tool (built in Docker from UpdateNuspecTool/)
+tools/

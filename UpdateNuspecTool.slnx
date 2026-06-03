@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/.github/" />
+  <Folder Name="/.github/workflows/">
+    <File Path=".github\workflows\ci.yml" />
+  </Folder>
+  <Folder Name="/assets/">
+    <File Path="action.yml" />
+    <File Path="Dockerfile" />
+    <File Path="entrypoint.sh" />
+    <File Path="GitVersion.yml" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="UpdateNuspecTool/UpdateNuspecTool.csproj" />
+</Solution>

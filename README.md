@@ -1,3 +1,18 @@
+[![License](https://img.shields.io/github/license/denis-peshkov/update-nuspec-action)](LICENSE)
+[![GitHub Release Date](https://img.shields.io/github/release-date/denis-peshkov/update-nuspec-action?label=released)](https://github.com/denis-peshkov/update-nuspec-action/releases)
+[![NuGetVersion](https://img.shields.io/nuget/v/UpdateNuspecTool.svg)](https://www.nuget.org/packages/UpdateNuspecTool/)
+[![NugetDownloads](https://img.shields.io/nuget/dt/UpdateNuspecTool.svg)](https://www.nuget.org/packages/UpdateNuspecTool/)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=update-nuspec-action&metric=coverage)](https://sonarcloud.io/summary/new_code?id=update-nuspec-action)
+[![issues](https://img.shields.io/github/issues/denis-peshkov/update-nuspec-action)](https://github.com/denis-peshkov/update-nuspec-action/issues)
+[![CI](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml)
+
+![Size](https://img.shields.io/github/repo-size/denis-peshkov/update-nuspec-action)
+[![GitHub contributors](https://img.shields.io/github/contributors/denis-peshkov/update-nuspec-action)](https://github.com/denis-peshkov/update-nuspec-action/contributors)
+[![GitHub commits since latest release (by date)](https://img.shields.io/github/commits-since/denis-peshkov/update-nuspec-action/latest?label=new+commits)](https://github.com/denis-peshkov/update-nuspec-action/commits/master)
+![Activity](https://img.shields.io/github/commit-activity/w/denis-peshkov/update-nuspec-action)
+![Activity](https://img.shields.io/github/commit-activity/m/denis-peshkov/update-nuspec-action)
+![Activity](https://img.shields.io/github/commit-activity/y/denis-peshkov/update-nuspec-action)
+
 # update-nuspec-action
 
 GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from `.csproj`.
@@ -50,16 +65,69 @@ To publish a new action version after CI pushed tag `vX.Y.Z`:
 
 ## Development
 
-Build and run locally (amd64):
+The action image builds **`UpdateNuspecTool`** from source (`UpdateNuspecTool/`) for `linux-x64` during `docker build` (multi-stage `Dockerfile`). The old binary in `tools/` is not used.
+
+Publish the tool locally (same flags; change `-r` and output folder per OS/CPU):
+
+**Linux (x64)** — used in the action Docker image and `ubuntu-latest`:
 
 ```bash
-docker build -t update-nuspec-action:local .
-docker run --rm -v "$PWD:/github/workspace" update-nuspec-action:local .github/fixtures/sample
+dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
+  -c Release \
+  -r linux-x64 \
+  --self-contained false \
+  -p:PublishSingleFile=true \
+  -o ./artifacts/publish/linux-x64
+
+./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool/TestData
 ```
 
-CI runs `docker build` and a smoke test on push/PR (see `.github/workflows/ci.yml`).
+**Windows (x64):**
 
-Example fixture for manual runs: `.github/fixtures/sample/` (`.csproj` + `.nuspec`).
+```powershell
+dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj `
+  -c Release `
+  -r win-x64 `
+  --self-contained false `
+  -p:PublishSingleFile=true `
+  -o ./artifacts/publish/win-x64
+
+./artifacts/publish/win-x64/UpdateNuspecTool.exe ./UpdateNuspecTool/TestData
+```
+
+**macOS (Apple Silicon, ARM64):**
+
+```bash
+dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
+  -c Release \
+  -r osx-arm64 \
+  --self-contained false \
+  -p:PublishSingleFile=true \
+  -o ./artifacts/publish/osx-arm64
+
+./artifacts/publish/osx-arm64/UpdateNuspecTool ./UpdateNuspecTool/TestData
+```
+
+| Platform | Runtime ID (`-r`) | Output executable |
+|----------|-------------------|-------------------|
+| Linux x64 | `linux-x64` | `UpdateNuspecTool` |
+| Windows x64 | `win-x64` | `UpdateNuspecTool.exe` |
+| macOS ARM64 | `osx-arm64` | `UpdateNuspecTool` |
+
+Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
+
+Build and run the action image (Linux x64 only):
+
+```bash
+docker build --platform linux/amd64 -t update-nuspec-action:local .
+docker run --rm --platform linux/amd64 \
+  -v "$PWD:/github/workspace" \
+  update-nuspec-action:local .github/fixtures/sample
+```
+
+CI runs `docker build` and smoke tests on push/PR (see `.github/workflows/ci.yml`).
+
+Test fixtures: `UpdateNuspecTool/TestData/` and `.github/fixtures/sample/`.
 
 ## License
 

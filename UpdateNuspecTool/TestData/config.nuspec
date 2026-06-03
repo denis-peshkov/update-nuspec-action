@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Boilerplate.DataFilter</id>
+    <version>7.0.0</version>
+    <authors>Guru</authors>
+    <owners>Guru</owners>
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectUrl>https://github.com/Guru/Boilerplate.DataFilter</projectUrl>
+    <repository type="git" url="https://github.com/Guru/Boilerplate.DataFilter" />
+    <releaseNotes>
+      Initial version.
+    </releaseNotes>
+    <description>Written on C#.</description>
+    <tags>NetCore</tags>
+    <dependencies>
+      <dependency id="Cross.CQRS.EF" version="7.0.0" xmlns="" />
+      <dependency id="Boilerplate.WebApi.Contract" version="8.0.0123" xmlns="" />
+      <dependency id="Microsoft.EntityFrameworkCore" version="8.40.2.preview-123" xmlns="" />
+		<dependency id="AspNetCore.HealthChecks.Rabbitmq" version="6.0.2" />
+      <dependency id="Cross.DependencyInjection" version="7.0.1" />
+      <dependency id="Boilerplate.EventBus.Contract" version="7.0.110558-preview" />
+      <dependency id="Microsoft.Extensions.Logging.Abstractions" version="7.0.0" />
+      <dependency id="Polly" version="7.2.3" />
+      <dependency id="RabbitMQ.Client" version="6.3.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Release\net7.0\Boilerplate.DataFilter*.* " target="lib\net7.0" />
+  </files>
+</package>

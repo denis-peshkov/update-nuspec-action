@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>false</ImplicitUsings>
+        <Nullable>enable</Nullable>
+<!--        <PackAsTool>true</PackAsTool>-->
+        <PublishSingleFile>true</PublishSingleFile>
+<!--        <ToolCommandName>update-nuspec</ToolCommandName>-->
+<!--        <PackageOutputPath>./nupkg</PackageOutputPath>-->
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Content Include="TestData\Boilerplate.DataFilter.csproj" />
+      <Content Include="TestData\Boilerplate.Url.Normalizer.csproj" />
+    </ItemGroup>
+
+</Project>

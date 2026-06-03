@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Boilerplate.Url.Normalizer</id>
+    <version>7.0.0</version>
+    <authors>Guru</authors>
+    <owners>Guru</owners>
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectUrl>https://github.com/Guru/Boilerplate.Url.Normalizer</projectUrl>
+    <repository type="git" url="https://github.com/Guru/Boilerplate.Url.Normalizer" />
+    <releaseNotes>
+      Initial version.
+    </releaseNotes>
+    <description>Written on C#.</description>
+    <tags>NetCore</tags>
+    <dependencies>
+      <dependency id="Cross.CQRS.EF" version="2" xmlns="" />
+      <dependency id="Boilerplate.WebApi.Contract" version="3" xmlns="" />
+      <dependency id="FluentValidation" version="11.8.0" xmlns="" />
+	        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="7.0.0" />
+      <dependency id="Serilog.AspNetCore" version="7.0.0" />
+      <dependency id="Microsoft.AspNetCore.Http.Abstractions" version="5" xmlns="" />
+      <dependency id="Microsoft.EntityFrameworkCore" version="7.0.023.234" xmlns="" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Release\net7.0\Boilerplate.Url.Normalizer*.* " target="lib\net7.0" />
+  </files>
+</package>

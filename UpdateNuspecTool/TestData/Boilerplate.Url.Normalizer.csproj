@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>11</LangVersion>
+    <Configurations>Debug;Release</Configurations>
+    <Platforms>AnyCPU</Platforms>
+    <EnablePreviewFeatures>false</EnablePreviewFeatures>
+    <NoWarn>1701;1702;1591</NoWarn>
+  </PropertyGroup>
+
+  <Target Name="DeleteBinObjFolders" BeforeTargets="Clean">
+    <RemoveDir Directories=".\bin" />
+    <Delete Files=".\obj\**\*.cs" />
+  </Target>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.234" />
+	<PackageReference Include="Cross.CQRS.EF" Version="8.8885.22-preview" />
+    <PackageReference Include="Boilerplate.WebApi.Contract" Version="22.22.00" />
+    <PackageReference Include="FluentValidation" Version="11.8.0" />
+
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="3.0.0.12" />
+    <PackageReference Include="MailKit" Version="3.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
+
+  </ItemGroup>
+
+</Project>
