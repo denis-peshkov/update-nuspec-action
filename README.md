@@ -167,8 +167,8 @@ Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
 Build, publish single-file for `linux-x64`, then the image (same as CI):
 
 ```bash
-dotnet build UpdateNuspecTool.slnx -c Release
-dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-build --no-restore \
+dotnet build UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-restore -r linux-x64
+dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-restore --no-build \
   -r linux-x64 --self-contained false -o artifacts/publish/linux-x64
 
 docker build --platform linux/amd64 -t update-nuspec-action:local .

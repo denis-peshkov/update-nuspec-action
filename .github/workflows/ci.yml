@@ -43,13 +43,14 @@ jobs:
 
       - name: Restore dependencies
         run: |
-          dotnet restore "$SOLUTION"
           dotnet restore UpdateNuspecTool/UpdateNuspecTool.csproj -r linux-x64
 
       - name: Build
         run: |
-          dotnet build "$SOLUTION" --configuration "$BUILD_CONFIG" \
+          dotnet build UpdateNuspecTool/UpdateNuspecTool.csproj \
+            --configuration "$BUILD_CONFIG" \
             --no-restore \
+            -r linux-x64 \
             -p:Configuration=$BUILD_CONFIG \
             -p:Version=${GitVersion_SemVer} \
             -p:AssemblyVersion=${GitVersion_AssemblySemVer} \
@@ -77,8 +78,7 @@ jobs:
 
       - name: Run tests
         run: >
-          dotnet test "$SOLUTION"
-          --configuration "$BUILD_CONFIG"
+          dotnet test /p:Configuration=$BUILD_CONFIG
           --no-restore
           --no-build
           --verbosity normal
@@ -123,7 +123,7 @@ jobs:
           git tag v${{ env.semVer }}
 
       - name: Push git Tag
-        if: ${{ contains(fromJson('["refs/heads/master", "refs/heads/release", "refs/heads/hotfix"]'), github.ref) }}
+        if: ${{ contains('refs/heads/master', github.ref) || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
         run: |
           git config --global user.name 'Denis Peshkov'
           git config --global user.email 'denis.peshkov@outlook.com'
