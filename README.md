@@ -4,37 +4,16 @@ GitHub Action (Docker) that scans .NET projects in a directory and updates the `
 
 ## Usage
 
-Pin the action version via `env.semVer` (or a repository variable — see below):
-
 ```yaml
-env:
-  semVer: v0.1.0-alpha.1
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # GitHub Actions allows only github, inputs and vars in `uses` (not env).
-      # Keep semVer in env for other steps; reference the same value in `uses`:
-      - uses: denis-peshkov/update-nuspec-action@${{ vars.semVer }}
-        with:
-          dir: .
+- uses: denis-peshkov/update-nuspec-action@v1
 ```
 
-Set the repository variable **semVer** (Settings → Secrets and variables → Actions → Variables) to the same value as `env.semVer`, for example `v0.1.0-alpha.1`.
-
-With a subdirectory (path is **relative to** `/github/workspace`, not the server root):
+With a custom scan directory:
 
 ```yaml
-env:
-  semVer: v0.1.0-alpha.1
-
-steps:
-  - uses: denis-peshkov/update-nuspec-action@${{ vars.semVer }}
-    with:
-      dir: src/MyPackage
+- uses: denis-peshkov/update-nuspec-action@v1
+  with:
+    dir: src/MyPackage
 ```
 
 Equivalent to `/github/workspace/src/MyPackage` inside the container. An absolute path (starting with `/`) is used as-is.
