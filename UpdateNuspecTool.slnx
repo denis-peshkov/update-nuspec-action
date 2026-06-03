@@ -12,4 +12,5 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="UpdateNuspecTool/UpdateNuspecTool.csproj" />
+  <Project Path="UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj" />
 </Solution>

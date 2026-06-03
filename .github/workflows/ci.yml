@@ -32,6 +32,9 @@ jobs:
         with:
           useConfigFile: true
 
+      - name: Test
+        run: dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release
+
       - name: Build Docker image
         run: docker build -t update-nuspec-action:ci .
 

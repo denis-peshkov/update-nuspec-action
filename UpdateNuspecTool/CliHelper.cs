@@ -24,7 +24,7 @@ internal static class CliHelper
             || arg.Equals("-v", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static void PrintVersion()
+    public static string GetVersionText()
     {
         var assembly = Assembly.GetExecutingAssembly();
         var informationalVersion = assembly
@@ -32,14 +32,16 @@ internal static class CliHelper
             ?.InformationalVersion;
         var version = assembly.GetName().Version?.ToString(3);
 
-        Console.WriteLine($"UpdateNuspecTool {informationalVersion ?? version ?? "unknown"}");
+        return $"UpdateNuspecTool {informationalVersion ?? version ?? "unknown"}";
     }
 
-    public static void PrintHelp()
+    public static void PrintVersion() => Console.WriteLine(GetVersionText());
+
+    public static string GetHelpText()
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown";
 
-        Console.WriteLine(
+        return
             $"""
              UpdateNuspecTool {version}
              Sync NuGet <dependencies> in *.nuspec with PackageReference versions from matching *.csproj files.
@@ -65,7 +67,7 @@ internal static class CliHelper
              EXAMPLES
                UpdateNuspecTool
                UpdateNuspecTool ./src/MyPackage
-               UpdateNuspecTool ./TestData --dry-run
+               UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData --dry-run
                UpdateNuspecTool -d .
                UpdateNuspecTool --version
                UpdateNuspecTool --help
@@ -75,6 +77,8 @@ internal static class CliHelper
                  with:
                    dir: src/MyPackage
 
-             """);
+             """;
     }
+
+    public static void PrintHelp() => Console.WriteLine(GetHelpText());
 }

@@ -6,7 +6,6 @@
         <ImplicitUsings>false</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Version>0.2.0</Version>
-        <DefaultItemExcludes>$(DefaultItemExcludes);TestData/**/bin/**;TestData/**/obj/**</DefaultItemExcludes>
 <!--        <PackAsTool>true</PackAsTool>-->
         <PublishSingleFile>true</PublishSingleFile>
 <!--        <ToolCommandName>update-nuspec</ToolCommandName>-->
@@ -14,10 +13,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Content Include="TestData\Boilerplate.DataFilter.csproj" />
-      <Content Include="TestData\Boilerplate.Url.Normalizer.csproj" />
-      <Content Include="TestData\Cross.Messaging.csproj" />
-      <Content Include="TestData\MyPackage.csproj" />
+        <InternalsVisibleTo Include="UpdateNuspecTool.Tests" />
     </ItemGroup>
 
 </Project>

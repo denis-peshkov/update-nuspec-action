@@ -77,10 +77,10 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
   -p:PublishSingleFile=true \
   -o ./artifacts/publish/linux-x64
 
-./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool/TestData
+./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
 
 # Demo / test run: full report in console, no file changes
-./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool/TestData --dry-run
+./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData --dry-run
 ```
 
 CLI options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`).
@@ -100,7 +100,7 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj `
   -p:PublishSingleFile=true `
   -o ./artifacts/publish/win-x64
 
-./artifacts/publish/win-x64/UpdateNuspecTool.exe ./UpdateNuspecTool/TestData
+./artifacts/publish/win-x64/UpdateNuspecTool.exe ./UpdateNuspecTool.Tests/TestData
 ```
 
 **macOS (Apple Silicon, ARM64):**
@@ -113,7 +113,7 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
   -p:PublishSingleFile=true \
   -o ./artifacts/publish/osx-arm64
 
-./artifacts/publish/osx-arm64/UpdateNuspecTool ./UpdateNuspecTool/TestData
+./artifacts/publish/osx-arm64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
 ```
 
 | Platform | Runtime ID (`-r`) | Output executable |
@@ -130,12 +130,16 @@ Build and run the action image (Linux x64 only):
 docker build --platform linux/amd64 -t update-nuspec-action:local .
 docker run --rm --platform linux/amd64 \
   -v "$PWD:/github/workspace" \
-  update-nuspec-action:local UpdateNuspecTool/TestData/
+  update-nuspec-action:local UpdateNuspecTool.Tests/TestData/
 ```
 
-CI runs `docker build` and smoke tests on push/PR (see `.github/workflows/ci.yml`).
+CI runs `dotnet test`, `docker build`, and smoke tests on push/PR (see `.github/workflows/ci.yml`).
 
-Test fixtures: `UpdateNuspecTool/TestData/` (`config.nuspec`, `cgf.nuspec`, `Cross.Messaging.nuspec`, …).
+```bash
+dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
+```
+
+Test fixtures: `UpdateNuspecTool.Tests/TestData/` (`config.nuspec`, `cgf.nuspec`, `Cross.Messaging.nuspec`, …).
 
 ## License
 
