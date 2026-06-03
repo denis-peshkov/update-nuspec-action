@@ -38,6 +38,8 @@ public sealed class CsprojPackageReferenceResolverTests
     [TestCase("'$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net7.0' or '$(TargetFramework)' == 'net8.0'", "net7.0", true)]
     [TestCase("'$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net7.0' or '$(TargetFramework)' == 'net8.0'", "net9.0", false)]
     [TestCase(null, "net8.0", true)]
+    [TestCase("'$(Configuration)' == 'Debug'", "net8.0", false)]
+    [TestCase("'$(TargetFramework)' == 'net8.0'", "", false)]
     public void ConditionAppliesToTargetFramework_matches_standard_msbuild_condition(
         string? condition,
         string targetFramework,
@@ -46,5 +48,41 @@ public sealed class CsprojPackageReferenceResolverTests
         CsprojPackageReferenceResolver.ConditionAppliesToTargetFramework(condition, targetFramework)
             .Should()
             .Be(expected);
+    }
+
+    [Test]
+    public void GetPackageReferences_uses_first_target_from_TargetFrameworks()
+    {
+        var project = XDocument.Parse(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Sample.Package" Version="2.0.0" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        var packages = CsprojPackageReferenceResolver.GetPackageReferences(project);
+
+        packages.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new Dependency("Sample.Package", "2.0.0"));
+    }
+
+    [Test]
+    public void GetPackageReferences_returns_empty_list_when_target_framework_is_unknown()
+    {
+        var project = XDocument.Parse(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup />
+            </Project>
+            """);
+
+        var packages = CsprojPackageReferenceResolver.GetPackageReferences(project);
+
+        packages.Should().BeEmpty();
     }
 }
