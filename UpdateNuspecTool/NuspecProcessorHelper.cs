@@ -2,7 +2,7 @@ namespace UpdateNuspecTool;
 
 public static class NuspecProcessorHelper
 {
-    public static void Process(string file, string path)
+    public static void Process(string file, string path, bool dryRun = false)
     {
         try
         {
@@ -26,12 +26,14 @@ public static class NuspecProcessorHelper
                 .First()
                 ?.Value;
 
-            // Получение списка Dependency из nuspec
-            var dependencies = nuspecData.Descendants(nuspecDocNamespace + "dependencies")
-                .SelectMany(x => x.Elements())
+            // Получение списка Dependency из nuspec (плоский список и <group targetFramework="...">)
+            var dependencies = nuspecData.Descendants(nuspecDocNamespace + "dependency")
+                .Where(p => p.Attribute("id") != null && p.Attribute("version") != null)
                 .Select(p => new Dependency(
                     Name: p.Attribute("id")!.Value,
                     Version: p.Attribute("version")!.Value))
+                .GroupBy(p => p.Name)
+                .Select(g => g.First())
                 .ToList();
 
             if (projectName == null)
@@ -58,7 +60,7 @@ public static class NuspecProcessorHelper
             // Получение packageReferences из файла проекта
             var packageReferences = projectData.Descendants("ItemGroup")
                 .SelectMany(p => p.Elements("PackageReference"))
-                .Select(x => new Dependency(Name: x.Attribute("Include")!.Value, Version:x.Attribute("Version")!.Value))
+                .Select(GetPackageReference)
                 .ToList();
 
             foreach (var item in packageReferences)
@@ -123,23 +125,6 @@ public static class NuspecProcessorHelper
             var deletedNames = dependencyNames.Where(p => !resultNames.Contains(p)).ToList();
             deletedReferences = dependencies.Where(p => deletedNames.Contains(p.Name)).ToList();
 
-            // Удаляем все dependencies из nuspec
-            nuspecData.Descendants(nuspecDocNamespace + "metadata")
-                .Select(p => p.Element(nuspecDocNamespace + "dependencies"))
-                .First()
-                !.RemoveAll();
-
-            // Заполняем nuspec правильными значениями
-            foreach (var value in resultList)
-            {
-                nuspecData.Descendants(nuspecDocNamespace + "dependencies")
-                    .First()
-                    .Add(new XElement(nuspecDocNamespace + "dependency", new XAttribute("id", value.Name), new XAttribute("version", value.Version)));
-            }
-
-            // Сохранение references в файл
-            nuspecData.Save(file);
-
             // Функция для вывода результатов в консоль
             ConsoleHelper.ShowResult(
                 updatedReferences: updatedReferences,
@@ -147,6 +132,36 @@ public static class NuspecProcessorHelper
                 addedReferences: addedReferences,
                 deletedReferences: deletedReferences,
                 outdatedReferences: outdatedReferences);
+
+            if (dryRun)
+            {
+                ConsoleHelper.WriteLine("[DRY RUN] Skipped saving nuspec file.", ConsoleColor.Yellow);
+            }
+            else
+            {
+                var dependenciesElement = nuspecData.Descendants(nuspecDocNamespace + "metadata")
+                    .Select(p => p.Element(nuspecDocNamespace + "dependencies"))
+                    .First()!;
+
+                var dependencyGroups = dependenciesElement.Elements(nuspecDocNamespace + "group").ToList();
+                if (dependencyGroups.Any())
+                {
+                    ApplyDependenciesToGroups(dependencyGroups, resultList, nuspecDocNamespace);
+                }
+                else
+                {
+                    dependenciesElement.RemoveAll();
+                    foreach (var value in resultList)
+                    {
+                        dependenciesElement.Add(new XElement(
+                            nuspecDocNamespace + "dependency",
+                            new XAttribute("id", value.Name),
+                            new XAttribute("version", value.Version)));
+                    }
+                }
+
+                nuspecData.Save(file);
+            }
 
             stopwatch.Stop();
 
@@ -157,9 +172,55 @@ public static class NuspecProcessorHelper
 
             Console.WriteLine($"Elapsed : {elapsedTime}");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             throw;
+        }
+    }
+
+    private static Dependency GetPackageReference(XElement packageReference)
+    {
+        var name = packageReference.Attribute("Include")!.Value;
+        var version = packageReference.Attribute("Version")?.Value
+            ?? packageReference.Element("Version")?.Value
+            ?? string.Empty;
+
+        return new Dependency(name, version);
+    }
+
+    private static void ApplyDependenciesToGroups(
+        List<XElement> dependencyGroups,
+        List<Dependency> resultList,
+        XNamespace nuspecDocNamespace)
+    {
+        var resultByName = resultList.ToDictionary(p => p.Name, p => p.Version);
+
+        foreach (var group in dependencyGroups)
+        {
+            foreach (var dependency in group.Elements(nuspecDocNamespace + "dependency").ToList())
+            {
+                var id = dependency.Attribute("id")!.Value;
+                if (resultByName.TryGetValue(id, out var version))
+                {
+                    dependency.SetAttributeValue("version", version);
+                }
+                else
+                {
+                    dependency.Remove();
+                }
+            }
+
+            var existingIds = group.Elements(nuspecDocNamespace + "dependency")
+                .Select(p => p.Attribute("id")!.Value)
+                .ToHashSet();
+
+            foreach (var added in resultList.Where(p => !existingIds.Contains(p.Name)))
+            {
+                group.Add(new XElement(
+                    nuspecDocNamespace + "dependency",
+                    new XAttribute("id", added.Name),
+                    new XAttribute("version", added.Version)));
+            }
         }
     }
 }

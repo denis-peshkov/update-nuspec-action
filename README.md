@@ -1,7 +1,5 @@
 [![License](https://img.shields.io/github/license/denis-peshkov/update-nuspec-action)](LICENSE)
 [![GitHub Release Date](https://img.shields.io/github/release-date/denis-peshkov/update-nuspec-action?label=released)](https://github.com/denis-peshkov/update-nuspec-action/releases)
-[![NuGetVersion](https://img.shields.io/nuget/v/UpdateNuspecTool.svg)](https://www.nuget.org/packages/UpdateNuspecTool/)
-[![NugetDownloads](https://img.shields.io/nuget/dt/UpdateNuspecTool.svg)](https://www.nuget.org/packages/UpdateNuspecTool/)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=update-nuspec-action&metric=coverage)](https://sonarcloud.io/summary/new_code?id=update-nuspec-action)
 [![issues](https://img.shields.io/github/issues/denis-peshkov/update-nuspec-action)](https://github.com/denis-peshkov/update-nuspec-action/issues)
 [![CI](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml)
@@ -80,6 +78,16 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
   -o ./artifacts/publish/linux-x64
 
 ./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool/TestData
+
+# Demo / test run: full report in console, no file changes
+./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool/TestData --dry-run
+```
+
+CLI options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`).
+
+```bash
+dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --help
+dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --version
 ```
 
 **Windows (x64):**
@@ -122,12 +130,12 @@ Build and run the action image (Linux x64 only):
 docker build --platform linux/amd64 -t update-nuspec-action:local .
 docker run --rm --platform linux/amd64 \
   -v "$PWD:/github/workspace" \
-  update-nuspec-action:local .github/fixtures/sample
+  update-nuspec-action:local UpdateNuspecTool/TestData/
 ```
 
 CI runs `docker build` and smoke tests on push/PR (see `.github/workflows/ci.yml`).
 
-Test fixtures: `UpdateNuspecTool/TestData/` and `.github/fixtures/sample/`.
+Test fixtures: `UpdateNuspecTool/TestData/` (`config.nuspec`, `cgf.nuspec`, `Cross.Messaging.nuspec`, …).
 
 ## License
 
