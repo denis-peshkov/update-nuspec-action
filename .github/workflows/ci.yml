@@ -179,15 +179,28 @@ jobs:
         run: npm install -g tfx-cli@0.17.0
 
       - name: Update ADO task.json version
+        env:
+          PACKAGE_CHANNEL: ${{ github.event_name == 'push' && steps.channel.outputs.name || 'release' }}
         run: |
           set -euo pipefail
-          jq --arg sem "${{ env.semVer }}" '
-            ($sem | split("-")[0] | split(".")) as $p |
-            .version.Major = ($p[0] | tonumber) |
-            .version.Minor = ($p[1] | tonumber) |
-            .version.Patch = (($p[2] // "0") | tonumber)
-          ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
+          # Preview: unique task folder per build (1.1.16), else agents keep stale 1.1.0 without binaries.
+          if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
+            jq --arg sem "${{ env.semVer }}" --argjson pre "${{ env.GitVersion_preReleaseNumber }}" '
+              ($sem | split("-")[0] | split(".")) as $p |
+              .version.Major = ($p[0] | tonumber) |
+              .version.Minor = ($p[1] | tonumber) |
+              .version.Patch = $pre
+            ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
+          else
+            jq --arg sem "${{ env.semVer }}" '
+              ($sem | split("-")[0] | split(".")) as $p |
+              .version.Major = ($p[0] | tonumber) |
+              .version.Minor = ($p[1] | tonumber) |
+              .version.Patch = (($p[2] // "0") | tonumber)
+            ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
+          fi
           mv "${TASK_BIN}/task.json.tmp" "${TASK_BIN}/task.json"
+          echo "task.json version: $(jq -r '.version | "\(.Major).\(.Minor).\(.Patch)"' "${TASK_BIN}/task.json")"
 
       - name: Build ADO extension manifest
         env:

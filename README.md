@@ -115,11 +115,14 @@ The same tool is packaged as a **Visual Studio Marketplace** extension in the **
     packageType: runtime
     version: 8.0.x
 
+# @1 — последняя установленная 1.x.y; не фиксируйте @1.1.0 после обновления extension
 - task: UpdateNuspec@1
   inputs:
     dir: '$(Build.SourcesDirectory)'
     dryRun: false
 ```
+
+**Ошибка `Unable to locate executable file: .../1.1.0/linux-x64/UpdateNuspecTool`:** на агенте в кэше задачи **1.1.0** нет бинарника (старая установка extension). Обновите extension в org до последней версии из CI, в YAML используйте `UpdateNuspec@1` (не `@1.1.0`), либо удалите и заново установите extension из **Shared**. На preview-ветках версия задачи в CI — `1.1.N` (N = номер preview), чтобы каждый publish получал новую папку на агенте.
 
 ## Development
 
