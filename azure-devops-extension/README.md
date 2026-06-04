@@ -11,6 +11,8 @@
 
 Версия с суффиксом `-preview` задаётся в [`GitVersion.yml`](../GitVersion.yml) (`tag: preview` на ветках release/hotfix).
 
+**Важно:** в Marketplace нельзя `1.1.0-preview.3` — только `X.Y.Z` или `X.Y.Z.N`. В CI для preview в манифест подставляется `major.minor.patch.preReleaseNumber` (например `1.1.0.3`); git-теги и `semVer` остаются `1.1.0-preview.3`.
+
 ## Шаги CI (ADO)
 
 1. Publish ADO tool (linux-x64 / win-x64) — `semVer` из GitVersion  
