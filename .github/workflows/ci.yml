@@ -104,6 +104,7 @@ jobs:
             -Dsonar.sources=UpdateNuspecTool/
             -Dsonar.tests=UpdateNuspecTool.Tests/
             -Dsonar.exclusions=UpdateNuspecTool.Tests/TestData/**
+            -Dsonar.scanner.skipJreProvisioning=true
             -Dsonar.verbose=true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
