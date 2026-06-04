@@ -222,22 +222,17 @@ jobs:
           if-no-files-found: error
 
       - name: Publish ADO extension (release)
-        if: >-
-          github.event_name == 'push' &&
-          github.ref == 'refs/heads/master' &&
-          vars.ADO_PUBLISH_EXTENSION == 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         working-directory: azure-devops-extension
         env:
           TFXX_TOKEN: ${{ secrets.AZDO_MARKETPLACE_PAT }}
-          ADO_PUBLISHER_ID: ${{ vars.ADO_PUBLISHER_ID }}
         run: |
           set -euo pipefail
-          PUBLISHER="${ADO_PUBLISHER_ID:-denis-peshkov}"
           VSIX=( *.vsix )
           tfx extension publish \
             --auth-type pat \
             -t "${TFXX_TOKEN}" \
-            --publisher "${PUBLISHER}" \
+            --publisher peshkov \
             --vsix "${VSIX[0]}" \
             --extension-pricing free \
             --extension-visibility public
@@ -245,30 +240,20 @@ jobs:
       - name: Publish ADO extension (preview)
         if: >-
           github.event_name == 'push' &&
-          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) &&
-          vars.ADO_PUBLISH_EXTENSION == 'true'
+          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
         working-directory: azure-devops-extension
         env:
           TFXX_TOKEN: ${{ secrets.AZDO_MARKETPLACE_PAT }}
-          ADO_PUBLISHER_ID: ${{ vars.ADO_PUBLISHER_ID }}
-          ADO_TEST_ORGANIZATION: ${{ vars.ADO_TEST_ORGANIZATION }}
         run: |
           set -euo pipefail
-          PUBLISHER="${ADO_PUBLISHER_ID:-denis-peshkov}"
           VSIX=( *.vsix )
-          ARGS=(
-            extension publish
-            --auth-type pat
-            -t "${TFXX_TOKEN}"
-            --publisher "${PUBLISHER}"
-            --vsix "${VSIX[0]}"
-            --extension-pricing free
-            --extension-visibility private
-          )
-          if [ -n "${ADO_TEST_ORGANIZATION:-}" ]; then
-            ARGS+=(--share-with "${ADO_TEST_ORGANIZATION}")
-          fi
-          tfx "${ARGS[@]}"
+          tfx extension publish \
+            --auth-type pat \
+            -t "${TFXX_TOKEN}" \
+            --publisher peshkov \
+            --vsix "${VSIX[0]}" \
+            --extension-pricing free \
+            --extension-visibility public
 
       - name: Create git Tag
         if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}

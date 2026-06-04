@@ -3,7 +3,7 @@
   "id": "update-nuspec-preview",
   "name": "[Preview] Update *.nuspec",
   "version": "1.0.0",
-  "publisher": "denis-peshkov",
+  "publisher": "peshkov",
   "public": false,
   "description": "Preview builds from release/* and hotfix/* branches (GitVersion -preview). Same task as the stable extension; for validation before merge to master.",
   "categories": ["Azure Pipelines"],
