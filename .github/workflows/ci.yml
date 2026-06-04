@@ -18,6 +18,8 @@ jobs:
       BUILD_CONFIG: 'Release'
       TEST_PROJECT: 'UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj'
       TOOL_PROJECT: 'UpdateNuspecTool/UpdateNuspecTool.csproj'
+      EXTENSION_ROOT: '${{ github.workspace }}/azure-devops-extension'
+      TASK_BIN: '${{ github.workspace }}/azure-devops-extension/task'
 
     runs-on: ubuntu-latest
 
@@ -31,11 +33,25 @@ jobs:
         with:
           versionSpec: 5.12.0
 
+      # Единый источник версии — semVer (GitVersion, шаг Determine Version).
       - name: Determine Version
         id: gitversion
         uses: gittools/actions/gitversion/execute@v1.1.1
         with:
           useConfigFile: true
+
+      # master → release (stable SemVer); release/* and hotfix/* → preview (GitVersion tag: preview)
+      - name: Set release channel
+        if: github.event_name == 'push'
+        id: channel
+        run: |
+          if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
+            echo "name=release" >> "${GITHUB_OUTPUT}"
+            echo "prerelease=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "name=preview" >> "${GITHUB_OUTPUT}"
+            echo "prerelease=true" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -92,12 +108,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-#      - name: SonarQube Quality Gate check
-#        uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
-#        with:
-#          pollingTimeoutSec: 600
-#        env:
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: SonarQube Quality Gate check
+        uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
         run: docker build -t update-nuspec-action:ci .
@@ -113,6 +129,162 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}:/github/workspace" \
             update-nuspec-action:ci .github | grep -q 'nuspec files not found'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: azure-devops-extension/task/package-lock.json
+
+      - name: Publish ADO tool (linux-x64)
+        run: |
+          set -euo pipefail
+          dotnet restore "${TOOL_PROJECT}" -r linux-x64
+          dotnet publish "${TOOL_PROJECT}" \
+            -c "${BUILD_CONFIG}" \
+            --no-restore \
+            -r linux-x64 \
+            --self-contained false \
+            -p:PublishSingleFile=true \
+            -p:Version=${{ env.semVer }} \
+            -o "${TASK_BIN}/linux-x64"
+          chmod +x "${TASK_BIN}/linux-x64/UpdateNuspecTool"
+
+      - name: Publish ADO tool (win-x64)
+        run: |
+          set -euo pipefail
+          dotnet restore "${TOOL_PROJECT}" -r win-x64
+          dotnet publish "${TOOL_PROJECT}" \
+            -c "${BUILD_CONFIG}" \
+            --no-restore \
+            -r win-x64 \
+            --self-contained false \
+            -p:PublishSingleFile=true \
+            -p:Version=${{ env.semVer }} \
+            -o "${TASK_BIN}/win-x64"
+
+      - name: Build ADO task wrapper
+        working-directory: azure-devops-extension/task
+        run: npm ci && npm run build
+
+      - name: Verify ADO task binaries
+        run: |
+          set -euo pipefail
+          ls -la "${TASK_BIN}/linux-x64/" "${TASK_BIN}/win-x64/"
+          test -x "${TASK_BIN}/linux-x64/UpdateNuspecTool"
+          test -f "${TASK_BIN}/win-x64/UpdateNuspecTool.exe"
+
+      - name: Install TFX CLI
+        run: npm install -g tfx-cli@0.17.0
+
+      - name: Update ADO task.json version
+        env:
+          PACKAGE_CHANNEL: ${{ github.event_name == 'push' && steps.channel.outputs.name || 'release' }}
+        run: |
+          set -euo pipefail
+          # Preview: unique task folder per build (1.1.16), else agents keep stale 1.1.0 without binaries.
+          if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
+            jq --arg sem "${{ env.semVer }}" --argjson pre "${{ env.GitVersion_preReleaseNumber }}" '
+              ($sem | split("-")[0] | split(".")) as $p |
+              .version.Major = ($p[0] | tonumber) |
+              .version.Minor = ($p[1] | tonumber) |
+              .version.Patch = $pre
+            ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
+          else
+            jq --arg sem "${{ env.semVer }}" '
+              ($sem | split("-")[0] | split(".")) as $p |
+              .version.Major = ($p[0] | tonumber) |
+              .version.Minor = ($p[1] | tonumber) |
+              .version.Patch = (($p[2] // "0") | tonumber)
+            ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
+          fi
+          mv "${TASK_BIN}/task.json.tmp" "${TASK_BIN}/task.json"
+          echo "task.json version: $(jq -r '.version | "\(.Major).\(.Minor).\(.Patch)"' "${TASK_BIN}/task.json")"
+
+      - name: Build ADO extension manifest
+        env:
+          PACKAGE_CHANNEL: ${{ github.event_name == 'push' && steps.channel.outputs.name || 'release' }}
+        run: |
+          set -euo pipefail
+          case "${PACKAGE_CHANNEL}" in
+            release) SOURCE_MANIFEST="vss-extension.json" ;;
+            preview) SOURCE_MANIFEST="vss-extension.preview.json" ;;
+            *) echo "Unknown PACKAGE_CHANNEL: ${PACKAGE_CHANNEL}" >&2; exit 1 ;;
+          esac
+          # Marketplace: only X.Y.Z or X.Y.Z.N (no -preview in version). Git tags keep semVer.
+          if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
+            MARKETPLACE_VERSION="${{ env.major }}.${{ env.minor }}.${{ env.patch }}.${{ env.GitVersion_preReleaseNumber }}"
+          else
+            MARKETPLACE_VERSION="${{ env.semVer }}"
+          fi
+          echo "Marketplace extension version: ${MARKETPLACE_VERSION} (semVer=${{ env.semVer }})"
+          jq --arg v "${MARKETPLACE_VERSION}" '.version = $v' \
+            "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
+
+      - name: Create ADO extension VSIX
+        working-directory: azure-devops-extension
+        run: |
+          set -euo pipefail
+          rm -f ./*.vsix
+          tfx extension create --manifest-globs .vss-extension.build.json
+          rm -f .vss-extension.build.json
+          shopt -s nullglob
+          vsix=( ./*.vsix )
+          if [ ${#vsix[@]} -eq 0 ]; then
+            echo "No .vsix produced" >&2
+            exit 1
+          fi
+          echo "Created ${vsix[0]}"
+          unzip -l "${vsix[0]}" | grep -q 'task/linux-x64/UpdateNuspecTool' \
+            || { echo "VSIX missing task/linux-x64/UpdateNuspecTool" >&2; exit 1; }
+          unzip -l "${vsix[0]}" | grep -q 'task/win-x64/UpdateNuspecTool.exe' \
+            || { echo "VSIX missing task/win-x64/UpdateNuspecTool.exe" >&2; exit 1; }
+
+      - name: Restore ADO task.json
+        if: always()
+        run: git checkout -- azure-devops-extension/task/task.json
+
+      - name: Upload ADO extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ado-extension-vsix
+          path: azure-devops-extension/*.vsix
+          if-no-files-found: error
+
+      - name: Publish ADO extension (release)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        working-directory: azure-devops-extension
+        env:
+          TFXX_TOKEN: ${{ secrets.AZDO_MARKETPLACE_PAT }}
+        run: |
+          set -euo pipefail
+          VSIX=( *.vsix )
+          tfx extension publish \
+            --auth-type pat \
+            -t "${TFXX_TOKEN}" \
+            --publisher peshkov \
+            --vsix "${VSIX[0]}" \
+            --extension-pricing free \
+            --extension-visibility public
+
+      - name: Publish ADO extension (preview)
+        if: >-
+          github.event_name == 'push' &&
+          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+        working-directory: azure-devops-extension
+        env:
+          TFXX_TOKEN: ${{ secrets.AZDO_MARKETPLACE_PAT }}
+        run: |
+          set -euo pipefail
+          VSIX=( *.vsix )
+          tfx extension publish \
+            --auth-type pat \
+            -t "${TFXX_TOKEN}" \
+            --publisher peshkov \
+            --vsix "${VSIX[0]}" \
+            --extension-pricing free \
+            --share-with peshkov
 
       - name: Create git Tag
         if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
@@ -141,3 +313,17 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
           git push origin v${{ env.major }}.${{ env.minor }} -f
           git push origin v${{ env.major }} -f
+
+      - name: Create GitHub Release
+        if: >-
+          github.event_name == 'push' &&
+          (github.ref == 'refs/heads/master' ||
+           startsWith(github.ref, 'refs/heads/release/') ||
+           startsWith(github.ref, 'refs/heads/hotfix/'))
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.semVer }}
+          name: v${{ env.semVer }}
+          prerelease: ${{ steps.channel.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          files: azure-devops-extension/*.vsix

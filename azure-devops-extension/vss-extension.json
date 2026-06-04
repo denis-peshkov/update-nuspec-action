@@ -1,0 +1,58 @@
+{
+  "manifestVersion": 1,
+  "id": "update-nuspec",
+  "name": "Update *.nuspec",
+  "version": "1.0.0",
+  "publisher": "peshkov",
+  "public": true,
+  "description": "Sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files.",
+  "categories": ["Azure Pipelines"],
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "icons": {
+    "default": "extension-icon.png"
+  },
+  "tags": ["nuget", "nuspec", "dotnet", "build"],
+  "content": {
+    "details": {
+      "path": "overview.md"
+    },
+    "license": {
+      "path": "license.md"
+    }
+  },
+  "links": {
+    "home": {
+      "uri": "https://github.com/denis-peshkov/update-nuspec-action"
+    },
+    "support": {
+      "uri": "https://github.com/denis-peshkov/update-nuspec-action/issues"
+    },
+    "repository": {
+      "uri": "https://github.com/denis-peshkov/update-nuspec-action"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/denis-peshkov/update-nuspec-action"
+  },
+  "files": [
+    {
+      "path": "task"
+    }
+  ],
+  "scopes": ["vso.build"],
+  "contributions": [
+    {
+      "id": "7c4e8f2a-1b3d-4e5f-9a6b-2d8e0f1a3b4c",
+      "type": "ms.vss-distributed-task.task",
+      "targets": ["ms.vss-distributed-task.tasks"],
+      "properties": {
+        "name": "task"
+      }
+    }
+  ]
+}

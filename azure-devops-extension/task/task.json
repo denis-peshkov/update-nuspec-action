@@ -1,0 +1,41 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+  "id": "7c4e8f2a-1b3d-4e5f-9a6b-2d8e0f1a3b4c",
+  "name": "UpdateNuspec",
+  "friendlyName": "Update *.nuspec",
+  "description": "Sync NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files.",
+  "helpMarkDown": "Recursively scans `dir` for `.nuspec` files and rewrites `<dependencies>` from the sibling `{id}.csproj`. Requires .NET 8 runtime on the agent. [Documentation](https://github.com/denis-peshkov/update-nuspec-action)",
+  "category": "Utility",
+  "visibility": ["Build", "Release"],
+  "author": "Denis Peshkov",
+  "version": {
+    "Major": 1,
+    "Minor": 0,
+    "Patch": 0
+  },
+  "minimumAgentVersion": "3.218.0",
+  "instanceNameFormat": "Update nuspec in $(dir)",
+  "inputs": [
+    {
+      "name": "dir",
+      "type": "filePath",
+      "label": "Scan directory",
+      "defaultValue": "",
+      "required": false,
+      "helpMarkDown": "Root folder to scan recursively. Defaults to `$(Build.SourcesDirectory)` when empty."
+    },
+    {
+      "name": "dryRun",
+      "type": "boolean",
+      "label": "Dry run",
+      "defaultValue": "false",
+      "required": false,
+      "helpMarkDown": "Print the report without modifying `.nuspec` files."
+    }
+  ],
+  "execution": {
+    "Node20_1": {
+      "target": "index.js"
+    }
+  }
+}

@@ -9,6 +9,13 @@
 **/obj/
 TestResults/
 artifacts/
+*.vsix
+azure-devops-extension/.vss-extension.build.json
+azure-devops-extension/tasks/
+azure-devops-extension/task/linux-x64/
+azure-devops-extension/task/win-x64/
+azure-devops-extension/task/index.js
+azure-devops-extension/task/node_modules/
 *.user
 *.suo
 .run/
