@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as tl from 'azure-pipelines-task-lib/task';
 
@@ -13,11 +14,24 @@ async function run(): Promise<void> {
         const exeName = process.platform === 'win32' ? 'UpdateNuspecTool.exe' : 'UpdateNuspecTool';
         const exePath = path.join(__dirname, rid, exeName);
 
+        const ridDir = path.join(__dirname, rid);
         if (!tl.exist(exePath)) {
+            const hint = fs.existsSync(ridDir)
+                ? `Contents of ${ridDir}: ${fs.readdirSync(ridDir).join(', ')}`
+                : `Missing folder ${ridDir}. Reinstall the extension from a CI build that publishes linux-x64/win-x64 binaries.`;
             tl.setResult(
                 tl.TaskResult.Failed,
-                `UpdateNuspecTool binary not found at ${exePath}. Supported agents: windows-latest, ubuntu-latest.`);
+                `UpdateNuspecTool binary not found at ${exePath}. ${hint} Agents: windows-latest, ubuntu-latest.`);
             return;
+        }
+
+        if (process.platform !== 'win32') {
+            try {
+                fs.chmodSync(exePath, 0o755);
+            }
+            catch {
+                // VSIX extract may drop executable bit; ignore chmod errors
+            }
         }
 
         const tool = tl.tool(exePath);
