@@ -7,8 +7,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <!-- Single-file only for linux-x64 publish (CI / Docker), not for Debug build in IDE -->
-    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <!-- Single-file for RID publish (CI / Docker / Azure DevOps extension), not for Debug in IDE -->
+    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'win-x64'">
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>false</SelfContained>
     </PropertyGroup>

@@ -1,0 +1,16 @@
+{
+  "name": "update-nuspec-ado-task",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Azure Pipelines task wrapper for UpdateNuspecTool",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "azure-pipelines-task-lib": "^4.17.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3"
+  }
+}

@@ -65,19 +65,30 @@ Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.cspr
 
 ## Versioning (this repository)
 
-On push to `master` / `release/*` / `hotfix/*`, CI runs [GitVersion](https://gitversion.net/) and exports **`env.semVer`**, then creates tag **`v${{ env.semVer }}`** (for example `v0.2.1`).
+[GitVersion](https://gitversion.net/) (`GitVersion.yml`) on push:
 
-1. Checks out with `fetch-depth: 0` (full history for [GitVersion](https://gitversion.net/)).
-2. Restores the test and tool projects (`linux-x64` RID for the tool).
-3. Builds and publishes `UpdateNuspecTool` as a single-file app for `linux-x64` (GitVersion MSBuild properties).
-4. Runs `dotnet test` on the test project (OpenCover for SonarCloud).
-5. SonarCloud scan, then builds and smoke-tests the Docker image.
-6. On `master` / `release/*` / `hotfix/*`, creates and pushes tag **`v${{ env.semVer }}`**.
+| Branch | SemVer (пример) | Git tag | GitHub Release | ADO extension |
+|--------|-----------------|---------|----------------|---------------|
+| `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (не prerelease) | `update-nuspec` → Marketplace **public** |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec-preview` → **private** (+ share с test org) |
 
-To publish a new action version after CI pushed tag `vX.Y.Z`:
+На `release/*` и `hotfix/*` в GitVersion уже задан `tag: preview` — отдельно настраивать не нужно.
 
-1. Open [Releases](https://github.com/denis-peshkov/update-nuspec-action/releases) and create a release for the new tag (or use `gh release create vX.Y.Z`).
-2. In other repositories, set `uses: denis-peshkov/update-nuspec-action@vX.Y.Z` to that tag.
+CI также создаёт [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) с артефактом `.vsix` (после push тега).
+
+Публикация ADO в Marketplace: `vars.ADO_PUBLISH_EXTENSION=true` и `secrets.AZDO_MARKETPLACE_PAT` (см. [`azure-devops-extension/README.md`](azure-devops-extension/README.md)).
+
+Для GitHub Action после merge в `master`:
+
+```yaml
+uses: denis-peshkov/update-nuspec-action@v1.2.3
+```
+
+## Azure DevOps extension
+
+The same tool is packaged as a **Visual Studio Marketplace** extension in the **same CI** workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): after tests and Docker smoke tests, the pipeline builds `win-x64`/`linux-x64` binaries, compiles the task wrapper, and produces a `.vsix` artifact (`ado-extension-vsix`).
+
+Optional Marketplace publish: repository secret `AZDO_MARKETPLACE_PAT` and variable `ADO_PUBLISH_EXTENSION=true`. Details: [`azure-devops-extension/README.md`](azure-devops-extension/README.md).
 
 ## Development
 
@@ -90,6 +101,8 @@ To publish a new action version after CI pushed tag `vX.Y.Z`:
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
 | `Dockerfile` | Runtime image; copies single-file `artifacts/publish/linux-x64/UpdateNuspecTool` from CI **Build** |
 | `action.yml` | Action metadata; runs the Docker image |
+| `azure-devops-extension/` | Marketplace extension manifest and pipeline task |
+| `azure-devops-extension/` | Marketplace extension; сборка VSIX — шаги в `.github/workflows/ci.yml` |
 
 ### Tests
 
