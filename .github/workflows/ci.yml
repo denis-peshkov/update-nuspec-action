@@ -248,6 +248,35 @@ jobs:
           path: azure-devops-extension/*.vsix
           if-no-files-found: error
 
+      # Tags before Marketplace: publish failure must not block v1.x.y on GitHub (GitVersion uses tags on next push).
+      - name: Create git Tag
+        if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
+        run: |
+          git tag v${{ env.semVer }} -f
+
+      - name: Create git Tag
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run: |
+          git tag v${{ env.major }}.${{ env.minor }} -f
+          git tag v${{ env.major }} -f
+
+      - name: Push git Tag
+        if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
+        run: |
+          git config --global user.name 'Denis Peshkov'
+          git config --global user.email 'denis.peshkov@outlook.com'
+          git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
+          git push origin v${{ env.semVer }} -f
+
+      - name: Push git Tag
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run: |
+          git config --global user.name 'Denis Peshkov'
+          git config --global user.email 'denis.peshkov@outlook.com'
+          git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
+          git push origin v${{ env.major }}.${{ env.minor }} -f
+          git push origin v${{ env.major }} -f
+
       - name: Publish ADO extension (release)
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         working-directory: azure-devops-extension
@@ -281,34 +310,6 @@ jobs:
             --vsix "${VSIX[0]}" \
             --extension-pricing free \
             --share-with peshkov
-
-      - name: Create git Tag
-        if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
-        run: |
-          git tag v${{ env.semVer }} -f
-
-      - name: Create git Tag
-        if: ${{ github.ref == 'refs/heads/master' }}
-        run: |
-          git tag v${{ env.major }}.${{ env.minor }} -f
-          git tag v${{ env.major }} -f
-
-      - name: Push git Tag
-        if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
-        run: |
-          git config --global user.name 'Denis Peshkov'
-          git config --global user.email 'denis.peshkov@outlook.com'
-          git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
-          git push origin v${{ env.semVer }} -f
-
-      - name: Push git Tag
-        if: ${{ github.ref == 'refs/heads/master' }}
-        run: |
-          git config --global user.name 'Denis Peshkov'
-          git config --global user.email 'denis.peshkov@outlook.com'
-          git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
-          git push origin v${{ env.major }}.${{ env.minor }} -f
-          git push origin v${{ env.major }} -f
 
       - name: Create GitHub Release
         if: >-
