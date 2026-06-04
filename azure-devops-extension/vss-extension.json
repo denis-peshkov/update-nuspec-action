@@ -4,7 +4,7 @@
   "name": "Update *.nuspec",
   "version": "1.0.0",
   "publisher": "peshkov",
-  "public": false,
+  "public": true,
   "description": "Sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files.",
   "categories": ["Azure Pipelines"],
   "targets": [
