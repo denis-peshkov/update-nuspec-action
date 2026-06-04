@@ -19,7 +19,7 @@ jobs:
       TEST_PROJECT: 'UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj'
       TOOL_PROJECT: 'UpdateNuspecTool/UpdateNuspecTool.csproj'
       EXTENSION_ROOT: '${{ github.workspace }}/azure-devops-extension'
-      TASK_BIN: '${{ github.workspace }}/azure-devops-extension/tasks/UpdateNuspec/v1'
+      TASK_BIN: '${{ github.workspace }}/azure-devops-extension/task'
 
     runs-on: ubuntu-latest
 
@@ -135,7 +135,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: azure-devops-extension/tasks/UpdateNuspec/v1/package-lock.json
+          cache-dependency-path: azure-devops-extension/task/package-lock.json
 
       - name: Publish ADO tool (linux-x64)
         run: |
@@ -165,7 +165,7 @@ jobs:
             -o "${TASK_BIN}/win-x64"
 
       - name: Build ADO task wrapper
-        working-directory: azure-devops-extension/tasks/UpdateNuspec/v1
+        working-directory: azure-devops-extension/task
         run: npm ci && npm run build
 
       - name: Install TFX CLI
@@ -219,7 +219,7 @@ jobs:
 
       - name: Restore ADO task.json
         if: always()
-        run: git checkout -- azure-devops-extension/tasks/UpdateNuspec/v1/task.json
+        run: git checkout -- azure-devops-extension/task/task.json
 
       - name: Upload ADO extension artifact
         uses: actions/upload-artifact@v4
