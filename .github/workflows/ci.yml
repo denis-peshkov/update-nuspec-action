@@ -207,11 +207,7 @@ jobs:
           PACKAGE_CHANNEL: ${{ github.event_name == 'push' && steps.channel.outputs.name || 'release' }}
         run: |
           set -euo pipefail
-          case "${PACKAGE_CHANNEL}" in
-            release) SOURCE_MANIFEST="vss-extension.json" ;;
-            preview) SOURCE_MANIFEST="vss-extension.preview.json" ;;
-            *) echo "Unknown PACKAGE_CHANNEL: ${PACKAGE_CHANNEL}" >&2; exit 1 ;;
-          esac
+          SOURCE_MANIFEST="vss-extension.json"
           # Marketplace: only X.Y.Z or X.Y.Z.N (no -preview in version). Git tags keep semVer.
           if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
             MARKETPLACE_VERSION="${{ env.major }}.${{ env.minor }}.${{ env.patch }}.${{ env.GitVersion_preReleaseNumber }}"

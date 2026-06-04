@@ -70,7 +70,7 @@ Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.cspr
 | Branch | SemVer (пример) | Git tag | GitHub Release | ADO extension |
 |--------|-----------------|---------|----------------|---------------|
 | `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (не prerelease) | `update-nuspec` → Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec-dev` (private, shared) |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec` (версия только `--share-with peshkov`) |
 
 На `release/*` и `hotfix/*` в GitVersion уже задан `tag: preview` — отдельно настраивать не нужно.
 
@@ -88,26 +88,22 @@ uses: denis-peshkov/update-nuspec-action@v1.2.3
 
 The same tool is packaged as a **Visual Studio Marketplace** extension in the **same CI** workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): after tests and Docker smoke tests, the pipeline builds `win-x64`/`linux-x64` binaries, compiles the task wrapper, and produces a `.vsix` artifact (`ado-extension-vsix`).
 
-| Канал | Манифест | Extension ID | Marketplace |
-|-------|----------|----------------|-------------|
-| `master` | `vss-extension.json` | `update-nuspec` | **public** |
-| `release/*`, `hotfix/*` | `vss-extension.preview.json` | `update-nuspec-dev` | **private**, CI `--share-with peshkov` |
+Один extension **`update-nuspec`**, одна задача **`UpdateNuspec@1`** (один task GUID в Marketplace).
+
+| Канал | Манифест | Публикация |
+|-------|----------|------------|
+| `master` | `vss-extension.json` | `--extension-visibility public` |
+| `release/*`, `hotfix/*` | тот же | `--share-with peshkov` (версия доступна org до выхода в public) |
 
 Версия VSIX для preview: `major.minor.patch.preReleaseNumber` (например `1.1.0.4`); git-теги остаются `1.1.0-preview.4`.
 
-### Установка private preview (`update-nuspec-dev`)
+### Установка preview-версии
 
-В публичном поиске Marketplace extension **не виден** — это нормально. Нужен успешный publish из CI (или ручной `tfx publish` с `--share-with <org-slug>`).
+1. Org slug в CI: **peshkov** → `https://dev.azure.com/peshkov`.
+2. После publish с `release/*` / `hotfix/*`: **Organization settings** → **Extensions** → **Shared** → **Update \*.nuspec** / `peshkov.update-nuspec` → установить нужную версию.
+3. Listing: `https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec`
 
-1. Убедитесь, что org slug в URL совпадает с `--share-with` в CI (сейчас **peshkov** → `https://dev.azure.com/peshkov`).
-2. Откройте организацию → **Organization settings** (⚙️) → **Extensions** → вкладка **Shared** (не Browse Marketplace).
-3. Найдите **[Dev] Update \*.nuspec** / `peshkov.update-nuspec-dev` → **Install** → выберите org → **Install**.
-4. Альтернатива: [Manage Extensions](https://marketplace.visualstudio.com/manage) (publisher **peshkov**) → extension → **Share/Unshare** → добавить org → в org откройте страницу extension по ссылке **Get it free** (видна только после share).
-
-Прямая ссылка на listing (работает после share, без поиска):  
-`https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec-dev`
-
-Если в **Shared** пусто: проверьте, что CI publish прошёл и в Manage указано *Shared with* ваша org.
+Старые отдельные preview-extension (`update-nuspec-dev`, `update-nuspec-preview-z`) в Manage лучше **Unpublish** — иначе task id остаётся привязан к ним и publish `update-nuspec` с master падает.
 
 ```yaml
 - task: UseDotNet@2
