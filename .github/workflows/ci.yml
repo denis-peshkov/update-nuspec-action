@@ -199,7 +199,7 @@ jobs:
             MARKETPLACE_VERSION="${{ env.semVer }}"
           fi
           echo "Marketplace extension version: ${MARKETPLACE_VERSION} (semVer=${{ env.semVer }})"
-          jq --arg v "${MARKETPLACE_VERSION}" '.version = $v | .public = true' \
+          jq --arg v "${MARKETPLACE_VERSION}" '.version = $v' \
             "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
 
       - name: Create ADO extension VSIX
