@@ -196,7 +196,7 @@ jobs:
               ($sem | split("-")[0] | split(".")) as $p |
               .version.Major = ($p[0] | tonumber) |
               .version.Minor = ($p[1] | tonumber) |
-              .version.Patch = (($p[2] // "0") | tonumber)
+              .version.Patch = ($p[2] | tonumber)
             ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
           fi
           mv "${TASK_BIN}/task.json.tmp" "${TASK_BIN}/task.json"
@@ -210,7 +210,7 @@ jobs:
           SOURCE_MANIFEST="vss-extension.json"
           # Marketplace: only X.Y.Z or X.Y.Z.N (no -preview in version). Git tags keep semVer.
           if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
-            MARKETPLACE_VERSION="${{ env.major }}.${{ env.minor }}.${{ env.patch }}.${{ env.GitVersion_preReleaseNumber }}"
+            MARKETPLACE_VERSION="${{ env.major }}.${{ env.minor }}.${{ env.GitVersion_preReleaseNumber }}"
           else
             MARKETPLACE_VERSION="${{ env.semVer }}"
           fi

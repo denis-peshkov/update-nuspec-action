@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
-  "id": "7c4e8f2a-1b3d-4e5f-9a6b-2d8e0f1a3b4c",
+  "id": "3c4e8f2a-1b3d-4e5f-9a6b-2d8e0f1a3b4c",
   "name": "UpdateNuspec",
   "friendlyName": "Update *.nuspec",
   "description": "Sync NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files.",
