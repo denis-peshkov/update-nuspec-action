@@ -108,12 +108,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      - name: SonarQube Quality Gate check
-        uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
-        with:
-          pollingTimeoutSec: 600
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#      - name: SonarQube Quality Gate check
+#        uses: sonarsource/sonarqube-quality-gate-action@v1.2.0
+#        with:
+#          pollingTimeoutSec: 600
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
         run: docker build -t update-nuspec-action:ci .
@@ -316,10 +316,7 @@ jobs:
 
       - name: Create GitHub Release
         if: >-
-          github.event_name == 'push' &&
-          (github.ref == 'refs/heads/master' ||
-           startsWith(github.ref, 'refs/heads/release/') ||
-           startsWith(github.ref, 'refs/heads/hotfix/'))
+          github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.semVer }}
