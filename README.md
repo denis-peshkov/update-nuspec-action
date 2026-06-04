@@ -70,7 +70,7 @@ Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.cspr
 | Branch | SemVer (пример) | Git tag | GitHub Release | ADO extension |
 |--------|-----------------|---------|----------------|---------------|
 | `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (не prerelease) | `update-nuspec` → Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec-preview` → **private** |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec-dev` (private, shared) |
 
 На `release/*` и `hotfix/*` в GitVersion уже задан `tag: preview` — отдельно настраивать не нужно.
 
@@ -91,11 +91,23 @@ The same tool is packaged as a **Visual Studio Marketplace** extension in the **
 | Канал | Манифест | Extension ID | Marketplace |
 |-------|----------|----------------|-------------|
 | `master` | `vss-extension.json` | `update-nuspec` | **public** |
-| `release/*`, `hotfix/*` | `vss-extension.preview.json` | `update-nuspec-preview` | **private**, `--share-with peshkov` (org для тестов: `https://dev.azure.com/peshkov`) |
+| `release/*`, `hotfix/*` | `vss-extension.preview.json` | `update-nuspec-dev` | **private**, CI `--share-with peshkov` |
 
 Версия VSIX для preview: `major.minor.patch.preReleaseNumber` (например `1.1.0.4`); git-теги остаются `1.1.0-preview.4`.
 
-Установка preview: в org **peshkov** → **Organization settings** → **Extensions** → **Shared** → Install **update-nuspec-preview**.
+### Установка private preview (`update-nuspec-dev`)
+
+В публичном поиске Marketplace extension **не виден** — это нормально. Нужен успешный publish из CI (или ручной `tfx publish` с `--share-with <org-slug>`).
+
+1. Убедитесь, что org slug в URL совпадает с `--share-with` в CI (сейчас **peshkov** → `https://dev.azure.com/peshkov`).
+2. Откройте организацию → **Organization settings** (⚙️) → **Extensions** → вкладка **Shared** (не Browse Marketplace).
+3. Найдите **[Dev] Update \*.nuspec** / `peshkov.update-nuspec-dev` → **Install** → выберите org → **Install**.
+4. Альтернатива: [Manage Extensions](https://marketplace.visualstudio.com/manage) (publisher **peshkov**) → extension → **Share/Unshare** → добавить org → в org откройте страницу extension по ссылке **Get it free** (видна только после share).
+
+Прямая ссылка на listing (работает после share, без поиска):  
+`https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec-dev`
+
+Если в **Shared** пусто: проверьте, что CI publish прошёл и в Manage указано *Shared with* ваша org.
 
 ```yaml
 - task: UseDotNet@2
