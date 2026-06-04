@@ -70,13 +70,13 @@ Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.cspr
 | Branch | SemVer (пример) | Git tag | GitHub Release | ADO extension |
 |--------|-----------------|---------|----------------|---------------|
 | `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (не prerelease) | `update-nuspec` → Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec-preview` → **public** |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec-preview` → **private** |
 
 На `release/*` и `hotfix/*` в GitVersion уже задан `tag: preview` — отдельно настраивать не нужно.
 
 CI также создаёт [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) с артефактом `.vsix` (после push тега).
 
-Публикация ADO в Marketplace: `secrets.AZDO_MARKETPLACE_PAT` (см. [`azure-devops-extension/README.md`](azure-devops-extension/README.md)).
+Публикация ADO в Marketplace: secret `AZDO_MARKETPLACE_PAT` (scope **Marketplace (Publish)**), publisher **peshkov**.
 
 Для GitHub Action после merge в `master`:
 
@@ -88,7 +88,26 @@ uses: denis-peshkov/update-nuspec-action@v1.2.3
 
 The same tool is packaged as a **Visual Studio Marketplace** extension in the **same CI** workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): after tests and Docker smoke tests, the pipeline builds `win-x64`/`linux-x64` binaries, compiles the task wrapper, and produces a `.vsix` artifact (`ado-extension-vsix`).
 
-Marketplace publish на каждый push: `master` → release, `release/*` / `hotfix/*` → preview. Нужен secret `AZDO_MARKETPLACE_PAT`. Details: [`azure-devops-extension/README.md`](azure-devops-extension/README.md).
+| Канал | Манифест | Extension ID | Marketplace |
+|-------|----------|----------------|-------------|
+| `master` | `vss-extension.json` | `update-nuspec` | **public** |
+| `release/*`, `hotfix/*` | `vss-extension.preview.json` | `update-nuspec-preview` | **private**, `--share-with peshkov` (org для тестов: `https://dev.azure.com/peshkov`) |
+
+Версия VSIX для preview: `major.minor.patch.preReleaseNumber` (например `1.1.0.4`); git-теги остаются `1.1.0-preview.4`.
+
+Установка preview: в org **peshkov** → **Organization settings** → **Extensions** → **Shared** → Install **update-nuspec-preview**.
+
+```yaml
+- task: UseDotNet@2
+  inputs:
+    packageType: runtime
+    version: 8.0.x
+
+- task: UpdateNuspec@1
+  inputs:
+    dir: '$(Build.SourcesDirectory)'
+    dryRun: false
+```
 
 ## Development
 

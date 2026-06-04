@@ -260,7 +260,7 @@ jobs:
             --publisher peshkov \
             --vsix "${VSIX[0]}" \
             --extension-pricing free \
-            --extension-visibility public
+            --share-with peshkov
 
       - name: Create git Tag
         if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
