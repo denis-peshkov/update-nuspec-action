@@ -115,47 +115,47 @@ jobs:
 
 [GitVersion](https://gitversion.net/) (`GitVersion.yml`) on push:
 
-| Branch | SemVer (пример) | Git tag | GitHub Release | ADO extension |
-|--------|-----------------|---------|----------------|---------------|
-| `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (не prerelease) | `update-nuspec` → Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec` (версия только `--share-with peshkov`) |
+| Branch | SemVer (example) | Git tag | GitHub Release | ADO extension |
+|--------|------------------|---------|----------------|---------------|
+| `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (not prerelease) | `update-nuspec` → Marketplace **public** |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec` (version shared via `--share-with peshkov` only) |
 
-На `release/*` и `hotfix/*` в GitVersion уже задан `tag: preview` — отдельно настраивать не нужно.
+On `release/*` and `hotfix/*`, GitVersion already uses `tag: preview` — no extra configuration is required.
 
-CI также создаёт [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) с артефактом `.vsix` (после push тега).
+CI also creates a [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) with a `.vsix` artifact (after the tag is pushed).
 
-Публикация ADO в Marketplace: secret `AZDO_MARKETPLACE_PAT` (scope **Marketplace (Publish)**), publisher **peshkov**.
+ADO Marketplace publish uses secret `AZDO_MARKETPLACE_PAT` (scope **Marketplace (Publish)**), publisher **peshkov**.
 
-Для GitHub Action после merge в `master` CI обновляет теги **`v{major}`**, **`v{major}.{minor}`** и **`v{semVer}`** (например `v1`, `v1.2`, `v1.2.3`) на коммит с актуальным `Dockerfile` (tool собирается внутри образа). Используйте:
+After merge to `master`, CI updates tags **`v{major}`**, **`v{major}.{minor}`**, and **`v{semVer}`** (for example `v1`, `v1.2`, `v1.2.3`) on the commit that contains the current `Dockerfile` (the tool is built inside the image). Use:
 
 ```yaml
-uses: denis-peshkov/update-nuspec-action@v1      # последний stable 1.x.y на master
-# или точный релиз:
+uses: denis-peshkov/update-nuspec-action@v1      # latest stable 1.x.y on master
+# or an exact release:
 uses: denis-peshkov/update-nuspec-action@v1.2.3
 ```
 
-Тег `@v1` — **движущийся** указатель на последний релиз major-1; после breaking changes в 2.x переключайтесь на `@v2`.
+The `@v1` tag is a **moving** pointer to the latest major-1 release; after breaking changes in 2.x, switch to `@v2`.
 
 ## Azure DevOps extension
 
 The same tool is packaged as a **Visual Studio Marketplace** extension in the **same CI** workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): after tests and Docker smoke tests, the pipeline builds `win-x64`/`linux-x64` binaries, compiles the task wrapper, and produces a `.vsix` artifact (`ado-extension-vsix`).
 
-Один extension **`update-nuspec`**, одна задача **`UpdateNuspec@1`** (один task GUID в Marketplace).
+Single extension **`update-nuspec`**, single task **`UpdateNuspec@1`** (one task GUID in the Marketplace).
 
-| Канал | Манифест | Публикация |
-|-------|----------|------------|
+| Channel | Manifest | Publish |
+|---------|----------|---------|
 | `master` | `vss-extension.json` | `--extension-visibility public` |
-| `release/*`, `hotfix/*` | тот же | `--share-with peshkov` (версия доступна org до выхода в public) |
+| `release/*`, `hotfix/*` | same | `--share-with peshkov` (version available to the org before going public) |
 
-Версия VSIX для preview: `major.minor.patch.preReleaseNumber` (например `1.1.0.4`); git-теги остаются `1.1.0-preview.4`.
+Preview VSIX version: `major.minor.patch.preReleaseNumber` (for example `1.1.0.4`); git tags remain `1.1.0-preview.4`.
 
-### Установка preview-версии
+### Installing a preview version
 
-1. Org slug в CI: **peshkov** → `https://dev.azure.com/peshkov`.
-2. После publish с `release/*` / `hotfix/*`: **Organization settings** → **Extensions** → **Shared** → **Update \*.nuspec** / `peshkov.update-nuspec` → установить нужную версию.
+1. Org slug in CI: **peshkov** → `https://dev.azure.com/peshkov`.
+2. After publish from `release/*` / `hotfix/*`: **Organization settings** → **Extensions** → **Shared** → **Update \*.nuspec** / `peshkov.update-nuspec` → install the version you need.
 3. Listing: `https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec`
 
-Старые отдельные preview-extension (`update-nuspec-dev`, `update-nuspec-preview-z`) в Manage лучше **Unpublish** — иначе task id остаётся привязан к ним и publish `update-nuspec` с master падает.
+Legacy separate preview extensions (`update-nuspec-dev`, `update-nuspec-preview-z`) should be **Unpublished** in Manage — otherwise the task id stays bound to them and publishing `update-nuspec` from `master` fails.
 
 ```yaml
 - task: UseDotNet@2
@@ -163,7 +163,7 @@ The same tool is packaged as a **Visual Studio Marketplace** extension in the **
     packageType: runtime
     version: 8.0.x
 
-# @1 — последняя установленная 1.x.y; не фиксируйте @1.1.0 после обновления extension
+# @1 — latest installed 1.x.y; do not pin @1.1.0 after upgrading the extension
 - task: UpdateNuspec@1
   inputs:
     dir: '$(Build.SourcesDirectory)'
@@ -172,7 +172,7 @@ The same tool is packaged as a **Visual Studio Marketplace** extension in the **
     CONSOLE_ANSI_COLOR: true  # omit or true for colored log (default: true)
 ```
 
-Цветной diff в логе pipeline включён **по умолчанию** (`CONSOLE_ANSI_COLOR=true` в task). Отключить: `env: CONSOLE_ANSI_COLOR: false`. На `windows-latest` цвет может не отображаться.
+Colored dependency diff in the pipeline log is **enabled by default** (`CONSOLE_ANSI_COLOR=true` in the task). To disable: `env: CONSOLE_ANSI_COLOR: false`. On `windows-latest`, colors may not render.
 
 ## Development
 
@@ -185,8 +185,7 @@ The same tool is packaged as a **Visual Studio Marketplace** extension in the **
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
 | `Dockerfile` | Multi-stage image (`linux/amd64`): `dotnet publish` in build stage, runtime + `entrypoint.sh` |
 | `action.yml` | Action metadata; runs the Docker image |
-| `azure-devops-extension/` | Marketplace extension manifest and pipeline task |
-| `azure-devops-extension/` | Marketplace extension; сборка VSIX — шаги в `.github/workflows/ci.yml` |
+| `azure-devops-extension/` | Marketplace extension manifest, pipeline task; VSIX build steps in `.github/workflows/ci.yml` |
 
 ### Tests
 
