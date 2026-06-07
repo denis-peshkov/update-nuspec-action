@@ -5,8 +5,8 @@ public static class ConsoleHelper
     private const string AnsiReset = "\u001b[0m";
 
     private static ConsoleColor _deletedColor = ConsoleColor.Red;
-    private static ConsoleColor _updatedColor = ConsoleColor.Green;
-    private static ConsoleColor _addedColor = ConsoleColor.Yellow;
+    private static ConsoleColor _updatedColor = ConsoleColor.Yellow;
+    private static ConsoleColor _addedColor = ConsoleColor.Green;
     private static ConsoleColor _notChangedColor = ConsoleColor.Gray;
 
     public static bool DryRun { get; set; }
@@ -149,7 +149,6 @@ public static class ConsoleHelper
             .Length;
     }
 
-    //TODO: refactor
     public static int DetermineColumnVersionWidth(this IDictionary<string, string> references)
     {
         return references
