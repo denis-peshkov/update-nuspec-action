@@ -53,7 +53,6 @@ jobs:
           dryRun: false        # true = preview in logs, no writes
         env:
           CONSOLE_ANSI_COLOR: false   # omit or true for colored log (default in image: true)
-
 ```
 
 ## Inputs
@@ -170,10 +169,10 @@ The same tool is packaged as a **Visual Studio Marketplace** extension in the **
     dir: '$(Build.SourcesDirectory)'
     dryRun: false
   env:
-    CONSOLE_ANSI_COLOR: true
+    CONSOLE_ANSI_COLOR: true  # omit or true for colored log (default: true)
 ```
 
-Цветной diff зависимостей в логе pipeline (Linux-агенты, Azure DevOps): `CONSOLE_ANSI_COLOR=true`. На `windows-latest` цвет может не отображаться.
+Цветной diff в логе pipeline включён **по умолчанию** (`CONSOLE_ANSI_COLOR=true` в task). Отключить: `env: CONSOLE_ANSI_COLOR: false`. На `windows-latest` цвет может не отображаться.
 
 ## Development
 

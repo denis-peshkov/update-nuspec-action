@@ -40,7 +40,12 @@ async function run(): Promise<void> {
             tool.arg('--dry-run');
         }
 
-        const exitCode = await tool.exec();
+        const env: NodeJS.ProcessEnv = { ...process.env };
+        if (!env.CONSOLE_ANSI_COLOR) {
+            env.CONSOLE_ANSI_COLOR = 'true';
+        }
+
+        const exitCode = await tool.exec({ env });
         if (exitCode !== 0) {
             tl.setResult(tl.TaskResult.Failed, `UpdateNuspecTool exited with code ${exitCode}`);
         }
