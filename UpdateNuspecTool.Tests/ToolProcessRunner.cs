@@ -2,6 +2,16 @@ namespace UpdateNuspecTool.Tests;
 
 internal static class ToolProcessRunner
 {
+    private static readonly string[] IsolatedEnvironmentVariables =
+    [
+        "PACKAGE_VERSION",
+        "GITVERSION_SEMVER",
+        "GitVersion_SemVer",
+        "semVer",
+        "SEMVER",
+        "DEPENDENCY_SCOPE",
+    ];
+
     public static (int ExitCode, string Output) Run(params string[] args)
     {
         var toolDll = typeof(CliHelper).Assembly.Location;
@@ -19,6 +29,11 @@ internal static class ToolProcessRunner
                 UseShellExecute = false,
             },
         };
+
+        foreach (var name in IsolatedEnvironmentVariables)
+        {
+            process.StartInfo.Environment.Remove(name);
+        }
 
         process.Start();
         var stdout = process.StandardOutput.ReadToEnd();
