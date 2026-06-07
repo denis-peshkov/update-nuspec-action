@@ -26,7 +26,7 @@ steps:
     displayName: Update package version in built package
     inputs:
       dir: 'client/dist/$(proj)'
-      packageVersion: '$(GitVersion.SemVer)'
+      packageVersion: '$(GitVersion_SemVer)'
       dependencyScope: '@guru/'   # optional; empty = version only, skip dependency alignment
 ```
 

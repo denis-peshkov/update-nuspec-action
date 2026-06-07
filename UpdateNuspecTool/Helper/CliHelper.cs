@@ -147,7 +147,7 @@ internal static class CliHelper
                Recursively scans a directory for .nuspec files, finds a .csproj with the same name as <id>
                in nuspec metadata in each file's folder, compares package versions, and rewrites the
                <dependencies> section (flat or per targetFramework group).
-               When --package-version (or PACKAGE_VERSION / GITVERSION_SEMVER env) is set, also updates
+               When --package-version (or PACKAGE_VERSION / GitVersion_SemVer / SemVer env) is set, also updates
                package.json: sets version as x.y.z and aligns dependencies whose names start with the scope prefix
                to ^x.y.z in dependencies, devDependencies, peerDependencies, optionalDependencies when --dependency-scope is set.
                Use dry-run to preview changes without saving files.
@@ -164,7 +164,7 @@ internal static class CliHelper
                --version, -v           Show tool version.
                --dry-run, -d, --demo   Analyze and print the report; do not modify files.
                true                    Same as --dry-run (positional boolean).
-               --package-version, -pv  SemVer for package.json "version" (env: PACKAGE_VERSION, GITVERSION_SEMVER).
+               --package-version, -pv  SemVer for package.json "version" (env: PACKAGE_VERSION, GitVersion_SemVer. SemVer).
                --dependency-scope, -ds Scope prefix for npm dependency alignment (env: DEPENDENCY_SCOPE).
                                        Skipped when empty.
 

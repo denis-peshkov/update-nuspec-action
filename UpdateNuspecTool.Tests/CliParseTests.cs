@@ -41,7 +41,7 @@ public sealed class CliParseTests
     [Test]
     public void ResolvePackageVersion_reads_gitversion_env()
     {
-        Environment.SetEnvironmentVariable("GITVERSION_SEMVER", "1.3.0-preview.4");
+        Environment.SetEnvironmentVariable("GitVersion_SemVer", "1.3.0-preview.4");
 
         try
         {
@@ -49,7 +49,7 @@ public sealed class CliParseTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("GITVERSION_SEMVER", null);
+            Environment.SetEnvironmentVariable("GitVersion_SemVer", null);
         }
     }
 

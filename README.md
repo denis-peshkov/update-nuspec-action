@@ -61,7 +61,7 @@ jobs:
 |-------|----------|---------|-------------|
 | `dir` | No | `.` | Root folder to scan **recursively** for `.csproj` / `.nuspec` pairs and (when `packageVersion` is set) `package.json`, relative to `/github/workspace`. Prefer a package path (`src/MyPackage`); `.` scans the entire checkout including nested folders (tests, other packages). |
 | `dryRun` | No | `false` | `true` — full report in the log, no file changes (`[DRY RUN]`). |
-| `packageVersion` | No | *(empty)* | SemVer to set in `package.json` `version`. Env fallback: `PACKAGE_VERSION`, `GITVERSION_SEMVER`. |
+| `packageVersion` | No | *(empty)* | SemVer to set in `package.json` `version`. Env fallback: `PACKAGE_VERSION`, `GitVersion_SemVer`. |
 | `dependencyScope` | No | *(empty)* | npm package name prefix to set to `^packageVersion`. Skipped when empty. |
 
 ## Outputs
@@ -106,7 +106,7 @@ Azure DevOps task equivalent:
 - task: UpdateNuspec@1
   inputs:
     dir: 'client/dist/$(proj)'
-    packageVersion: '$(GitVersion.SemVer)'
+    packageVersion: '$(GitVersion_SemVer)'
     dependencyScope: '@guru/'
 ```
 
@@ -199,7 +199,7 @@ Legacy separate preview extensions (`update-nuspec-dev`, `update-nuspec-preview-
   inputs:
     dir: '$(Build.SourcesDirectory)'
     dryRun: false
-    # packageVersion: '$(GitVersion.SemVer)'   # optional: package.json version
+    # packageVersion: '$(GitVersion_SemVer)'   # optional: package.json version
     # dependencyScope: '@guru/'                # optional: align scoped npm deps; empty = skip
   env:
     CONSOLE_ANSI_COLOR: true  # omit or true for colored log (default: true)

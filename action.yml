@@ -13,7 +13,7 @@ inputs:
     required: false
     default: 'false'
   packageVersion:
-    description: 'SemVer to set in package.json "version". Env fallback: PACKAGE_VERSION, GITVERSION_SEMVER.'
+    description: 'SemVer to set in package.json "version". Env fallback: PACKAGE_VERSION, GitVersion_SemVer.'
     required: false
     default: ''
   dependencyScope:
