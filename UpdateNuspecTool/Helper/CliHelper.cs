@@ -1,13 +1,13 @@
-namespace UpdateNuspecTool;
+namespace UpdateNuspecTool.Helper;
 
 internal static class CliHelper
 {
     public static bool IsDryRunSwitch(string arg)
     {
         return arg.Equals("--dry-run", StringComparison.OrdinalIgnoreCase)
-               || arg.Equals("-d", StringComparison.OrdinalIgnoreCase)
-               || arg.Equals("--demo", StringComparison.OrdinalIgnoreCase)
-               || arg.Equals("true", StringComparison.OrdinalIgnoreCase);
+            || arg.Equals("-d", StringComparison.OrdinalIgnoreCase)
+            || arg.Equals("--demo", StringComparison.OrdinalIgnoreCase)
+            || arg.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool IsHelpSwitch(string arg)
@@ -93,7 +93,7 @@ internal static class CliHelper
             return cliValue.Trim();
         }
 
-        foreach (var name in new[] { "PACKAGE_VERSION", "GITVERSION_SEMVER", "GitVersion_SemVer" })
+        foreach (var name in new[] { "PACKAGE_VERSION", "GITVERSION_SEMVER", "GitVersion_SemVer", "SemVer", "SEMVER" })
         {
             var value = Environment.GetEnvironmentVariable(name);
             if (!string.IsNullOrWhiteSpace(value))
@@ -121,7 +121,7 @@ internal static class CliHelper
         return string.Empty;
     }
 
-    public static string GetVersionText()
+    public static string GetVersion()
     {
         var assembly = Assembly.GetExecutingAssembly();
         var informationalVersion = assembly
@@ -129,18 +129,19 @@ internal static class CliHelper
             ?.InformationalVersion;
         var version = assembly.GetName().Version?.ToString(3);
 
-        return $"UpdateNuspecTool {informationalVersion ?? version ?? "unknown"}";
+        return $"{informationalVersion ?? version ?? "unknown"}";
     }
 
-    public static void PrintVersion() => Console.WriteLine(GetVersionText());
+    public static void PrintVersion()
+    {
+        Console.WriteLine($"UpdateNuspecTool {GetVersion()}");
+    }
 
     public static string GetHelpText()
     {
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown";
-
         return
             $"""
-             UpdateNuspecTool {version}
+             UpdateNuspecTool {GetVersion()}
              Sync NuGet <dependencies> in *.nuspec with PackageReference versions from matching *.csproj files.
              Optionally update package.json version and scoped npm dependencies.
 
@@ -149,8 +150,8 @@ internal static class CliHelper
                in nuspec metadata in each file's folder, compares package versions, and rewrites the
                <dependencies> section (flat or per targetFramework group).
                When --package-version (or PACKAGE_VERSION / GITVERSION_SEMVER env) is set, also updates
-               package.json: sets "version" and aligns dependencies whose names start with the scope prefix
-               to ^{version} in dependencies, devDependencies, peerDependencies, optionalDependencies when --dependency-scope is set.
+               package.json: sets version as x.y.z and aligns dependencies whose names start with the scope prefix
+               to ^x.y.z in dependencies, devDependencies, peerDependencies, optionalDependencies when --dependency-scope is set.
                Use dry-run to preview changes without saving files.
 
              USAGE

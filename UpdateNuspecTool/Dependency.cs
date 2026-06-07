@@ -1,3 +1,3 @@
 namespace UpdateNuspecTool;
 
-public record Dependency(string Name, string Version);
+public sealed record Dependency(string Name, string Version);

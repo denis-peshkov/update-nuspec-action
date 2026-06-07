@@ -1,4 +1,4 @@
-namespace UpdateNuspecTool;
+namespace UpdateNuspecTool.Helper;
 
 public static class ConsoleHelper
 {

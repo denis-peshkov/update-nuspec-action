@@ -9,16 +9,16 @@ public sealed class CsprojPackageReferenceResolverTests
         var projectPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "Cross.Messaging.csproj");
         var project = XDocument.Load(projectPath);
 
-        var net8 = CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net8.0");
+        var net8 = Nuspec.CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net8.0");
         net8.Should().Contain(p => p.Name == "MailKit" && p.Version == "4.16.0");
         net8.Should().Contain(p => p.Name == "Microsoft.Extensions.Configuration" && p.Version == "8.0.0");
         net8.Should().Contain(p => p.Name == "Microsoft.Extensions.Configuration.Binder" && p.Version == "8.0.2");
 
-        var net9 = CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net9.0");
+        var net9 = Nuspec.CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net9.0");
         net9.Select(p => p.Name).Should().NotContain("Microsoft.Extensions.Configuration.Binder");
         net9.Should().Contain(p => p.Name == "Microsoft.Extensions.Configuration" && p.Version == "9.0.15");
 
-        var net10 = CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net10.0");
+        var net10 = Nuspec.CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net10.0");
         net10.Should().Contain(p => p.Name == "Microsoft.Extensions.Configuration" && p.Version == "10.0.7");
     }
 
@@ -28,7 +28,7 @@ public sealed class CsprojPackageReferenceResolverTests
         var projectPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "Cross.Messaging.csproj");
         var project = XDocument.Load(projectPath);
 
-        var packages = CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net8.0");
+        var packages = Nuspec.CsprojPackageReferenceResolver.GetPackageReferencesForTargetFramework(project, "net8.0");
         packages.Select(p => p.Name).Should().NotContain("Microsoft.SourceLink.GitHub");
     }
 
@@ -45,7 +45,7 @@ public sealed class CsprojPackageReferenceResolverTests
         string targetFramework,
         bool expected)
     {
-        CsprojPackageReferenceResolver.ConditionAppliesToTargetFramework(condition, targetFramework)
+        Nuspec.CsprojPackageReferenceResolver.ConditionAppliesToTargetFramework(condition, targetFramework)
             .Should()
             .Be(expected);
     }
@@ -65,7 +65,7 @@ public sealed class CsprojPackageReferenceResolverTests
             </Project>
             """);
 
-        var packages = CsprojPackageReferenceResolver.GetPackageReferences(project);
+        var packages = Nuspec.CsprojPackageReferenceResolver.GetPackageReferences(project);
 
         packages.Should().ContainSingle()
             .Which.Should().BeEquivalentTo(new Dependency("Sample.Package", "2.0.0"));
@@ -86,7 +86,7 @@ public sealed class CsprojPackageReferenceResolverTests
             </Project>
             """);
 
-        var packages = CsprojPackageReferenceResolver.GetPackageReferences(project);
+        var packages = Nuspec.CsprojPackageReferenceResolver.GetPackageReferences(project);
 
         packages.Should().ContainSingle()
             .Which.Should().BeEquivalentTo(new Dependency("Single.Tfm", "1.2.3"));
@@ -108,7 +108,7 @@ public sealed class CsprojPackageReferenceResolverTests
             </Project>
             """);
 
-        var packages = CsprojPackageReferenceResolver.GetPackageReferences(project);
+        var packages = Nuspec.CsprojPackageReferenceResolver.GetPackageReferences(project);
 
         packages.Should().ContainSingle()
             .Which.Version.Should().Be("9.9.9");
@@ -124,7 +124,7 @@ public sealed class CsprojPackageReferenceResolverTests
             </Project>
             """);
 
-        var packages = CsprojPackageReferenceResolver.GetPackageReferences(project);
+        var packages = Nuspec.CsprojPackageReferenceResolver.GetPackageReferences(project);
 
         packages.Should().BeEmpty();
     }

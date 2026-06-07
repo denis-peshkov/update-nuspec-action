@@ -125,6 +125,6 @@ public sealed class UpdateNuspecToolGeneralTests
             ?? assembly.GetName().Version?.ToString(3)
             ?? "unknown";
 
-        CliHelper.GetVersionText().Should().Be($"UpdateNuspecTool {expected}");
+        CliHelper.GetVersion().Should().Be($"{expected}");
     }
 }

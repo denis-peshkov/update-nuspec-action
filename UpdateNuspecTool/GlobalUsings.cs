@@ -13,3 +13,6 @@ global using System.Text.Json;
 global using System.Text.Json.Nodes;
 global using System.Text.RegularExpressions;
 global using System.Xml.Linq;
+global using UpdateNuspecTool.Helper;
+global using UpdateNuspecTool.Nuspec;
+global using UpdateNuspecTool.PackageJson;

@@ -9,3 +9,6 @@ global using FluentAssertions;
 global using NUnit.Framework;
 global using System.Text.Json.Nodes;
 global using UpdateNuspecTool;
+global using UpdateNuspecTool.Helper;
+global using UpdateNuspecTool.Nuspec;
+global using UpdateNuspecTool.PackageJson;

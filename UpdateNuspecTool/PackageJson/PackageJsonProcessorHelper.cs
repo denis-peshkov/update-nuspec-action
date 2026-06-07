@@ -1,4 +1,4 @@
-namespace UpdateNuspecTool;
+namespace UpdateNuspecTool.PackageJson;
 
 public static class PackageJsonProcessorHelper
 {

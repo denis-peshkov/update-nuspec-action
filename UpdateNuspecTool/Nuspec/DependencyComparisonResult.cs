@@ -1,4 +1,4 @@
-namespace UpdateNuspecTool;
+namespace UpdateNuspecTool.Nuspec;
 
 public sealed class DependencyComparisonResult
 {

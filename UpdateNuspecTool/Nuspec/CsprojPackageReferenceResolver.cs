@@ -1,4 +1,4 @@
-namespace UpdateNuspecTool;
+namespace UpdateNuspecTool.Nuspec;
 
 internal static partial class CsprojPackageReferenceResolver
 {
