@@ -133,9 +133,7 @@ internal static class CliHelper
     }
 
     public static void PrintVersion()
-    {
-        Console.WriteLine($"UpdateNuspecTool {GetVersion()}");
-    }
+        => Console.WriteLine($"UpdateNuspecTool {GetVersion()}");
 
     public static string GetHelpText()
     {
@@ -189,7 +187,8 @@ internal static class CliHelper
              """;
     }
 
-    public static void PrintHelp() => Console.WriteLine(GetHelpText());
+    public static void PrintHelp()
+        => Console.WriteLine(GetHelpText());
 
     public static void Run(CliRunOptions options)
     {
@@ -276,9 +275,9 @@ internal static class CliHelper
     private static bool IsOption(string arg, string longName, string shortName)
     {
         return arg.Equals(longName, StringComparison.OrdinalIgnoreCase)
-               || arg.Equals(shortName, StringComparison.OrdinalIgnoreCase)
-               || arg.StartsWith(longName + "=", StringComparison.OrdinalIgnoreCase)
-               || arg.StartsWith(shortName + "=", StringComparison.OrdinalIgnoreCase);
+            || arg.Equals(shortName, StringComparison.OrdinalIgnoreCase)
+            || arg.StartsWith(longName + "=", StringComparison.OrdinalIgnoreCase)
+            || arg.StartsWith(shortName + "=", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ReadOptionValue(string[] args, ref int index, string arg)

@@ -4,9 +4,9 @@ public static class ConsoleHelper
 {
     private const string AnsiReset = "\u001b[0m";
 
-    private static ConsoleColor _deletedColor = ConsoleColor.Red;
-    private static ConsoleColor _updatedColor = ConsoleColor.Yellow;
-    private static ConsoleColor _addedColor = ConsoleColor.Green;
+    private static ConsoleColor _deletedColor    = ConsoleColor.Red;
+    private static ConsoleColor _updatedColor    = ConsoleColor.Yellow;
+    private static ConsoleColor _addedColor      = ConsoleColor.Green;
     private static ConsoleColor _notChangedColor = ConsoleColor.Gray;
 
     public static bool DryRun { get; set; }
@@ -167,8 +167,8 @@ public static class ConsoleHelper
         var value = Environment.GetEnvironmentVariable("CONSOLE_ANSI_COLOR");
         return value is not null
             && (value.Equals("true", StringComparison.OrdinalIgnoreCase)
-                || value == "1"
-                || value.Equals("yes", StringComparison.OrdinalIgnoreCase));
+             || value == "1"
+             || value.Equals("yes", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string ToAnsi(ConsoleColor color) => color switch
