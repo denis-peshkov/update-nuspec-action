@@ -8,7 +8,6 @@
 **/bin/
 **/obj/
 TestResults/
-artifacts/
 *.vsix
 azure-devops-extension/.vss-extension.build.json
 azure-devops-extension/tasks/

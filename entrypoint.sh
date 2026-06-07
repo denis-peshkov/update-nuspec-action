@@ -3,6 +3,7 @@ set -e
 
 WORKSPACE_ROOT="/github/workspace"
 DIR="${1:-.}"
+DRY_RUN="${2:-false}"
 
 # Repository root
 case "$DIR" in
@@ -21,4 +22,11 @@ case "$DIR" in
     ;;
 esac
 
-exec /UpdateNuspecTool "$DIR"
+case "$DRY_RUN" in
+  true|True|TRUE|1|yes|Yes|YES)
+    exec /UpdateNuspecTool --dry-run "$DIR"
+    ;;
+  *)
+    exec /UpdateNuspecTool "$DIR"
+    ;;
+esac

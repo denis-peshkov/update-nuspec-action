@@ -10,7 +10,6 @@
 *.md
 LICENSE
 TestResults/
-artifacts/
 GitVersion.yml
 UpdateNuspecTool.slnx
 UpdateNuspecTool.sln.DotSettings.user

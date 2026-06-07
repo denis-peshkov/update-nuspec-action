@@ -2,7 +2,7 @@
 [![GitHub Release Date](https://img.shields.io/github/release-date/denis-peshkov/update-nuspec-action?label=released)](https://github.com/denis-peshkov/update-nuspec-action/releases)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=UpdateNuspecTool&metric=coverage)](https://sonarcloud.io/summary/new_code?id=UpdateNuspecTool)
 [![issues](https://img.shields.io/github/issues/denis-peshkov/update-nuspec-action)](https://github.com/denis-peshkov/update-nuspec-action/issues)
-[![CI](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml)
+[![CI](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml/badge.svg)](https://github.com/denis-peshkov/update-nuspec-action/actions/workflows/ci.yml)
 
 ![Size](https://img.shields.io/github/repo-size/denis-peshkov/update-nuspec-action)
 [![GitHub contributors](https://img.shields.io/github/contributors/denis-peshkov/update-nuspec-action)](https://github.com/denis-peshkov/update-nuspec-action/contributors)
@@ -20,24 +20,48 @@ GitHub Action (Docker) that scans .NET projects in a directory and updates the `
 Pin a [release tag](https://github.com/denis-peshkov/update-nuspec-action/releases) (recommended):
 
 ```yaml
-- uses: denis-peshkov/update-nuspec-action@v1
-```
+- uses: actions/checkout@v4
 
-With a custom scan directory:
-
-```yaml
 - uses: denis-peshkov/update-nuspec-action@v1
   with:
     dir: src/MyPackage
 ```
 
-Equivalent to `/github/workspace/src/MyPackage` inside the container. An absolute path (starting with `/`) is used as-is.
+`dir` is relative to `/github/workspace` (repo root after `checkout`). An absolute path (starting with `/`) is used as-is.
+
+Dry-run (report only, no file writes):
+
+```yaml
+- uses: denis-peshkov/update-nuspec-action@v1
+  with:
+    dir: src/MyPackage
+    dryRun: true
+```
+
+### Checklist (consumer workflow)
+
+```yaml
+jobs:
+  update-nuspec:
+    runs-on: ubuntu-latest   # linux/amd64; see Requirements
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denis-peshkov/update-nuspec-action@v1
+        with:
+          dir: src/MyPackage   # explicit folder — not "." unless you want the whole repo
+          dryRun: false        # true = preview in logs, no writes
+        env:
+          CONSOLE_ANSI_COLOR: false   # omit or true for colored log (default in image: true)
+
+```
 
 ## Inputs
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `dir` | No | `.` | Root folder to scan recursively for `.csproj` / `.nuspec` pairs, relative to `/github/workspace` (`.` = repo root) |
+| `dir` | No | `.` | Root folder to scan **recursively** for `.csproj` / `.nuspec` pairs, relative to `/github/workspace`. Prefer a package path (`src/MyPackage`); `.` scans the entire checkout including nested folders (tests, other packages). |
+| `dryRun` | No | `false` | `true` — full report in the log, no `.nuspec` changes (`[DRY RUN]`). |
 
 ## Behavior
 
@@ -54,14 +78,39 @@ Equivalent to `/github/workspace/src/MyPackage` inside the container. An absolut
 - `PrivateAssets="All"` references (for example SourceLink) are not written to nuspec.
 - Exits with code `0` if no `.nuspec` files are found (prints `*.nuspec files not found!`).
 - Prints an error if `dir` does not exist (`Path '…' is not valid!`).
-- **Dry-run** (`--dry-run`, `-d`, `--demo`, or positional `true`): full report, no file save (`[DRY RUN]` in the log).
+- **Dry-run** — GitHub Action input `dryRun: true`, or CLI flags `--dry-run` / `-d` / `--demo` (or positional `true`): full report, no file save (`[DRY RUN]` in the log).
 
 Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.csproj` + `Cross.Messaging.nuspec`.
 
 ## Requirements
 
-- **Runner:** `ubuntu-latest` (or another **linux/amd64** host). The bundled tool is published for `linux-x64`.
+This action is a **Docker container action** (`runs.using: docker` in `action.yml`). GitHub runs it only on **Linux** runners; the image is `linux/amd64` with a `linux-x64` tool binary.
+
+- **Runner:** `ubuntu-latest` (recommended) or any **linux/amd64** self-hosted host with Docker.
+- **`windows-latest` / `macos-latest`:** **not supported** — container actions do not run on Windows or macOS hosted runners. Use a separate job on `ubuntu-latest` (other jobs in the workflow may still use Windows).
+- **Self-hosted ARM runners:** not supported as-is — use `ubuntu-latest`, or a self-hosted **amd64** Linux agent, or dedicate one job to `runs-on: ubuntu-latest`.
 - **.NET:** The image includes .NET 8 runtime (framework-dependent apphost).
+- **Colored log output:** enabled by default in the image (`CONSOLE_ANSI_COLOR=true`). Override with `env: CONSOLE_ANSI_COLOR: false` on the step if needed.
+
+**On Windows:** use the CLI (`dotnet publish -r win-x64`, see [CLI (local)](#cli-local)) or the [Azure DevOps extension](#azure-devops-extension) (`UpdateNuspec@1` on `windows-latest`).
+
+Mixed workflow example (build on Windows, nuspec sync on Linux):
+
+```yaml
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      # …
+
+  sync-nuspec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: denis-peshkov/update-nuspec-action@v1
+        with:
+          dir: src/MyPackage
+```
 
 ## Versioning (this repository)
 
@@ -78,11 +127,15 @@ CI также создаёт [GitHub Release](https://github.com/denis-peshkov/u
 
 Публикация ADO в Marketplace: secret `AZDO_MARKETPLACE_PAT` (scope **Marketplace (Publish)**), publisher **peshkov**.
 
-Для GitHub Action после merge в `master`:
+Для GitHub Action после merge в `master` CI обновляет теги **`v{major}`**, **`v{major}.{minor}`** и **`v{semVer}`** (например `v1`, `v1.2`, `v1.2.3`) на коммит с актуальным `Dockerfile` (tool собирается внутри образа). Используйте:
 
 ```yaml
+uses: denis-peshkov/update-nuspec-action@v1      # последний stable 1.x.y на master
+# или точный релиз:
 uses: denis-peshkov/update-nuspec-action@v1.2.3
 ```
+
+Тег `@v1` — **движущийся** указатель на последний релиз major-1; после breaking changes в 2.x переключайтесь на `@v2`.
 
 ## Azure DevOps extension
 
@@ -131,7 +184,7 @@ The same tool is packaged as a **Visual Studio Marketplace** extension in the **
 | `UpdateNuspecTool/` | CLI source |
 | `UpdateNuspecTool.Tests/` | NUnit tests and fixtures |
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
-| `Dockerfile` | Runtime image; copies single-file `artifacts/publish/linux-x64/UpdateNuspecTool` from CI **Build** |
+| `Dockerfile` | Multi-stage image (`linux/amd64`): `dotnet publish` in build stage, runtime + `entrypoint.sh` |
 | `action.yml` | Action metadata; runs the Docker image |
 | `azure-devops-extension/` | Marketplace extension manifest and pipeline task |
 | `azure-devops-extension/` | Marketplace extension; сборка VSIX — шаги в `.github/workflows/ci.yml` |
@@ -143,7 +196,7 @@ dotnet restore UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
 dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release --no-restore
 ```
 
-CI restores the test project in **Restore dependencies**, then runs tests after the tool is published (see `.github/workflows/ci.yml`).
+CI restores the test project in **Restore dependencies**, then runs tests after build (see `.github/workflows/ci.yml`).
 
 Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `config.nuspec`, `cgf.nuspec`, …).
 
@@ -168,16 +221,16 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
   --no-restore \
   -r linux-x64 \
   --self-contained false \
-  -o ./artifacts/publish/linux-x64
+  -o UpdateNuspecTool/bin/publish/linux-x64
 ```
 
-(`PublishSingleFile` is enabled in the `.csproj` when `-r linux-x64` is set.)
+(`PublishSingleFile` is enabled in the `.csproj` when `-r linux-x64` is set. Output under `bin/` is gitignored.)
 
 ```bash
-./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
+UpdateNuspecTool/bin/publish/linux-x64/UpdateNuspecTool UpdateNuspecTool.Tests/TestData
 
 # Demo / test run: full report in console, no file changes
-./artifacts/publish/linux-x64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData --dry-run
+UpdateNuspecTool/bin/publish/linux-x64/UpdateNuspecTool UpdateNuspecTool.Tests/TestData --dry-run
 ```
 
 **Windows (x64):**
@@ -188,9 +241,9 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj `
   -r win-x64 `
   --self-contained false `
   -p:PublishSingleFile=true `
-  -o ./artifacts/publish/win-x64
+  -o UpdateNuspecTool/bin/publish/win-x64
 
-./artifacts/publish/win-x64/UpdateNuspecTool.exe ./UpdateNuspecTool.Tests/TestData
+UpdateNuspecTool/bin/publish/win-x64/UpdateNuspecTool.exe UpdateNuspecTool.Tests/TestData
 ```
 
 **macOS (Apple Silicon, ARM64):**
@@ -201,9 +254,9 @@ dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
   -r osx-arm64 \
   --self-contained false \
   -p:PublishSingleFile=true \
-  -o ./artifacts/publish/osx-arm64
+  -o UpdateNuspecTool/bin/publish/osx-arm64
 
-./artifacts/publish/osx-arm64/UpdateNuspecTool ./UpdateNuspecTool.Tests/TestData
+UpdateNuspecTool/bin/publish/osx-arm64/UpdateNuspecTool UpdateNuspecTool.Tests/TestData
 ```
 
 | Platform | Runtime ID (`-r`) | Output executable |
@@ -216,24 +269,23 @@ Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
 
 ### Docker image
 
-Restore, build, and publish the tool for `linux-x64` (same as the CI **Build** step), then build the image:
+The action image builds and publishes the tool inside `Dockerfile`:
 
 ```bash
-dotnet restore UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
-dotnet restore UpdateNuspecTool/UpdateNuspecTool.csproj -r linux-x64
-dotnet build UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-restore -r linux-x64
-dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj -c Release --no-restore --no-build \
-  -r linux-x64 --self-contained false -o artifacts/publish/linux-x64
-
 docker build --platform linux/amd64 -t update-nuspec-action:local .
 docker run --rm --platform linux/amd64 \
   -v "$PWD:/github/workspace" \
-  update-nuspec-action:local UpdateNuspecTool.Tests/TestData/
+  update-nuspec-action:local UpdateNuspecTool.Tests/TestData
+
+# dry-run: second argument true (same as action input dryRun)
+docker run --rm --platform linux/amd64 \
+  -v "$PWD:/github/workspace" \
+  update-nuspec-action:local UpdateNuspecTool.Tests/TestData true
 ```
 
 On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub-hosted runners.
 
-Full pipeline on push/PR: restore → publish tool → tests → SonarCloud → `docker build` and smoke tests (`.github/workflows/ci.yml`).
+Full pipeline on push/PR: restore → build → tests → SonarCloud → `docker build` and smoke tests (`.github/workflows/ci.yml`).
 
 ## License
 

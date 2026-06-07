@@ -5,9 +5,13 @@ branding:
   color: yellow
 inputs:
   dir:
-    description: 'Root directory to scan recursively, relative to /github/workspace (e.g. src or Cross.Identity). Use "." for repo root. Absolute paths are passed through unchanged.'
+    description: 'Root directory to scan recursively, relative to /github/workspace (e.g. src/Cross.Identity). Prefer a package folder over "." — repo root scans all subfolders. Absolute paths are passed through unchanged.'
     required: false
     default: '.'
+  dryRun:
+    description: 'Report only; do not modify .nuspec files ([DRY RUN] in the log).'
+    required: false
+    default: 'false'
 #outputs:
 #  upgrade-projects:
 #    description: 'An array of projects that need to be upgraded.'
@@ -17,3 +21,4 @@ runs:
 #  image: 'docker://ghcr.io/some-user/some-registry' # Starting with docker:// is important!!
   args:
     - ${{ inputs.dir }}
+    - ${{ inputs.dryRun }}

@@ -131,6 +131,12 @@ jobs:
             -v "${{ github.workspace }}:/github/workspace" \
             update-nuspec-action:ci .github | grep -q 'nuspec files not found'
 
+      - name: Smoke test (dry-run)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/github/workspace" \
+            update-nuspec-action:ci UpdateNuspecTool.Tests/TestData true | grep -q '\[DRY RUN\]'
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

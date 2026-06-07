@@ -1,5 +1,5 @@
-﻿# Publish in image so `uses: …@v1` works without artifacts/ in git
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+﻿# Publish tool inside the image (`uses: …@v1` does not require a pre-built binary in git)
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY UpdateNuspecTool/ UpdateNuspecTool/
 RUN dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
@@ -7,7 +7,7 @@ RUN dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
     -r linux-x64 \
     -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/runtime:8.0
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/runtime:8.0
 
 LABEL maintainer="Denis Peshkov <denis.peshkov@outlook.com>"
 LABEL repository="https://github.com/denis-peshkov/update-nuspec-action"
@@ -23,5 +23,7 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /UpdateNuspecTool /entrypoint.sh
 
 WORKDIR /github/workspace
+
+ENV CONSOLE_ANSI_COLOR=true
 
 ENTRYPOINT ["/entrypoint.sh"]
