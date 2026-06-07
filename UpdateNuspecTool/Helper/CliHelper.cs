@@ -164,7 +164,7 @@ internal static class CliHelper
                --version, -v           Show tool version.
                --dry-run, -d, --demo   Analyze and print the report; do not modify files.
                true                    Same as --dry-run (positional boolean).
-               --package-version, -pv  SemVer for package.json "version" (env: PACKAGE_VERSION, GitVersion_SemVer. SemVer).
+               --package-version, -pv  SemVer for package.json "version" (env: PACKAGE_VERSION, GitVersion_SemVer, semVer).
                --dependency-scope, -ds Scope prefix for npm dependency alignment (env: DEPENDENCY_SCOPE).
                                        Skipped when empty.
 
