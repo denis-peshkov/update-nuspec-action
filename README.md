@@ -61,7 +61,7 @@ jobs:
 |-------|----------|---------|-------------|
 | `dir` | No | `.` | Root folder to scan **recursively** for `.csproj` / `.nuspec` pairs and (when `packageVersion` is set) `package.json`, relative to `/github/workspace`. Prefer a package path (`src/MyPackage`); `.` scans the entire checkout including nested folders (tests, other packages). |
 | `dryRun` | No | `false` | `true` — full report in the log, no file changes (`[DRY RUN]`). |
-| `packageVersion` | No | *(empty)* | SemVer to set in `package.json` `version`. Env fallback: `PACKAGE_VERSION`, `GitVersion_SemVer`. |
+| `packageVersion` | No | *(empty)* | SemVer for `package.json` `version`. Azure DevOps: `$(GitVersion_SemVer)` after `gitversion/execute`. Env fallback: `PACKAGE_VERSION`, `GitVersion_SemVer`. |
 | `dependencyScope` | No | *(empty)* | npm package name prefix to set to `^packageVersion`. Skipped when empty. |
 
 ## Outputs
@@ -92,17 +92,27 @@ Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.cspr
 
 ### package.json (built npm package)
 
+GitHub Actions (after [GitVersion execute](https://github.com/gittools/actions)):
+
 ```yaml
+- uses: gittools/actions/gitversion/execute@v1.1.1
+  id: gitversion
+
 - uses: denis-peshkov/update-nuspec-action@v1
   with:
     dir: client/dist/my-app
-    packageVersion: ${{ steps.gitversion.outputs.semVer }}
+    packageVersion: ${{ env.GitVersion_SemVer }}
     dependencyScope: '@guru/'              # optional; empty = skip dependency alignment
 ```
 
-Azure DevOps task equivalent:
+Azure DevOps (after `gitversion/execute@3`):
 
 ```yaml
+- task: gitversion/execute@3
+  displayName: Determine Version
+  inputs:
+    disableCache: true
+
 - task: UpdateNuspec@1
   inputs:
     dir: 'client/dist/$(proj)'
@@ -199,7 +209,7 @@ Legacy separate preview extensions (`update-nuspec-dev`, `update-nuspec-preview-
   inputs:
     dir: '$(Build.SourcesDirectory)'
     dryRun: false
-    # packageVersion: '$(GitVersion_SemVer)'   # optional: package.json version
+    # packageVersion: '$(GitVersion_SemVer)'   # optional: package.json version (after gitversion/execute)
     # dependencyScope: '@guru/'                # optional: align scoped npm deps; empty = skip
   env:
     CONSOLE_ANSI_COLOR: true  # omit or true for colored log (default: true)

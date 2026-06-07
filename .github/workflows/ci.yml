@@ -154,7 +154,7 @@ jobs:
             -r linux-x64 \
             --self-contained false \
             -p:PublishSingleFile=true \
-            -p:Version=${{ env.semVer }} \
+            -p:Version=${{ env.GitVersion_SemVer }} \
             -o "${TASK_BIN}/linux-x64"
           chmod +x "${TASK_BIN}/linux-x64/UpdateNuspecTool"
 
@@ -168,7 +168,7 @@ jobs:
             -r win-x64 \
             --self-contained false \
             -p:PublishSingleFile=true \
-            -p:Version=${{ env.semVer }} \
+            -p:Version=${{ env.GitVersion_SemVer }} \
             -o "${TASK_BIN}/win-x64"
 
       - name: Build ADO task wrapper
@@ -192,14 +192,14 @@ jobs:
           set -euo pipefail
           # Preview: unique task folder per build (1.1.16), else agents keep stale 1.1.0 without binaries.
           if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
-            jq --arg sem "${{ env.semVer }}" --argjson pre "${{ env.GitVersion_preReleaseNumber }}" '
+            jq --arg sem "${{ env.GitVersion_SemVer }}" --argjson pre "${{ env.GitVersion_preReleaseNumber }}" '
               ($sem | split("-")[0] | split(".")) as $p |
               .version.Major = ($p[0] | tonumber) |
               .version.Minor = ($p[1] | tonumber) |
               .version.Patch = $pre
             ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
           else
-            jq --arg sem "${{ env.semVer }}" '
+            jq --arg sem "${{ env.GitVersion_SemVer }}" '
               ($sem | split("-")[0] | split(".")) as $p |
               .version.Major = ($p[0] | tonumber) |
               .version.Minor = ($p[1] | tonumber) |
@@ -217,11 +217,11 @@ jobs:
           SOURCE_MANIFEST="vss-extension.json"
           # Marketplace: only X.Y.Z or X.Y.Z.N (no -preview in version). Git tags keep semVer.
           if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
-            MARKETPLACE_VERSION="${{ env.major }}.${{ env.minor }}.${{ env.GitVersion_preReleaseNumber }}"
+            MARKETPLACE_VERSION="${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ env.GitVersion_preReleaseNumber }}"
           else
-            MARKETPLACE_VERSION="${{ env.semVer }}"
+            MARKETPLACE_VERSION="${{ env.GitVersion_SemVer }}"
           fi
-          echo "Marketplace extension version: ${MARKETPLACE_VERSION} (semVer=${{ env.semVer }})"
+          echo "Marketplace extension version: ${MARKETPLACE_VERSION} (semVer=${{ env.GitVersion_SemVer }})"
           jq --arg v "${MARKETPLACE_VERSION}" '.version = $v' \
             "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
 
@@ -259,7 +259,7 @@ jobs:
       - name: Create git Tag
         if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
         run: |
-          git tag v${{ env.semVer }} -f
+          git tag v${{ env.GitVersion_SemVer }} -f
 
       - name: Create git Tag
         if: ${{ github.ref == 'refs/heads/master' }}
@@ -273,7 +273,7 @@ jobs:
           git config --global user.name 'Denis Peshkov'
           git config --global user.email 'denis.peshkov@outlook.com'
           git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
-          git push origin v${{ env.semVer }} -f
+          git push origin v${{ env.GitVersion_SemVer }} -f
 
       - name: Push git Tag
         if: ${{ github.ref == 'refs/heads/master' }}
@@ -323,8 +323,8 @@ jobs:
           github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ env.semVer }}
-          name: v${{ env.semVer }}
+          tag_name: v${{ env.GitVersion_SemVer }}
+          name: v${{ env.GitVersion_SemVer }}
           prerelease: ${{ steps.channel.outputs.prerelease == 'true' }}
           generate_release_notes: true
           files: azure-devops-extension/*.vsix

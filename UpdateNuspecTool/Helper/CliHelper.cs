@@ -93,7 +93,7 @@ internal static class CliHelper
             return cliValue.Trim();
         }
 
-        foreach (var name in new[] { "PACKAGE_VERSION", "GITVERSION_SEMVER", "GitVersion_SemVer", "SemVer", "SEMVER" })
+        foreach (var name in new[] { "PACKAGE_VERSION", "GITVERSION_SEMVER", "GitVersion_SemVer", "semVer", "SEMVER" })
         {
             var value = Environment.GetEnvironmentVariable(name);
             if (!string.IsNullOrWhiteSpace(value))

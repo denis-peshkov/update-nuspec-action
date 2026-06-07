@@ -38,7 +38,7 @@
       "label": "package.json version",
       "defaultValue": "",
       "required": false,
-      "helpMarkDown": "SemVer to set in `package.json` `version`."
+      "helpMarkDown": "SemVer for `package.json` `version` (e.g. `$(GitVersion_SemVer)` after gitversion/execute). Env fallback: `GitVersion_SemVer`."
     },
     {
       "name": "dependencyScope",

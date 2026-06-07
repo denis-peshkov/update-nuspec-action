@@ -21,7 +21,14 @@ steps:
 
 ### package.json (built npm package)
 
+After [GitVersion](https://gitversion.net/) (`gitversion/execute@3`):
+
 ```yaml
+  - task: gitversion/execute@3
+    displayName: Determine Version
+    inputs:
+      disableCache: true
+
   - task: UpdateNuspec@1
     displayName: Update package version in built package
     inputs:
@@ -38,7 +45,7 @@ Sets pipeline variable `PackageVersion` when `packageVersion` is provided.
 |-------|----------|---------|-------------|
 | `dir` | No | `$(Build.SourcesDirectory)` | Root folder to scan recursively for `.nuspec` / `.csproj` pairs and (when `packageVersion` is set) `package.json` |
 | `dryRun` | No | `false` | Report only; do not write files |
-| `packageVersion` | No | *(empty)* | SemVer to set in `package.json` `version` |
+| `packageVersion` | No | *(empty)* | SemVer for `package.json` `version` (e.g. `$(GitVersion_SemVer)` after `gitversion/execute`) |
 | `dependencyScope` | No | *(empty)* | npm package name prefix to set to `^packageVersion`. Skipped when empty |
 
 ## Requirements
