@@ -3,8 +3,8 @@
   "id": "3c4e8f2a-1b3d-4e5f-9a6b-2d8e0f1a3b4c",
   "name": "UpdateNuspec",
   "friendlyName": "Update *.nuspec",
-  "description": "Sync NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files.",
-  "helpMarkDown": "Recursively scans `dir` for `.nuspec` files and rewrites `<dependencies>` from the sibling `{id}.csproj`. Requires .NET 8 runtime on the agent. [Documentation](https://github.com/denis-peshkov/update-nuspec-action)",
+  "description": "Sync NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files; optionally update package.json.",
+  "helpMarkDown": "Recursively scans `dir` for `.nuspec` files and rewrites `<dependencies>` from the sibling `{id}.csproj`. Optionally updates `package.json` `version` and, when `dependencyScope` is set, scoped npm dependencies. Requires .NET 8 runtime on the agent. [Documentation](https://github.com/denis-peshkov/update-nuspec-action)",
   "category": "Utility",
   "visibility": ["Build", "Release"],
   "author": "Denis Peshkov",
@@ -30,7 +30,23 @@
       "label": "Dry run",
       "defaultValue": "false",
       "required": false,
-      "helpMarkDown": "Print the report without modifying `.nuspec` files."
+      "helpMarkDown": "Print the report without modifying files."
+    },
+    {
+      "name": "packageVersion",
+      "type": "string",
+      "label": "package.json version",
+      "defaultValue": "",
+      "required": false,
+      "helpMarkDown": "SemVer to set in `package.json` `version`."
+    },
+    {
+      "name": "dependencyScope",
+      "type": "string",
+      "label": "npm dependency scope prefix",
+      "defaultValue": "",
+      "required": false,
+      "helpMarkDown": "npm package name prefix. Matching dependencies are set to `^packageVersion`. Skipped when empty."
     }
   ],
   "execution": {

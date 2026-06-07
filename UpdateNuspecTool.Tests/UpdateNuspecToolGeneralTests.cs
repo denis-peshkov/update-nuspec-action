@@ -111,6 +111,7 @@ public sealed class UpdateNuspecToolGeneralTests
         text.Should().Contain("DESCRIPTION");
         text.Should().Contain("USAGE");
         text.Should().Contain("--dry-run");
+        text.Should().Contain("--package-version");
         text.Should().Contain("GITHUB ACTION");
     }
 

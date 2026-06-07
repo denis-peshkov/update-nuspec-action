@@ -13,7 +13,7 @@
 
 # update-nuspec-action
 
-GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from the related `.csproj` (project name = `<id>` in nuspec metadata).
+GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from the related `.csproj` (project name = `<id>` in nuspec metadata). Optionally updates `package.json` version and scoped npm dependencies.
 
 ## Usage
 
@@ -59,8 +59,16 @@ jobs:
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `dir` | No | `.` | Root folder to scan **recursively** for `.csproj` / `.nuspec` pairs, relative to `/github/workspace`. Prefer a package path (`src/MyPackage`); `.` scans the entire checkout including nested folders (tests, other packages). |
-| `dryRun` | No | `false` | `true` — full report in the log, no `.nuspec` changes (`[DRY RUN]`). |
+| `dir` | No | `.` | Root folder to scan **recursively** for `.csproj` / `.nuspec` pairs and (when `packageVersion` is set) `package.json`, relative to `/github/workspace`. Prefer a package path (`src/MyPackage`); `.` scans the entire checkout including nested folders (tests, other packages). |
+| `dryRun` | No | `false` | `true` — full report in the log, no file changes (`[DRY RUN]`). |
+| `packageVersion` | No | *(empty)* | SemVer to set in `package.json` `version`. Env fallback: `PACKAGE_VERSION`, `GITVERSION_SEMVER`. |
+| `dependencyScope` | No | *(empty)* | npm package name prefix to set to `^packageVersion`. Skipped when empty. |
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `packageVersion` | Echo of the `packageVersion` input when it was provided. |
 
 ## Behavior
 
@@ -78,8 +86,31 @@ jobs:
 - Exits with code `0` if no `.nuspec` files are found (prints `*.nuspec files not found!`).
 - Prints an error if `dir` does not exist (`Path '…' is not valid!`).
 - **Dry-run** — GitHub Action input `dryRun: true`, or CLI flags `--dry-run` / `-d` / `--demo` (or positional `true`): full report, no file save (`[DRY RUN]` in the log).
+- **`package.json`** (optional) — when `packageVersion` is set: updates `"version"` in every `package.json` under `dir` (skips `node_modules`). When `dependencyScope` is also set, aligns matching npm dependencies to `^packageVersion`.
 
 Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.csproj` + `Cross.Messaging.nuspec`.
+
+### package.json (built npm package)
+
+```yaml
+- uses: denis-peshkov/update-nuspec-action@v1
+  with:
+    dir: client/dist/my-app
+    packageVersion: ${{ steps.gitversion.outputs.semVer }}
+    dependencyScope: '@guru/'              # optional; empty = skip dependency alignment
+```
+
+Azure DevOps task equivalent:
+
+```yaml
+- task: UpdateNuspec@1
+  inputs:
+    dir: 'client/dist/$(proj)'
+    packageVersion: '$(GitVersion.SemVer)'
+    dependencyScope: '@guru/'
+```
+
+Sets pipeline variable `PackageVersion` when `packageVersion` is provided.
 
 ## Requirements
 
@@ -168,6 +199,8 @@ Legacy separate preview extensions (`update-nuspec-dev`, `update-nuspec-preview-
   inputs:
     dir: '$(Build.SourcesDirectory)'
     dryRun: false
+    # packageVersion: '$(GitVersion.SemVer)'   # optional: package.json version
+    # dependencyScope: '@guru/'                # optional: align scoped npm deps; empty = skip
   env:
     CONSOLE_ANSI_COLOR: true  # omit or true for colored log (default: true)
 ```
@@ -196,16 +229,17 @@ dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration
 
 CI restores the test project in **Restore dependencies**, then runs tests after build (see `.github/workflows/ci.yml`).
 
-Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `config.nuspec`, `cgf.nuspec`, …).
+Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `package.json`, …).
 
 ### CLI (local)
 
-Options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`).
+Options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`), `--package-version` / `-pv`, `--dependency-scope` / `-ds`.
 
 ```bash
 dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --help
 dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --version
 dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- UpdateNuspecTool.Tests/TestData --dry-run
+dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- ./client/dist/my-app --package-version 1.2.3 --dependency-scope @guru/
 ```
 
 Publish the tool locally (same flags; change `-r` and output folder per OS/CPU):

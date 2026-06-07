@@ -1,5 +1,5 @@
 ﻿name: 'Update *.nuspec'
-description: 'A Github action that scans .NET projects, and update in nuspec-file dependencies node.'
+description: 'Scan .NET projects to sync *.nuspec dependencies; optionally update package.json version and scoped npm dependencies.'
 branding:
   icon: activity
   color: yellow
@@ -9,16 +9,26 @@ inputs:
     required: false
     default: '.'
   dryRun:
-    description: 'Report only; do not modify .nuspec files ([DRY RUN] in the log).'
+    description: 'Report only; do not modify files ([DRY RUN] in the log).'
     required: false
     default: 'false'
-#outputs:
-#  upgrade-projects:
-#    description: 'An array of projects that need to be upgraded.'
+  packageVersion:
+    description: 'SemVer to set in package.json "version". Env fallback: PACKAGE_VERSION, GITVERSION_SEMVER.'
+    required: false
+    default: ''
+  dependencyScope:
+    description: 'npm package name prefix to align to ^packageVersion. Skipped when empty.'
+    required: false
+    default: ''
+outputs:
+  packageVersion:
+    description: 'The packageVersion input value when package.json processing ran.'
 runs:
   using: 'docker'
   image: 'Dockerfile'
-#  image: 'docker://ghcr.io/some-user/some-registry' # Starting with docker:// is important!!
+  env:
+    PACKAGE_VERSION: ${{ inputs.packageVersion }}
+    DEPENDENCY_SCOPE: ${{ inputs.dependencyScope }}
   args:
     - ${{ inputs.dir }}
     - ${{ inputs.dryRun }}

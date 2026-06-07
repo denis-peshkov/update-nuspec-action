@@ -22,11 +22,15 @@ case "$DIR" in
     ;;
 esac
 
+DRY_RUN_ARG=""
 case "$DRY_RUN" in
   true|True|TRUE|1|yes|Yes|YES)
-    exec /UpdateNuspecTool --dry-run "$DIR"
-    ;;
-  *)
-    exec /UpdateNuspecTool "$DIR"
+    DRY_RUN_ARG="--dry-run"
     ;;
 esac
+
+/UpdateNuspecTool $DRY_RUN_ARG "$DIR"
+
+if [ -n "$PACKAGE_VERSION" ] && [ -n "$GITHUB_OUTPUT" ]; then
+  echo "packageVersion=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+fi

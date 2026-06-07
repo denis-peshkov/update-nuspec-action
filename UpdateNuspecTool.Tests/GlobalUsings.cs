@@ -7,4 +7,5 @@ global using System.Reflection;
 global using System.Xml.Linq;
 global using FluentAssertions;
 global using NUnit.Framework;
+global using System.Text.Json.Nodes;
 global using UpdateNuspecTool;

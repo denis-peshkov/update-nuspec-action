@@ -9,6 +9,8 @@ async function run(): Promise<void> {
             ? dirInput
             : (process.env['BUILD_SOURCESDIRECTORY'] ?? process.cwd());
         const dryRun = tl.getBoolInput('dryRun', false);
+        const packageVersion = tl.getInput('packageVersion', false)?.trim() ?? '';
+        const dependencyScope = tl.getInput('dependencyScope', false)?.trim() ?? '';
 
         const rid = process.platform === 'win32' ? 'win-x64' : 'linux-x64';
         const exeName = process.platform === 'win32' ? 'UpdateNuspecTool.exe' : 'UpdateNuspecTool';
@@ -40,14 +42,37 @@ async function run(): Promise<void> {
             tool.arg('--dry-run');
         }
 
+        if (packageVersion.length > 0) {
+            tool.arg('--package-version');
+            tool.arg(packageVersion);
+        }
+
+        if (dependencyScope.length > 0) {
+            tool.arg('--dependency-scope');
+            tool.arg(dependencyScope);
+        }
+
         const env: NodeJS.ProcessEnv = { ...process.env };
         if (!env.CONSOLE_ANSI_COLOR) {
             env.CONSOLE_ANSI_COLOR = 'true';
         }
 
+        if (packageVersion.length > 0) {
+            env.PACKAGE_VERSION = packageVersion;
+        }
+
+        if (dependencyScope.length > 0) {
+            env.DEPENDENCY_SCOPE = dependencyScope;
+        }
+
         const exitCode = await tool.exec({ env });
         if (exitCode !== 0) {
             tl.setResult(tl.TaskResult.Failed, `UpdateNuspecTool exited with code ${exitCode}`);
+            return;
+        }
+
+        if (packageVersion.length > 0) {
+            tl.setVariable('PackageVersion', packageVersion);
         }
     }
     catch (err) {
