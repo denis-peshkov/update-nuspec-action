@@ -72,6 +72,49 @@ public sealed class CsprojPackageReferenceResolverTests
     }
 
     [Test]
+    public void GetPackageReferences_uses_single_TargetFramework()
+    {
+        var project = XDocument.Parse(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Single.Tfm" Version="1.2.3" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        var packages = CsprojPackageReferenceResolver.GetPackageReferences(project);
+
+        packages.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new Dependency("Single.Tfm", "1.2.3"));
+    }
+
+    [Test]
+    public void GetPackageReferences_resolves_version_from_msbuild_property()
+    {
+        var project = XDocument.Parse(
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <MyPackageVersion>9.9.9</MyPackageVersion>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Prop.Versioned" Version="$(MyPackageVersion)" />
+              </ItemGroup>
+            </Project>
+            """);
+
+        var packages = CsprojPackageReferenceResolver.GetPackageReferences(project);
+
+        packages.Should().ContainSingle()
+            .Which.Version.Should().Be("9.9.9");
+    }
+
+    [Test]
     public void GetPackageReferences_returns_empty_list_when_target_framework_is_unknown()
     {
         var project = XDocument.Parse(

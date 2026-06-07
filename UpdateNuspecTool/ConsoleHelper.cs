@@ -2,20 +2,39 @@ namespace UpdateNuspecTool;
 
 public static class ConsoleHelper
 {
+    private const string AnsiReset = "\u001b[0m";
+
     private static ConsoleColor _deletedColor = ConsoleColor.Red;
     private static ConsoleColor _updatedColor = ConsoleColor.Green;
     private static ConsoleColor _addedColor = ConsoleColor.Yellow;
     private static ConsoleColor _notChangedColor = ConsoleColor.Gray;
 
+    public static bool DryRun { get; set; }
+
     public static void Write(string text, ConsoleColor color, int columnWidth = 0)
     {
+        color = EffectiveColor(color);
+        var output = columnWidth > 0 ? text.PadRight(columnWidth) : text;
+        if (IsAnsiEnabled())
+        {
+            Console.Write($"{ToAnsi(color)}{output}{AnsiReset}");
+            return;
+        }
+
         Console.ForegroundColor = color;
-        Console.Write(text.PadRight(columnWidth));
+        Console.Write(output);
         Console.ResetColor();
     }
 
     public static void WriteLine(string text, ConsoleColor color)
     {
+        color = EffectiveColor(color);
+        if (IsAnsiEnabled())
+        {
+            Console.WriteLine($"{ToAnsi(color)}{text}{AnsiReset}");
+            return;
+        }
+
         Console.ForegroundColor = color;
         Console.WriteLine(text);
         Console.ResetColor();
@@ -124,14 +143,53 @@ public static class ConsoleHelper
 
     public static int DetermineColumnNameWidth(this List<Dependency> references)
     {
-        return references.Select(p => p.Name).Aggregate("", (max, cur) => max.Length > cur.Length ? max : cur)
+        return references
+            .Select(p => p.Name)
+            .Aggregate("", (max, cur) => max.Length > cur.Length ? max : cur)
             .Length;
     }
 
     //TODO: refactor
     public static int DetermineColumnVersionWidth(this IDictionary<string, string> references)
     {
-        return references.Select(p => p.Value).Aggregate("", (max, cur) => max.Length > cur.Length ? max : cur)
+        return references
+            .Select(p => p.Value)
+            .Aggregate("", (max, cur) => max.Length > cur.Length ? max : cur)
             .Length;
     }
+
+    private static ConsoleColor EffectiveColor(ConsoleColor color)
+        => DryRun
+            ? _notChangedColor
+            : color;
+
+    private static bool IsAnsiEnabled()
+    {
+        var value = Environment.GetEnvironmentVariable("CONSOLE_ANSI_COLOR");
+        return value is not null
+            && (value.Equals("true", StringComparison.OrdinalIgnoreCase)
+                || value == "1"
+                || value.Equals("yes", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string ToAnsi(ConsoleColor color) => color switch
+    {
+        ConsoleColor.Black => "\u001b[30m",
+        ConsoleColor.DarkBlue => "\u001b[34m",
+        ConsoleColor.DarkGreen => "\u001b[32m",
+        ConsoleColor.DarkCyan => "\u001b[36m",
+        ConsoleColor.DarkRed => "\u001b[31m",
+        ConsoleColor.DarkMagenta => "\u001b[35m",
+        ConsoleColor.DarkYellow => "\u001b[33m",
+        ConsoleColor.Gray => "\u001b[90m",
+        ConsoleColor.DarkGray => "\u001b[90m",
+        ConsoleColor.Blue => "\u001b[94m",
+        ConsoleColor.Green => "\u001b[92m",
+        ConsoleColor.Cyan => "\u001b[96m",
+        ConsoleColor.Red => "\u001b[91m",
+        ConsoleColor.Magenta => "\u001b[95m",
+        ConsoleColor.Yellow => "\u001b[93m",
+        ConsoleColor.White => "\u001b[97m",
+        _ => string.Empty,
+    };
 }

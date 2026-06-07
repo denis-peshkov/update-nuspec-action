@@ -38,6 +38,8 @@ UpdateNuspec(path, dryRun);
 
 static void UpdateNuspec(string path, bool dryRun)
 {
+    ConsoleHelper.DryRun = dryRun;
+
     if (dryRun)
     {
         ConsoleHelper.WriteLine("[DRY RUN] Files will not be modified.", ConsoleColor.Yellow);
