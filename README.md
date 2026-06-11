@@ -90,9 +90,34 @@ jobs:
 
 Example multi-TFM project: `UpdateNuspecTool.Tests/TestData/Cross.Messaging.csproj` + `Cross.Messaging.nuspec`.
 
-### package.json (built npm package)
+## Example output
 
-GitHub Actions (after [GitVersion execute](https://github.com/gittools/actions)):
+Colored log when `CONSOLE_ANSI_COLOR=true` (default in the action image). In **dry-run** mode (`dryRun: true` / `--dry-run`) the same report is printed, categories are shown in gray, and files are not saved (`[DRY RUN]` in the log).
+
+### 1. Sync nuspec dependencies
+
+For each `.nuspec` the tool prints a categorized diff against the sibling `{id}.csproj`:
+
+| Category | Color | Meaning |
+|----------|-------|---------|
+| Deleted references | red | In nuspec, not in csproj for this TFM |
+| Updated references | yellow | Same package id, version changed (`old -> new`) |
+| Added references | green | In csproj, missing from nuspec |
+| Not changed references | gray | Same id and version |
+
+`Cross.Identity` (`config.nuspec` + `Cross.Identity.csproj`):
+
+```yaml
+- uses: denis-peshkov/update-nuspec-action@v1
+  with:
+    dir: Cross.Identity
+```
+
+![GitHub Actions log — Cross.Identity](docs/examples/github-actions-cross-identity.png)
+
+### 2. Update package.json (built npm package)
+
+With `packageVersion` and `dependencyScope` — updates `version` and scoped npm dependencies (e.g. `client/dist/ui/package.json`). After [GitVersion execute](https://github.com/gittools/actions):
 
 ```yaml
 - uses: gittools/actions/gitversion/execute@v1.1.1
@@ -104,23 +129,6 @@ GitHub Actions (after [GitVersion execute](https://github.com/gittools/actions))
     packageVersion: ${{ env.GitVersion_SemVer }}
     dependencyScope: '@guru/'              # optional; empty = skip dependency alignment
 ```
-
-Azure DevOps (after `gitversion/execute@3`):
-
-```yaml
-- task: gitversion/execute@3
-  displayName: Determine Version
-  inputs:
-    disableCache: true
-
-- task: UpdateNuspec@1
-  inputs:
-    dir: 'client/dist/$(proj)'
-    packageVersion: '$(GitVersion_SemVer)'
-    dependencyScope: '@guru/'
-```
-
-Sets pipeline variable `PackageVersion` when `packageVersion` is provided.
 
 ## Requirements
 
@@ -179,43 +187,7 @@ The `@v1` tag is a **moving** pointer to the latest major-1 release; after break
 
 ## Azure DevOps extension
 
-The same tool is packaged as a **Visual Studio Marketplace** extension in the **same CI** workflow ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): after tests and Docker smoke tests, the pipeline builds `win-x64`/`linux-x64` binaries, compiles the task wrapper, and produces a `.vsix` artifact (`ado-extension-vsix`).
-
-Single extension **`update-nuspec`**, single task **`UpdateNuspec@1`** (one task GUID in the Marketplace).
-
-| Channel | Manifest | Publish |
-|---------|----------|---------|
-| `master` | `vss-extension.json` | `--extension-visibility public` |
-| `release/*`, `hotfix/*` | same | `--share-with peshkov` (version available to the org before going public) |
-
-Preview VSIX version: `major.minor.patch.preReleaseNumber` (for example `1.1.0.4`); git tags remain `1.1.0-preview.4`.
-
-### Installing a preview version
-
-1. Org slug in CI: **peshkov** → `https://dev.azure.com/peshkov`.
-2. After publish from `release/*` / `hotfix/*`: **Organization settings** → **Extensions** → **Shared** → **Update \*.nuspec** / `peshkov.update-nuspec` → install the version you need.
-3. Listing: `https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec`
-
-Legacy separate preview extensions (`update-nuspec-dev`, `update-nuspec-preview-z`) should be **Unpublished** in Manage — otherwise the task id stays bound to them and publishing `update-nuspec` from `master` fails.
-
-```yaml
-- task: UseDotNet@2
-  inputs:
-    packageType: runtime
-    version: 8.0.x
-
-# @1 — latest installed 1.x.y; do not pin @1.1.0 after upgrading the extension
-- task: UpdateNuspec@1
-  inputs:
-    dir: '$(Build.SourcesDirectory)'
-    dryRun: false
-    # packageVersion: '$(GitVersion_SemVer)'   # optional: package.json version (after gitversion/execute)
-    # dependencyScope: '@guru/'                # optional: align scoped npm deps; empty = skip
-  env:
-    CONSOLE_ANSI_COLOR: true  # omit or true for colored log (default: true)
-```
-
-Colored dependency diff in the pipeline log is **enabled by default** (`CONSOLE_ANSI_COLOR=true` in the task). To disable: `env: CONSOLE_ANSI_COLOR: false`. On `windows-latest`, colors may not render.
+The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec). Usage, examples, inputs, and preview install: [azure-devops-extension/overview.md](azure-devops-extension/overview.md).
 
 ## Development
 
