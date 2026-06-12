@@ -3,6 +3,10 @@
   "id": "update-nuspec",
   "name": "Update *.nuspec",
   "version": "1.0.0",
+  "branding": {
+    "color": "rgb(244, 247, 251)",
+    "theme": "light"
+  },
   "publisher": "peshkov",
   "public": true,
   "description": "Sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files.",
@@ -12,10 +16,18 @@
       "id": "Microsoft.VisualStudio.Services"
     }
   ],
+  "tags": ["nuget", "nuspec", "dotnet", "build", "ci", "continuous integration", "azure-pipelines"],
   "icons": {
     "default": "extension-icon.png"
   },
-  "tags": ["nuget", "nuspec", "dotnet", "build"],
+  "screenshots": [
+    {
+      "path": "example-boilerplate-url-normalizer.png"
+    },
+    {
+      "path": "example-package-json.png"
+    }
+  ],
   "content": {
     "details": {
       "path": "overview.md"
@@ -33,6 +45,9 @@
     },
     "repository": {
       "uri": "https://github.com/denis-peshkov/update-nuspec-action"
+    },
+    "privacypolicy": {
+      "uri": "https://github.com/denis-peshkov/update-nuspec-action/appendices/privacy-policy/"
     }
   },
   "repository": {
