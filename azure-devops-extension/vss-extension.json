@@ -42,6 +42,14 @@
   "files": [
     {
       "path": "task"
+    },
+    {
+      "path": "example-boilerplate-url-normalizer.png",
+      "addressable": true
+    },
+    {
+      "path": "example-package-json.png",
+      "addressable": true
     }
   ],
   "scopes": ["vso.build"],
