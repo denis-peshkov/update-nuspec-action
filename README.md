@@ -187,7 +187,7 @@ The `@v1` tag is a **moving** pointer to the latest major-1 release; after break
 
 ## Azure DevOps extension
 
-The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec). Usage, examples, inputs, and preview install: [azure-devops-extension/overview.md](azure-devops-extension/overview.md).
+The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec). Usage, examples, inputs, and preview install: [azure-devops-extension/marketplace/overview.md](azure-devops-extension/marketplace/overview.md).
 
 ## Development
 
@@ -200,7 +200,9 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
 | `Dockerfile` | Multi-stage image (`linux/amd64`): `dotnet publish` in build stage, runtime + `entrypoint.sh` |
 | `action.yml` | Action metadata; runs the Docker image |
-| `azure-devops-extension/` | Marketplace extension manifest, pipeline task; VSIX build steps in `.github/workflows/ci.yml` |
+| `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in `.github/workflows/ci.yml` |
+| `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, icon, screenshots |
+| `azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript wrapper + bundled tool binaries) |
 
 ### Tests
 

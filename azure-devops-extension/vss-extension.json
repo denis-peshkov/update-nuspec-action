@@ -1,39 +1,56 @@
 {
   "manifestVersion": 1,
   "id": "update-nuspec",
-  "name": "Update *.nuspec",
-  "version": "1.0.0",
-  "branding": {
-    "color": "rgb(244, 247, 251)",
-    "theme": "light"
-  },
   "publisher": "peshkov",
-  "public": true,
-  "description": "Sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files.",
-  "categories": ["Azure Pipelines"],
+  "version": "1.0.0",
   "targets": [
     {
       "id": "Microsoft.VisualStudio.Services"
     }
   ],
+  "scopes": [
+    "vso.build"
+  ],
+  "contributions": [
+    {
+      "id": "3c4e8f2a-1b3d-4e5f-9a6b-2d8e0f1a3b4c",
+      "type": "ms.vss-distributed-task.task",
+      "targets": ["ms.vss-distributed-task.tasks"],
+      "properties": {
+        "name": "task"
+      }
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/denis-peshkov/update-nuspec-action"
+  },
+  "public": true,
+  "name": "Update *.nuspec",
+  "description": "Sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files.",
+  "categories": ["Azure Pipelines"],
   "tags": ["nuget", "nuspec", "dotnet", "build", "ci", "continuous integration", "azure-pipelines"],
   "icons": {
-    "default": "extension-icon.png"
+    "default": "marketplace/extension-icon.png"
   },
   "screenshots": [
     {
-      "path": "example-boilerplate-url-normalizer.png"
+      "path": "marketplace/images/example-boilerplate-url-normalizer.png"
     },
     {
-      "path": "example-package-json.png"
+      "path": "marketplace/images/example-package-json.png"
     }
   ],
+  "branding": {
+    "color": "rgb(244, 247, 251)",
+    "theme": "light"
+  },
   "content": {
     "details": {
-      "path": "overview.md"
+      "path": "marketplace/overview.md"
     },
     "license": {
-      "path": "license.md"
+      "path": "marketplace/license.md"
     }
   },
   "links": {
@@ -50,32 +67,13 @@
       "uri": "https://github.com/denis-peshkov/update-nuspec-action/appendices/privacy-policy/"
     }
   },
-  "repository": {
-    "type": "git",
-    "uri": "https://github.com/denis-peshkov/update-nuspec-action"
-  },
   "files": [
     {
       "path": "task"
     },
     {
-      "path": "example-boilerplate-url-normalizer.png",
+      "path": "marketplace/images",
       "addressable": true
-    },
-    {
-      "path": "example-package-json.png",
-      "addressable": true
-    }
-  ],
-  "scopes": ["vso.build"],
-  "contributions": [
-    {
-      "id": "3c4e8f2a-1b3d-4e5f-9a6b-2d8e0f1a3b4c",
-      "type": "ms.vss-distributed-task.task",
-      "targets": ["ms.vss-distributed-task.tasks"],
-      "properties": {
-        "name": "task"
-      }
     }
   ]
 }

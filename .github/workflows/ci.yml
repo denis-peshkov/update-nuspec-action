@@ -141,8 +141,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: azure-devops-extension/task/package-lock.json
+          cache: yarn
+          cache-dependency-path: azure-devops-extension/task/yarn.lock
 
       - name: Publish ADO tool (linux-x64)
         run: |
@@ -173,7 +173,7 @@ jobs:
 
       - name: Build ADO task wrapper
         working-directory: azure-devops-extension/task
-        run: npm ci && npm run build
+        run: yarn install --frozen-lockfile && yarn build
 
       - name: Verify ADO task binaries
         run: |
@@ -243,10 +243,10 @@ jobs:
             || { echo "VSIX missing task/linux-x64/UpdateNuspecTool" >&2; exit 1; }
           unzip -l "${vsix[0]}" | grep -q 'task/win-x64/UpdateNuspecTool.exe' \
             || { echo "VSIX missing task/win-x64/UpdateNuspecTool.exe" >&2; exit 1; }
-          unzip -l "${vsix[0]}" | grep -q 'example-boilerplate-url-normalizer.png' \
-            || { echo "VSIX missing overview screenshot example-boilerplate-url-normalizer.png" >&2; exit 1; }
-          unzip -l "${vsix[0]}" | grep -q 'example-package-json.png' \
-            || { echo "VSIX missing overview screenshot example-package-json.png" >&2; exit 1; }
+          unzip -l "${vsix[0]}" | grep -q 'marketplace/images/example-boilerplate-url-normalizer.png' \
+            || { echo "VSIX missing overview screenshot marketplace/images/example-boilerplate-url-normalizer.png" >&2; exit 1; }
+          unzip -l "${vsix[0]}" | grep -q 'marketplace/images/example-package-json.png' \
+            || { echo "VSIX missing overview screenshot marketplace/images/example-package-json.png" >&2; exit 1; }
 
       - name: Restore ADO task.json
         if: always()

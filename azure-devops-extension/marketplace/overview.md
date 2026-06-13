@@ -64,7 +64,7 @@ First run on `Boilerplate.Url.Normalizer` — three packages were added from `Bo
       dir: '$(Build.SourcesDirectory)/src/Boilerplate.Url.Normalizer'
 ```
 
-![Pipeline log — nuspec dependencies](example-boilerplate-url-normalizer.png)
+![Pipeline log — nuspec dependencies](images/example-boilerplate-url-normalizer.png)
 
 For each `.nuspec` the tool prints a categorized diff:
 
@@ -90,7 +90,7 @@ Same task with `packageVersion` and `dependencyScope` — updates `version` and 
       dependencyScope: '@guru/'
 ```
 
-![Pipeline log — package.json version and scoped dependencies](example-package-json.png)
+![Pipeline log — package.json version and scoped dependencies](images/example-package-json.png)
 
 ## Inputs
 
