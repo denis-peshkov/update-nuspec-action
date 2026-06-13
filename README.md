@@ -200,8 +200,9 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
 | `Dockerfile` | Multi-stage image (`linux/amd64`): `dotnet publish` in build stage, runtime + `entrypoint.sh` |
 | `action.yml` | Action metadata; runs the Docker image |
+| `update-nuspec-icon.png` | Project icon (repo root) |
 | `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in `.github/workflows/ci.yml` |
-| `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, icon, screenshots |
+| `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, `extension-icon.png` (symlink to project icon), screenshots |
 | `azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript wrapper + bundled tool binaries) |
 
 ### Tests
