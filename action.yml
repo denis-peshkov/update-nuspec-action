@@ -1,5 +1,5 @@
 ﻿name: 'Update *.nuspec'
-description: 'Scan .NET projects to sync *.nuspec dependencies; optionally update package.json version and scoped npm dependencies.'
+description: 'CLI to sync NuGet *.nuspec dependencies with PackageReference versions from matching *.csproj files; optionally update package.json version and scoped npm dependencies.'
 branding:
   icon: activity
   color: yellow

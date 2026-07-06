@@ -25,6 +25,10 @@ pub fn run(options: &CliRunOptions) -> Result<(), LibError> {
 
     let nuspec_count = update_nuspec_files(&options.path, options.dry_run, &console)?;
 
+    if nuspec_count == 0 {
+        console.write_line("*.nuspec files not found!", Color::Red);
+    }
+
     if let Some(package_version) = &options.package_version {
         update_package_json_files(
             &options.path,
@@ -33,8 +37,6 @@ pub fn run(options: &CliRunOptions) -> Result<(), LibError> {
             options.dry_run,
             &console,
         )?;
-    } else if nuspec_count == 0 {
-        console.write_line("*.nuspec files not found!", Color::Red);
     }
 
     if options.dry_run {
