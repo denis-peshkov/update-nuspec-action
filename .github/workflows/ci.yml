@@ -202,7 +202,7 @@ jobs:
           SOURCE_MANIFEST="vss-extension.json"
           jq --arg v "${{ env.VERSION }}" '.version = $v | .public = true' \
             "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
-          echo "Extension manifest: version=${{ env.VERSION }}, channel=${PACKAGE_CHANNEL}, public=$(jq -r .public "${EXTENSION_ROOT}/.vss-extension.build.json")"
+          echo "Extension manifest: version=${{ env.VERSION }}, channel=${{ steps.channel.outputs.name }}, public=$(jq -r .public "${EXTENSION_ROOT}/.vss-extension.build.json")"
 
       - name: Create ADO extension VSIX
         working-directory: azure-devops-extension
