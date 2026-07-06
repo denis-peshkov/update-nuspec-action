@@ -42,9 +42,10 @@ jobs:
       # VERSION (Major.Minor.run_number) — артефакты (Docker, Cargo, ADO).
       - name: Set VERSION
         run: |
-          echo "VERSION=${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ github.run_number }}" >> "${GITHUB_ENV}"
-          echo "Version: ${{ env.VERSION }} (semVer=${{ env.GitVersion_SemVer }})"
-
+          set -euo pipefail
+          VERSION="${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ github.run_number }}"
+          echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
+          echo "Version: ${VERSION} (semVer=${{ env.GitVersion_SemVer }})"
 
       # master → release (stable SemVer); release/* and hotfix/* → preview (GitVersion tag: preview)
       - name: Set release channel
@@ -268,14 +269,12 @@ jobs:
       - name: Publish ADO extension (release)
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         working-directory: azure-devops-extension
-        env:
-          TFX_MARKETPLACE_PAT: ${{ secrets.AZDO_MARKETPLACE_PAT }}
         run: |
           set -euo pipefail
           VSIX=( *.vsix )
           tfx extension publish \
             --auth-type pat \
-            -t "${TFX_MARKETPLACE_PAT}" \
+            -t "${{ secrets.AZDO_MARKETPLACE_PAT }}" \
             --publisher peshkov \
             --vsix "${VSIX[0]}" \
             --extension-pricing free \
@@ -286,14 +285,12 @@ jobs:
           github.event_name == 'push' &&
           (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
         working-directory: azure-devops-extension
-        env:
-          TFX_MARKETPLACE_PAT: ${{ secrets.AZDO_MARKETPLACE_PAT }}
         run: |
           set -euo pipefail
           VSIX=( *.vsix )
           tfx extension publish \
             --auth-type pat \
-            -t "${TFX_MARKETPLACE_PAT}" \
+            -t "${{ secrets.AZDO_MARKETPLACE_PAT }}" \
             --publisher peshkov \
             --vsix "${VSIX[0]}" \
             --extension-pricing free \
