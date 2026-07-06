@@ -40,12 +40,13 @@ jobs:
           useConfigFile: true
 
       # VERSION (Major.Minor.run_number) — артефакты (Docker, Cargo, ADO).
-      - name: Set VERSION
-        run: |
-          set -euo pipefail
-          VERSION="${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ github.run_number }}"
-          echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
-          echo "Version: ${VERSION} (semVer=${{ env.GitVersion_SemVer }})"
+#      - name: Set VERSION
+#        run: |
+#          set -euo pipefail
+#          VERSION="${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ github.run_number }}"
+#          VERSION="${{ env.GitVersion_SemVer }}"
+#          echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
+#          echo "Version: ${VERSION} (semVer=${{ env.GitVersion_SemVer }})"
 
       # master → release (stable SemVer); release/* and hotfix/* → preview (GitVersion tag: preview)
       - name: Set release channel
@@ -116,7 +117,7 @@ jobs:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
-        run: docker build --build-arg VERSION="${{ env.VERSION }}" -t update-nuspec-action:ci .
+        run: docker build --build-arg VERSION="${{ env.GitVersion_SemVer }}" -t update-nuspec-action:ci .
 
       - name: Smoke test (repo root, recursive scan)
         run: |
@@ -152,7 +153,7 @@ jobs:
 
       - name: Set Rust crate version
         working-directory: update-nuspec
-        run: sed -i "s/^version = .*/version = \"${{ env.VERSION }}\"/" Cargo.toml
+        run: sed -i "s/^version = .*/version = \"${{ env.GitVersion_SemVer }}\"/" Cargo.toml
 
       - name: Publish ADO tool (linux-x64)
         working-directory: update-nuspec
@@ -187,7 +188,7 @@ jobs:
       - name: Update ADO task.json version
         run: |
           set -euo pipefail
-          jq --arg v "${{ env.VERSION }}" '
+          jq --arg v "${{ env.GitVersion_SemVer }}" '
             ($v | split(".")) as $p |
             .version.Major = ($p[0] | tonumber) |
             .version.Minor = ($p[1] | tonumber) |
@@ -202,13 +203,13 @@ jobs:
           SOURCE_MANIFEST="vss-extension.json"
           PACKAGE_CHANNEL="${{ github.event_name == 'push' && steps.channel.outputs.name || 'release' }}"
           if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
-            jq --arg v "${{ env.VERSION }}" '.version = $v | .public = false' \
+            jq --arg v "${{ env.GitVersion_SemVer }}" '.version = $v | .public = false' \
               "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
           else
-            jq --arg v "${{ env.VERSION }}" '.version = $v | .public = true' \
+            jq --arg v "${{ env.GitVersion_SemVer }}" '.version = $v | .public = true' \
               "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
           fi
-          echo "Extension manifest: version=${{ env.VERSION }}, channel=${PACKAGE_CHANNEL}, public=$(jq -r .public "${EXTENSION_ROOT}/.vss-extension.build.json")"
+          echo "Extension manifest: version=${{ env.GitVersion_SemVer }}, channel=${PACKAGE_CHANNEL}, public=$(jq -r .public "${EXTENSION_ROOT}/.vss-extension.build.json")"
 
       - name: Create ADO extension VSIX
         working-directory: azure-devops-extension
@@ -253,8 +254,8 @@ jobs:
       - name: Create git Tag
         if: ${{ github.ref == 'refs/heads/master' }}
         run: |
-          git tag v${{ env.major }}.${{ env.minor }} -f
-          git tag v${{ env.major }} -f
+          git tag v${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }} -f
+          git tag v${{ env.GitVersion_Major }} -f
 
       - name: Push git Tag
         if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
@@ -270,8 +271,8 @@ jobs:
           git config --global user.name 'Denis Peshkov'
           git config --global user.email 'denis.peshkov@outlook.com'
           git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
-          git push origin v${{ env.major }}.${{ env.minor }} -f
-          git push origin v${{ env.major }} -f
+          git push origin v${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }} -f
+          git push origin v${{ env.GitVersion_Major }} -f
 
       - name: Publish ADO extension (release)
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -287,21 +288,21 @@ jobs:
             --extension-pricing free \
             --extension-visibility public
 
-      - name: Publish ADO extension (preview)
-        if: >-
-          github.event_name == 'push' &&
-          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
-        working-directory: azure-devops-extension
-        run: |
-          set -euo pipefail
-          VSIX=( *.vsix )
-          tfx extension publish \
-            --auth-type pat \
-            -t "${{ secrets.AZDO_MARKETPLACE_PAT }}" \
-            --publisher peshkov \
-            --vsix "${VSIX[0]}" \
-            --extension-pricing free \
-            --share-with peshkov
+#      - name: Publish ADO extension (preview)
+#        if: >-
+#          github.event_name == 'push' &&
+#          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+#        working-directory: azure-devops-extension
+#        run: |
+#          set -euo pipefail
+#          VSIX=( *.vsix )
+#          tfx extension publish \
+#            --auth-type pat \
+#            -t "${{ secrets.AZDO_MARKETPLACE_PAT }}" \
+#            --publisher peshkov \
+#            --vsix "${VSIX[0]}" \
+#            --extension-pricing free \
+#            --share-with peshkov
 
       - name: Create GitHub Release
         if: >-
