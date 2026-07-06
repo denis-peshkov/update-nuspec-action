@@ -39,6 +39,13 @@ jobs:
         with:
           useConfigFile: true
 
+      # VERSION (Major.Minor.run_number) — артефакты (Docker, Cargo, ADO).
+      - name: Set VERSION
+        run: |
+          echo "VERSION=${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ github.run_number }}" >> "${GITHUB_ENV}"
+          echo "Version: ${{ env.VERSION }} (semVer=${{ env.GitVersion_SemVer }})"
+
+
       # master → release (stable SemVer); release/* and hotfix/* → preview (GitVersion tag: preview)
       - name: Set release channel
         if: github.event_name == 'push'
@@ -108,7 +115,7 @@ jobs:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
-        run: docker build --build-arg VERSION="${{ env.GitVersion_SemVer }}" -t update-nuspec-action:ci .
+        run: docker build --build-arg VERSION="${{ env.VERSION }}" -t update-nuspec-action:ci .
 
       - name: Smoke test (repo root, recursive scan)
         run: |
@@ -144,7 +151,7 @@ jobs:
 
       - name: Set Rust crate version
         working-directory: update-nuspec
-        run: sed -i "s/^version = .*/version = \"${{ env.GitVersion_SemVer }}\"/" Cargo.toml
+        run: sed -i "s/^version = .*/version = \"${{ env.VERSION }}\"/" Cargo.toml
 
       - name: Publish ADO tool (linux-x64)
         working-directory: update-nuspec
@@ -177,43 +184,22 @@ jobs:
         run: npm install -g tfx-cli@0.17.0
 
       - name: Update ADO task.json version
-        env:
-          PACKAGE_CHANNEL: ${{ github.event_name == 'push' && steps.channel.outputs.name || 'release' }}
         run: |
           set -euo pipefail
-          # Preview: unique task folder per build (1.1.16), else agents keep stale 1.1.0 without binaries.
-          if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
-            jq --arg sem "${{ env.GitVersion_SemVer }}" --argjson pre "${{ env.GitVersion_preReleaseNumber }}" '
-              ($sem | split("-")[0] | split(".")) as $p |
-              .version.Major = ($p[0] | tonumber) |
-              .version.Minor = ($p[1] | tonumber) |
-              .version.Patch = $pre
-            ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
-          else
-            jq --arg sem "${{ env.GitVersion_SemVer }}" '
-              ($sem | split("-")[0] | split(".")) as $p |
-              .version.Major = ($p[0] | tonumber) |
-              .version.Minor = ($p[1] | tonumber) |
-              .version.Patch = ($p[2] | tonumber)
-            ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
-          fi
+          jq --arg v "${{ env.VERSION }}" '
+            ($v | split(".")) as $p |
+            .version.Major = ($p[0] | tonumber) |
+            .version.Minor = ($p[1] | tonumber) |
+            .version.Patch = ($p[2] | tonumber)
+          ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
           mv "${TASK_BIN}/task.json.tmp" "${TASK_BIN}/task.json"
           echo "task.json version: $(jq -r '.version | "\(.Major).\(.Minor).\(.Patch)"' "${TASK_BIN}/task.json")"
 
       - name: Build ADO extension manifest
-        env:
-          PACKAGE_CHANNEL: ${{ github.event_name == 'push' && steps.channel.outputs.name || 'release' }}
         run: |
           set -euo pipefail
           SOURCE_MANIFEST="vss-extension.json"
-          # Marketplace: only X.Y.Z or X.Y.Z.N (no -preview in version). Git tags keep semVer.
-          if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
-            MARKETPLACE_VERSION="${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ env.GitVersion_preReleaseNumber }}"
-          else
-            MARKETPLACE_VERSION="${{ env.GitVersion_SemVer }}"
-          fi
-          echo "Marketplace extension version: ${MARKETPLACE_VERSION} (semVer=${{ env.GitVersion_SemVer }})"
-          jq --arg v "${MARKETPLACE_VERSION}" '.version = $v' \
+          jq --arg v "${{ env.VERSION }}" '.version = $v' \
             "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
 
       - name: Create ADO extension VSIX
@@ -283,13 +269,13 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         working-directory: azure-devops-extension
         env:
-          TFXX_TOKEN: ${{ secrets.AZDO_MARKETPLACE_PAT }}
+          TFX_MARKETPLACE_PAT: ${{ secrets.AZDO_MARKETPLACE_PAT }}
         run: |
           set -euo pipefail
           VSIX=( *.vsix )
           tfx extension publish \
             --auth-type pat \
-            -t "${TFXX_TOKEN}" \
+            -t "${TFX_MARKETPLACE_PAT}" \
             --publisher peshkov \
             --vsix "${VSIX[0]}" \
             --extension-pricing free \
@@ -301,13 +287,13 @@ jobs:
           (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
         working-directory: azure-devops-extension
         env:
-          TFXX_TOKEN: ${{ secrets.AZDO_MARKETPLACE_PAT }}
+          TFX_MARKETPLACE_PAT: ${{ secrets.AZDO_MARKETPLACE_PAT }}
         run: |
           set -euo pipefail
           VSIX=( *.vsix )
           tfx extension publish \
             --auth-type pat \
-            -t "${TFXX_TOKEN}" \
+            -t "${TFX_MARKETPLACE_PAT}" \
             --publisher peshkov \
             --vsix "${VSIX[0]}" \
             --extension-pricing free \
