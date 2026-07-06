@@ -17,7 +17,6 @@ jobs:
     env:
       BUILD_CONFIG: 'Release'
       TEST_PROJECT: 'UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj'
-      TOOL_PROJECT: 'UpdateNuspecTool/UpdateNuspecTool.csproj'
       EXTENSION_ROOT: '${{ github.workspace }}/azure-devops-extension'
       TASK_BIN: '${{ github.workspace }}/azure-devops-extension/task'
 
@@ -53,34 +52,26 @@ jobs:
             echo "prerelease=true" >> "${GITHUB_OUTPUT}"
           fi
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run Rust tests
+        working-directory: update-nuspec
+        run: cargo test --verbose
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
       - name: Restore dependencies
-        run: |
-          dotnet restore "$TEST_PROJECT"
-          dotnet restore "$TOOL_PROJECT" -r linux-x64
+        run: dotnet restore "$TEST_PROJECT"
 
       - name: Build
-        run: |
-          dotnet build "$TOOL_PROJECT" \
-            --configuration "$BUILD_CONFIG" \
-            --no-restore \
-            -r linux-x64 \
-            -p:Configuration=$BUILD_CONFIG \
-            -p:Version=${GitVersion_SemVer} \
-            -p:AssemblyVersion=${GitVersion_AssemblySemVer} \
-            -p:FileVersion=${GitVersion_AssemblySemFileVer} \
-            -p:InformationalVersion="${GitVersion_InformationalVersion}" \
-            -p:Company="Denis Peshkov" \
-            -p:Product="UpdateNuspecTool" \
-            -p:Description="GitHub Action that syncs NuGet dependencies in *.nuspec with PackageReference from matching *.csproj files." \
-            -p:RepositoryUrl="https://github.com/denis-peshkov/update-nuspec-action.git" \
-            -p:RepositoryType=git \
-            -p:CLSCompliant=true \
-            -p:NeutralLanguage=en
+        run: >
+          dotnet build "$TEST_PROJECT"
+          --configuration "$BUILD_CONFIG"
+          --no-restore
 
       - name: Run tests
         run: >
@@ -101,8 +92,8 @@ jobs:
             -Dsonar.projectKey=UpdateNuspecTool
             -Dsonar.projectName=UpdateNuspecTool
             -Dsonar.cs.opencover.reportsPaths=TestResults/**/coverage.opencover.xml
-            -Dsonar.sources=UpdateNuspecTool/
-            -Dsonar.tests=UpdateNuspecTool.Tests/
+            -Dsonar.sources=UpdateNuspecTool/,update-nuspec/src/
+            -Dsonar.tests=UpdateNuspecTool.Tests/,update-nuspec/tests/
             -Dsonar.exclusions=UpdateNuspecTool.Tests/TestData/**
             -Dsonar.scanner.skipJreProvisioning=true
             -Dsonar.verbose=true
@@ -117,7 +108,7 @@ jobs:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
-        run: docker build -t update-nuspec-action:ci .
+        run: docker build --build-arg VERSION="${{ env.GitVersion_SemVer }}" -t update-nuspec-action:ci .
 
       - name: Smoke test (repo root, recursive scan)
         run: |
@@ -144,32 +135,32 @@ jobs:
           cache: yarn
           cache-dependency-path: azure-devops-extension/task/yarn.lock
 
-      - name: Publish ADO tool (linux-x64)
+      - name: Install Rust cross-compile targets
         run: |
           set -euo pipefail
-          dotnet restore "${TOOL_PROJECT}" -r linux-x64
-          dotnet publish "${TOOL_PROJECT}" \
-            -c "${BUILD_CONFIG}" \
-            --no-restore \
-            -r linux-x64 \
-            --self-contained false \
-            -p:PublishSingleFile=true \
-            -p:Version=${{ env.GitVersion_SemVer }} \
-            -o "${TASK_BIN}/linux-x64"
-          chmod +x "${TASK_BIN}/linux-x64/UpdateNuspecTool"
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64
+          rustup target add x86_64-unknown-linux-gnu x86_64-pc-windows-gnu
+
+      - name: Set Rust crate version
+        working-directory: update-nuspec
+        run: sed -i "s/^version = .*/version = \"${{ env.GitVersion_SemVer }}\"/" Cargo.toml
+
+      - name: Publish ADO tool (linux-x64)
+        working-directory: update-nuspec
+        run: |
+          set -euo pipefail
+          cargo build --release --bin update-nuspec
+          install -Dm755 target/release/update-nuspec "${TASK_BIN}/linux-x64/update-nuspec"
 
       - name: Publish ADO tool (win-x64)
+        working-directory: update-nuspec
+        env:
+          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
         run: |
           set -euo pipefail
-          dotnet restore "${TOOL_PROJECT}" -r win-x64
-          dotnet publish "${TOOL_PROJECT}" \
-            -c "${BUILD_CONFIG}" \
-            --no-restore \
-            -r win-x64 \
-            --self-contained false \
-            -p:PublishSingleFile=true \
-            -p:Version=${{ env.GitVersion_SemVer }} \
-            -o "${TASK_BIN}/win-x64"
+          cargo build --release --bin update-nuspec --target x86_64-pc-windows-gnu
+          install -Dm644 target/x86_64-pc-windows-gnu/release/update-nuspec.exe "${TASK_BIN}/win-x64/update-nuspec.exe"
 
       - name: Build ADO task wrapper
         working-directory: azure-devops-extension/task
@@ -179,8 +170,8 @@ jobs:
         run: |
           set -euo pipefail
           ls -la "${TASK_BIN}/linux-x64/" "${TASK_BIN}/win-x64/"
-          test -x "${TASK_BIN}/linux-x64/UpdateNuspecTool"
-          test -f "${TASK_BIN}/win-x64/UpdateNuspecTool.exe"
+          test -x "${TASK_BIN}/linux-x64/update-nuspec"
+          test -f "${TASK_BIN}/win-x64/update-nuspec.exe"
 
       - name: Install TFX CLI
         run: npm install -g tfx-cli@0.17.0
@@ -239,10 +230,10 @@ jobs:
             exit 1
           fi
           echo "Created ${vsix[0]}"
-          unzip -l "${vsix[0]}" | grep -q 'task/linux-x64/UpdateNuspecTool' \
-            || { echo "VSIX missing task/linux-x64/UpdateNuspecTool" >&2; exit 1; }
-          unzip -l "${vsix[0]}" | grep -q 'task/win-x64/UpdateNuspecTool.exe' \
-            || { echo "VSIX missing task/win-x64/UpdateNuspecTool.exe" >&2; exit 1; }
+          unzip -l "${vsix[0]}" | grep -q 'task/linux-x64/update-nuspec' \
+            || { echo "VSIX missing task/linux-x64/update-nuspec" >&2; exit 1; }
+          unzip -l "${vsix[0]}" | grep -q 'task/win-x64/update-nuspec.exe' \
+            || { echo "VSIX missing task/win-x64/update-nuspec.exe" >&2; exit 1; }
           unzip -l "${vsix[0]}" | grep -q 'marketplace/images/example-boilerplate-url-normalizer.png' \
             || { echo "VSIX missing overview screenshot marketplace/images/example-boilerplate-url-normalizer.png" >&2; exit 1; }
           unzip -l "${vsix[0]}" | grep -q 'marketplace/images/example-package-json.png' \

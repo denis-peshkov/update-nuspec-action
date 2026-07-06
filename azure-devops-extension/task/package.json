@@ -2,7 +2,8 @@
   "name": "update-nuspec-ado-task",
   "version": "1.0.0",
   "private": true,
-  "description": "Azure Pipelines task wrapper for UpdateNuspecTool",
+  "description": "Azure Pipelines task wrapper for the update-nuspec CLI",
+  "keywords": ["cli", "nuget", "nuspec", "dotnet", "csproj", "azure-pipelines"],
   "scripts": {
     "build": "tsc"
   },

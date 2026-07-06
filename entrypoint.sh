@@ -29,7 +29,7 @@ case "$DRY_RUN" in
     ;;
 esac
 
-/UpdateNuspecTool $DRY_RUN_ARG "$DIR"
+/update-nuspec $DRY_RUN_ARG "$DIR"
 
 if [ -n "$PACKAGE_VERSION" ] && [ -n "$GITHUB_OUTPUT" ]; then
   echo "packageVersion=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"

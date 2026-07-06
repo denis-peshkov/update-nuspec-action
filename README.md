@@ -13,7 +13,7 @@
 
 # update-nuspec-action
 
-GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from the related `.csproj` (project name = `<id>` in nuspec metadata). Optionally updates `package.json` version and scoped npm dependencies.
+CLI (Rust) GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from the related `.csproj` (project name = `<id>` in nuspec metadata). Optionally updates `package.json` version and scoped npm dependencies.
 
 ## Usage
 
@@ -137,10 +137,9 @@ This action is a **Docker container action** (`runs.using: docker` in `action.ym
 - **Runner:** `ubuntu-latest` (recommended) or any **linux/amd64** self-hosted host with Docker.
 - **`windows-latest` / `macos-latest`:** **not supported** — container actions do not run on Windows or macOS hosted runners. Use a separate job on `ubuntu-latest` (other jobs in the workflow may still use Windows).
 - **Self-hosted ARM runners:** not supported as-is — use `ubuntu-latest`, or a self-hosted **amd64** Linux agent, or dedicate one job to `runs-on: ubuntu-latest`.
-- **.NET:** The image includes .NET 8 runtime (framework-dependent apphost).
 - **Colored log output:** enabled by default in the image (`CONSOLE_ANSI_COLOR=true`). Override with `env: CONSOLE_ANSI_COLOR: false` on the step if needed.
 
-**On Windows:** use the CLI (`dotnet publish -r win-x64`, see [CLI (local)](#cli-local)) or the [Azure DevOps extension](#azure-devops-extension) (`UpdateNuspec@1` on `windows-latest`).
+**On Windows:** use the Rust CLI (`cargo build --release` in `update-nuspec/`, see [CLI (local)](#cli-local)) or the [Azure DevOps extension](#azure-devops-extension) (`UpdateNuspec@1` on `windows-latest`).
 
 Mixed workflow example (build on Windows, nuspec sync on Linux):
 
@@ -195,24 +194,29 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 
 | Path | Role |
 |------|------|
-| `UpdateNuspecTool/` | CLI source |
+| `update-nuspec/` | Rust CLI and library (`update-nuspec` binary) |
+| `UpdateNuspecTool/` | Legacy .NET CLI (parity tests) |
 | `UpdateNuspecTool.Tests/` | NUnit tests and fixtures |
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
-| `Dockerfile` | Multi-stage image (`linux/amd64`): `dotnet publish` in build stage, runtime + `entrypoint.sh` |
+| `Dockerfile` | Multi-stage image (`linux/amd64`): `cargo build --release`, runtime + `entrypoint.sh` |
 | `action.yml` | Action metadata; runs the Docker image |
 | `update-nuspec-icon.png` | Project icon (repo root) |
 | `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in `.github/workflows/ci.yml` |
 | `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, `extension-icon.png` (symlink to project icon), screenshots |
-| `azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript wrapper + bundled tool binaries) |
+| `azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript wrapper + bundled `update-nuspec` binaries) |
 
 ### Tests
+
+```bash
+cd update-nuspec && cargo test
+```
 
 ```bash
 dotnet restore UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
 dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release --no-restore
 ```
 
-CI restores the test project in **Restore dependencies**, then runs tests after build (see `.github/workflows/ci.yml`).
+CI runs both Rust and .NET tests (see `.github/workflows/ci.yml`).
 
 Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `package.json`, …).
 
@@ -221,72 +225,46 @@ Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messagi
 Options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`), `--package-version` / `-pv`, `--dependency-scope` / `-ds`.
 
 ```bash
-dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --help
-dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- --version
-dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- UpdateNuspecTool.Tests/TestData --dry-run
-dotnet run --project UpdateNuspecTool/UpdateNuspecTool.csproj -- ./client/dist/my-app --package-version 1.2.3 --dependency-scope @guru/
+cd update-nuspec
+cargo run --bin update-nuspec -- --help
+cargo run --bin update-nuspec -- --version
+cargo run --bin update-nuspec -- ../UpdateNuspecTool.Tests/TestData --dry-run
+cargo run --bin update-nuspec -- ../client/dist/my-app --package-version 1.2.3 --dependency-scope @guru/
 ```
 
-Publish the tool locally (same flags; change `-r` and output folder per OS/CPU):
+Release build:
+
+```bash
+cd update-nuspec
+cargo build --release --bin update-nuspec
+./target/release/update-nuspec ../UpdateNuspecTool.Tests/TestData --dry-run
+```
+
+**Windows (x64)** — cross-compile in CI with `x86_64-pc-windows-gnu`, or build natively on Windows:
+
+```powershell
+cd update-nuspec
+cargo build --release --bin update-nuspec
+.\target\release\update-nuspec.exe ..\UpdateNuspecTool.Tests\TestData
+```
 
 **Linux (x64)** — used in the action Docker image and `ubuntu-latest`:
 
 ```bash
-dotnet restore UpdateNuspecTool/UpdateNuspecTool.csproj -r linux-x64
-dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
-  -c Release \
-  --no-restore \
-  -r linux-x64 \
-  --self-contained false \
-  -o UpdateNuspecTool/bin/publish/linux-x64
+cd update-nuspec
+cargo build --release --bin update-nuspec
+./target/release/update-nuspec ../UpdateNuspecTool.Tests/TestData
 ```
 
-(`PublishSingleFile` is enabled in the `.csproj` when `-r linux-x64` is set. Output under `bin/` is gitignored.)
-
-```bash
-UpdateNuspecTool/bin/publish/linux-x64/UpdateNuspecTool UpdateNuspecTool.Tests/TestData
-
-# Demo / test run: full report in console, no file changes
-UpdateNuspecTool/bin/publish/linux-x64/UpdateNuspecTool UpdateNuspecTool.Tests/TestData --dry-run
-```
-
-**Windows (x64):**
-
-```powershell
-dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj `
-  -c Release `
-  -r win-x64 `
-  --self-contained false `
-  -p:PublishSingleFile=true `
-  -o UpdateNuspecTool/bin/publish/win-x64
-
-UpdateNuspecTool/bin/publish/win-x64/UpdateNuspecTool.exe UpdateNuspecTool.Tests/TestData
-```
-
-**macOS (Apple Silicon, ARM64):**
-
-```bash
-dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
-  -c Release \
-  -r osx-arm64 \
-  --self-contained false \
-  -p:PublishSingleFile=true \
-  -o UpdateNuspecTool/bin/publish/osx-arm64
-
-UpdateNuspecTool/bin/publish/osx-arm64/UpdateNuspecTool UpdateNuspecTool.Tests/TestData
-```
-
-| Platform | Runtime ID (`-r`) | Output executable |
-|----------|-------------------|-------------------|
-| Linux x64 | `linux-x64` | `UpdateNuspecTool` |
-| Windows x64 | `win-x64` | `UpdateNuspecTool.exe` |
-| macOS ARM64 | `osx-arm64` | `UpdateNuspecTool` |
-
-Other common RIDs: `linux-arm64`, `win-arm64`, `osx-x64`.
+| Platform | Binary |
+|----------|--------|
+| Linux x64 | `update-nuspec` |
+| Windows x64 | `update-nuspec.exe` |
+| macOS (local) | `update-nuspec` (`cargo build --release`) |
 
 ### Docker image
 
-The action image builds and publishes the tool inside `Dockerfile`:
+The action image builds the Rust CLI inside `Dockerfile`:
 
 ```bash
 docker build --platform linux/amd64 -t update-nuspec-action:local .
@@ -302,7 +280,7 @@ docker run --rm --platform linux/amd64 \
 
 On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub-hosted runners.
 
-Full pipeline on push/PR: restore → build → tests → SonarCloud → `docker build` and smoke tests (`.github/workflows/ci.yml`).
+Full pipeline on push/PR: Rust tests → .NET tests → SonarCloud → `docker build` and smoke tests (`.github/workflows/ci.yml`).
 
 ## License
 
