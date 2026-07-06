@@ -56,7 +56,7 @@ jobs:
       - name: Set VERSION
         run: |
           set -euo pipefail
-          VERSION="${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ github.run_number }}${{ env.GitVersion_PreReleaseTagWithDash }}"
+          VERSION="${{ env.GitVersion_Major }}.${{ env.GitVersion_Minor }}.${{ github.run_number }}${{ env.GitVersion_PreReleaseLabelWithDash }}"
           echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
           echo "Version: ${VERSION} (semVer=${{ env.GitVersion_SemVer }})"
 
