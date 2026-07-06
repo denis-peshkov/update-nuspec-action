@@ -200,8 +200,15 @@ jobs:
         run: |
           set -euo pipefail
           SOURCE_MANIFEST="vss-extension.json"
-          jq --arg v "${{ env.VERSION }}" '.version = $v' \
-            "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
+          PACKAGE_CHANNEL="${{ github.event_name == 'push' && steps.channel.outputs.name || 'release' }}"
+          if [ "${PACKAGE_CHANNEL}" = "preview" ]; then
+            jq --arg v "${{ env.VERSION }}" '.version = $v | .public = false' \
+              "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
+          else
+            jq --arg v "${{ env.VERSION }}" '.version = $v | .public = true' \
+              "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
+          fi
+          echo "Extension manifest: version=${{ env.VERSION }}, channel=${PACKAGE_CHANNEL}, public=$(jq -r .public "${EXTENSION_ROOT}/.vss-extension.build.json")"
 
       - name: Create ADO extension VSIX
         working-directory: azure-devops-extension
