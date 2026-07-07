@@ -31,14 +31,17 @@ cp "${BINARY}" "${STAGING}/${BINARY_NAME}"
 if [[ "${TARGET}" == *"windows"* ]]; then
   ARCHIVE="${OUT_DIR}/${ARCHIVE_BASE}.zip"
   rm -f "${ARCHIVE}"
-  (
-    cd "${STAGING}"
-    if command -v zip >/dev/null 2>&1; then
-      zip -q "${ARCHIVE}" "${BINARY_NAME}"
-    else
-      powershell -NoProfile -Command "Compress-Archive -Path '${BINARY_NAME}' -DestinationPath '${ARCHIVE}' -Force"
+  if command -v zip >/dev/null 2>&1; then
+    zip -q -j "${ARCHIVE}" "${STAGING}/${BINARY_NAME}"
+  else
+    archive_path="${ARCHIVE}"
+    source_path="${STAGING}/${BINARY_NAME}"
+    if command -v cygpath >/dev/null 2>&1; then
+      archive_path="$(cygpath -w "${ARCHIVE}")"
+      source_path="$(cygpath -w "${source_path}")"
     fi
-  )
+    powershell -NoProfile -Command "Compress-Archive -LiteralPath '${source_path}' -DestinationPath '${archive_path}' -Force"
+  fi
 else
   ARCHIVE="${OUT_DIR}/${ARCHIVE_BASE}.tar.gz"
   rm -f "${ARCHIVE}"
