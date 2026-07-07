@@ -403,21 +403,21 @@ jobs:
             --extension-pricing free \
             --extension-visibility public
 
-      - name: Publish ADO extension (preview)
-        if: >-
-          github.event_name == 'push' &&
-          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
-        working-directory: azure-devops-extension
-        run: |
-          set -euo pipefail
-          VSIX=( *.vsix )
-          tfx extension publish \
-            --auth-type pat \
-            -t "${{ secrets.AZDO_MARKETPLACE_PAT }}" \
-            --publisher peshkov \
-            --vsix "${VSIX[0]}" \
-            --extension-pricing free \
-            --share-with peshkov
+#      - name: Publish ADO extension (preview)
+#        if: >-
+#          github.event_name == 'push' &&
+#          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+#        working-directory: azure-devops-extension
+#        run: |
+#          set -euo pipefail
+#          VSIX=( *.vsix )
+#          tfx extension publish \
+#            --auth-type pat \
+#            -t "${{ secrets.AZDO_MARKETPLACE_PAT }}" \
+#            --publisher peshkov \
+#            --vsix "${VSIX[0]}" \
+#            --extension-pricing free \
+#            --share-with peshkov
 
   publish-and-package:
     name: Publish GitHub Release and update packages
