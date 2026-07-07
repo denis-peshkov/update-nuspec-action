@@ -34,15 +34,16 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 | `update-homebrew-core-formula.sh` | Generates formula draft in CI workspace (`packaging/homebrew-core/`, not committed) |
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
 | `publish-homebrew-core-pr.sh` | **If not in core:** push to `denis-peshkov/homebrew-core:update-nuspec`, open upstream PR |
-| `brew bump-formula-pr` | **If in core:** open version-bump PR (needs `HOMEBREW_GITHUB_API_TOKEN`) |
-| `update-packaging-metadata.sh` | Regenerates Chocolatey metadata; optional push via `CHOCO_API_KEY` |
+| `brew bump-formula-pr` | **If in core:** open version-bump PR (needs `HOMEBREW_GITHUB_API_KEY`) |
+| `update-packaging-metadata.sh` | Regenerates Chocolatey metadata; optional push via `CHOCOLATEY_API_KEY` |
 
 ### Secrets
 
 | Secret | Purpose |
 |--------|---------|
-| `TAGTOKEN` | Push to `homebrew-core` fork and open initial PR (`repo` scope); also git tags / `action.yml` pins in `build` |
-| `HOMEBREW_GITHUB_API_TOKEN` | [PAT](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request#generating-a-personal-access-token-classic) with `public_repo` for `brew bump-formula-pr` after formula is in core |
+| `TAGTOKEN` | Push git tags and `action.yml` pins in `build`; fallback for `homebrew-core` fork push / initial PR (`repo` scope) |
+| `HOMEBREW_GITHUB_API_KEY` | [PAT](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request#generating-a-personal-access-token-classic) with `public_repo` for `brew bump-formula-pr` after formula is in core |
+| `CHOCOLATEY_API_KEY` | API key for pushing the package to chocolatey.org |
 
 Local test before the first PR:
 
@@ -64,7 +65,7 @@ choco install update-nuspec -s . --force
 
 ### CI publish (optional)
 
-Set repository secret `CHOCO_API_KEY` to push to chocolatey.org on release.
+Set repository secret `CHOCOLATEY_API_KEY` to push to chocolatey.org on release.
 
 ### chocolatey.org community
 

@@ -502,13 +502,13 @@ jobs:
       - name: Publish Homebrew core PR (new formula)
         if: env.FORMULA_IN_CORE == '0'
         env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
+          HOMEBREW_GITHUB_API_KEY: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
           TAGTOKEN: ${{ secrets.TAGTOKEN }}
         run: |
           set -euo pipefail
-          TOKEN="${HOMEBREW_GITHUB_API_TOKEN:-${TAGTOKEN:-}}"
+          TOKEN="${HOMEBREW_GITHUB_API_KEY:-${TAGTOKEN:-}}"
           if [ -z "${TOKEN}" ]; then
-            echo "HOMEBREW_GITHUB_API_TOKEN/TAGTOKEN not set, skipping Homebrew PR"
+            echo "HOMEBREW_GITHUB_API_KEY/TAGTOKEN not set, skipping Homebrew PR"
             exit 0
           fi
           ./scripts/publish-homebrew-core-pr.sh "${{ github.workspace }}" "${TOKEN}" "${{ env.VERSION }}"
@@ -520,11 +520,11 @@ jobs:
       - name: Bump homebrew-core formula
         if: env.FORMULA_IN_CORE == '1'
         env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
         run: |
           set -euo pipefail
           if [ -z "${HOMEBREW_GITHUB_API_TOKEN}" ]; then
-            echo "HOMEBREW_GITHUB_API_TOKEN not set, skipping bump-formula-pr"
+            echo "HOMEBREW_GITHUB_API_KEY not set, skipping bump-formula-pr"
             exit 0
           fi
           brew bump-formula-pr update-nuspec \
@@ -541,14 +541,14 @@ jobs:
 
       - name: Publish Chocolatey package
         env:
-          CHOCO_API_KEY: ${{ secrets.CHOCO_API_KEY }}
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${CHOCO_API_KEY}" ]; then
-            echo "CHOCO_API_KEY not set, skipping Chocolatey push"
+          if [ -z "${CHOCOLATEY_API_KEY}" ]; then
+            echo "CHOCOLATEY_API_KEY not set, skipping Chocolatey push"
             exit 0
           fi
           curl -f -X POST \
-            -H "X-Api-Key: ${CHOCO_API_KEY}" \
+            -H "X-Api-Key: ${CHOCOLATEY_API_KEY}" \
             --data-binary @"${GITHUB_WORKSPACE}/dist/choco/update-nuspec.${{ env.VERSION }}.nupkg" \
             https://push.chocolatey.org/api/v2/package
