@@ -39,7 +39,7 @@ jobs:
         with:
           useConfigFile: true
 
-      # VERSION (Major.Minor.run_number) — artifacts (Docker, Cargo, ADO).
+      # VERSION (Major.Minor.run_number) — artifacts (Docker, Cargo, ADO)
       - name: Set VERSION
         id: set
         run: |
