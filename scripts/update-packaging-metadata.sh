@@ -56,7 +56,7 @@ cat > "${CHOCO_DIR}/update-nuspec.nuspec" <<EOF
     <tags>nuget nuspec dotnet cli csproj</tags>
   </metadata>
   <files>
-    <file src="tools\**" target="tools" />
+    <file src="tools/**" target="tools" />
   </files>
 </package>
 EOF

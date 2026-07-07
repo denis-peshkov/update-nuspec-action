@@ -520,12 +520,17 @@ jobs:
             --url="https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v${{ env.VERSION }}.tar.gz" \
             --sha256="${{ env.SOURCE_SHA256 }}"
 
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
       - name: Pack Chocolatey package
         run: |
           set -euo pipefail
           mkdir -p dist/choco
-          cd packaging/chocolatey/update-nuspec
-          zip -r "${GITHUB_WORKSPACE}/dist/choco/update-nuspec.${{ env.VERSION }}.nupkg" update-nuspec.nuspec tools
+          nuget pack packaging/chocolatey/update-nuspec/update-nuspec.nuspec \
+            -Version "${{ env.VERSION }}" \
+            -OutputDirectory dist/choco \
+            -NoDefaultExcludes
 
       - name: Publish Chocolatey package
         env:
@@ -536,7 +541,7 @@ jobs:
             echo "CHOCOLATEY_API_KEY not set, skipping Chocolatey push"
             exit 0
           fi
-          curl -f -X POST \
-            -H "X-Api-Key: ${CHOCOLATEY_API_KEY}" \
-            --data-binary @"${GITHUB_WORKSPACE}/dist/choco/update-nuspec.${{ env.VERSION }}.nupkg" \
-            https://push.chocolatey.org/api/v2/package
+          nuget push "dist/choco/update-nuspec.${{ env.VERSION }}.nupkg" \
+            -ApiKey "${CHOCOLATEY_API_KEY}" \
+            -Source https://push.chocolatey.org/api/v2/package \
+            -SkipDuplicate
