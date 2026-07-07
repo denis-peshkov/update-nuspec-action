@@ -101,7 +101,7 @@ jobs:
           sudo apt-get install -y musl-tools
 
       - name: Set Rust crate version
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
         shell: bash
         run: |
           perl -pi -e 's/^version = .*/version = "${{ needs.version.outputs.version }}"/' update-nuspec/Cargo.toml
@@ -120,7 +120,7 @@ jobs:
           if-no-files-found: error
 
       - name: Package release binary
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
         shell: bash
         run: |
           set -euo pipefail
@@ -129,7 +129,7 @@ jobs:
           echo "ARCHIVE=${ARCHIVE}" >> "${GITHUB_ENV}"
 
       - name: Upload release binary
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
         uses: actions/upload-artifact@v4
         with:
           name: release-binary-${{ matrix.target }}
@@ -245,23 +245,27 @@ jobs:
             update-nuspec-action:ci UpdateNuspecTool.Tests/TestData true | grep -q '\[DRY RUN\]'
 
       - name: Log in to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Preview branches push only the exact :version tag; moving tags (:X, :X.Y, :latest) stay on stable master.
       - name: Push image to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
         run: |
           set -euo pipefail
           IMAGE=ghcr.io/denis-peshkov/update-nuspec
-          for tag in \
-            "${{ needs.version.outputs.version }}" \
-            "${{ needs.version.outputs.major }}.${{ needs.version.outputs.minor }}" \
-            "${{ needs.version.outputs.major }}" \
-            latest; do
+          TAGS=( "${{ needs.version.outputs.version }}" )
+          if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
+            TAGS+=( \
+              "${{ needs.version.outputs.major }}.${{ needs.version.outputs.minor }}" \
+              "${{ needs.version.outputs.major }}" \
+              latest )
+          fi
+          for tag in "${TAGS[@]}"; do
             docker tag update-nuspec-action:ci "${IMAGE}:${tag}"
             docker push "${IMAGE}:${tag}"
           done
@@ -399,21 +403,21 @@ jobs:
             --extension-pricing free \
             --extension-visibility public
 
-#      - name: Publish ADO extension (preview)
-#        if: >-
-#          github.event_name == 'push' &&
-#          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
-#        working-directory: azure-devops-extension
-#        run: |
-#          set -euo pipefail
-#          VSIX=( *.vsix )
-#          tfx extension publish \
-#            --auth-type pat \
-#            -t "${{ secrets.AZDO_MARKETPLACE_PAT }}" \
-#            --publisher peshkov \
-#            --vsix "${VSIX[0]}" \
-#            --extension-pricing free \
-#            --share-with peshkov
+      - name: Publish ADO extension (preview)
+        if: >-
+          github.event_name == 'push' &&
+          (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/'))
+        working-directory: azure-devops-extension
+        run: |
+          set -euo pipefail
+          VSIX=( *.vsix )
+          tfx extension publish \
+            --auth-type pat \
+            -t "${{ secrets.AZDO_MARKETPLACE_PAT }}" \
+            --publisher peshkov \
+            --vsix "${VSIX[0]}" \
+            --extension-pricing free \
+            --share-with peshkov
 
   publish-and-package:
     name: Publish GitHub Release and update packages
@@ -421,7 +425,7 @@ jobs:
       - version
       - build
       - release-binaries
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -464,7 +468,9 @@ jobs:
             dist/SHA256SUMS
             dist/vsix/*.vsix
 
+      # Homebrew core only accepts stable releases → source checksum + formula steps run on master only.
       - name: Compute source tarball checksum
+        if: github.ref == 'refs/heads/master'
         run: |
           set -euo pipefail
           URL="https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v${{ env.VERSION }}.tar.gz"
@@ -473,12 +479,14 @@ jobs:
           echo "SOURCE_SHA256=$(cut -d' ' -f1 dist/SOURCE_SHA256)" >> "${GITHUB_ENV}"
 
       - name: Update Homebrew core formula draft
+        if: github.ref == 'refs/heads/master'
         run: ./scripts/update-homebrew-core-formula.sh "${{ env.VERSION }}" "${{ env.SOURCE_SHA256 }}" "${{ github.workspace }}"
 
       - name: Update Chocolatey metadata
         run: ./scripts/update-packaging-metadata.sh "${{ env.VERSION }}" dist/SHA256SUMS "${{ github.workspace }}"
 
       - name: Detect Homebrew formula in core
+        if: github.ref == 'refs/heads/master'
         run: |
           set -euo pipefail
           FORMULA_URL="https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/u/update-nuspec.rb"

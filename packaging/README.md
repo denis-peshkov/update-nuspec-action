@@ -4,7 +4,7 @@ Standalone CLI distribution for `update-nuspec` (outside Docker / Azure DevOps).
 
 ## GitHub Release assets
 
-On each push to `master`, the `publish-and-package` job builds and publishes:
+On each push to `master`, `release/*`, or `hotfix/*`, the `publish-and-package` job builds and publishes (preview branches produce a GitHub **Pre-release** and a prerelease Chocolatey package; Homebrew is master-only):
 
 | Asset | Platform |
 |-------|----------|

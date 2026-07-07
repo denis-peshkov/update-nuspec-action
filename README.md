@@ -163,10 +163,12 @@ jobs:
 
 [GitVersion](https://gitversion.net/) (`GitVersion.yml`) on push:
 
-| Branch | SemVer (example) | Git tag | GitHub Release | ADO extension |
-|--------|------------------|---------|----------------|---------------|
-| `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (binaries + VSIX) | `update-nuspec` → Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | — (tag only) | preview publish disabled in CI |
+| Branch | SemVer (example) | Git tags | GHCR image | GitHub Release | Chocolatey | Homebrew | ADO extension |
+|--------|------------------|----------|------------|----------------|------------|----------|---------------|
+| `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | `:1.2.3`, `:1.2`, `:1`, `:latest` | **Release** (binaries + VSIX) | push (stable) | core PR / bump | Marketplace **public** |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | `:1.3.0-preview.4` only | **Pre-release** (binaries + VSIX) | push (prerelease) | — (skipped) | `--share-with peshkov` (preview) |
+
+Preview branches publish everywhere except Homebrew (homebrew-core does not accept prereleases) and moving tags (`v1`, `v1.2`, `:latest` point to stable master only).
 
 On `release/*` and `hotfix/*`, GitVersion already uses `tag: preview` — no extra configuration is required.
 
