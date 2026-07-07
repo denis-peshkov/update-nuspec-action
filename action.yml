@@ -25,7 +25,9 @@ outputs:
     description: 'The packageVersion input value when package.json processing ran.'
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  # Prebuilt image (pushed to GHCR by CI). Each git tag points to action.yml with the
+  # matching GHCR tag: @v1.2.3 → :1.2.3, @v1.2 → :1.2, @v1 → :1, master → :latest.
+  image: 'docker://ghcr.io/denis-peshkov/update-nuspec:latest'
   env:
     PACKAGE_VERSION: ${{ inputs.packageVersion }}
     DEPENDENCY_SCOPE: ${{ inputs.dependencyScope }}

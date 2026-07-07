@@ -165,16 +165,16 @@ jobs:
 
 | Branch | SemVer (example) | Git tag | GitHub Release | ADO extension |
 |--------|------------------|---------|----------------|---------------|
-| `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (not prerelease) | `update-nuspec` → Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | **Pre-release** | `update-nuspec` (version shared via `--share-with peshkov` only) |
+| `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | **Release** (binaries + VSIX) | `update-nuspec` → Marketplace **public** |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | `v1.3.0-preview.4` | — (tag only) | preview publish disabled in CI |
 
 On `release/*` and `hotfix/*`, GitVersion already uses `tag: preview` — no extra configuration is required.
 
-CI also creates a [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) with a `.vsix` artifact (after the tag is pushed).
+CI creates a [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) in the `publish-and-package` job: binary archives, `SHA256SUMS`, and the ADO `.vsix` (git tags are pushed from `build` first).
 
 ADO Marketplace publish uses secret `AZDO_MARKETPLACE_PAT` (scope **Marketplace (Publish)**), publisher **peshkov**.
 
-After merge to `master`, CI updates tags **`v{major}`**, **`v{major}.{minor}`**, and **`v{semVer}`** (for example `v1`, `v1.2`, `v1.2.3`) on the commit that contains the current `Dockerfile` (the tool is built inside the image). Use:
+After merge to `master`, CI pins `action.yml` to the matching GHCR image tag and updates git tags **`v{major}`**, **`v{major}.{minor}`**, and **`v{semVer}`** (for example `v1`, `v1.2`, `v1.2.3` → image `:1.2.3`; `@v1` / `@v1.2` → `:1` / `:1.2`). Use:
 
 ```yaml
 uses: denis-peshkov/update-nuspec-action@v1      # latest stable 1.x.y on master
@@ -198,8 +198,8 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | `UpdateNuspecTool/` | Legacy .NET CLI (parity tests) |
 | `UpdateNuspecTool.Tests/` | NUnit tests and fixtures |
 | `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
-| `Dockerfile` | Multi-stage image (`linux/amd64`): `cargo build --release`, runtime + `entrypoint.sh` |
-| `action.yml` | Action metadata; runs the Docker image |
+| `Dockerfile` | Runtime image (`alpine`): copies prebuilt `musl` binary + `entrypoint.sh` (no Rust build in Docker) |
+| `action.yml` | Action metadata; runs prebuilt GHCR image (`docker://ghcr.io/denis-peshkov/update-nuspec:…`) |
 | `update-nuspec-icon.png` | Project icon (repo root) |
 | `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in `.github/workflows/ci.yml` |
 | `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, `extension-icon.png` (symlink to project icon), screenshots |
@@ -222,6 +222,18 @@ Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messagi
 
 ### CLI (local)
 
+**Package managers** (after acceptance in the respective registries; binaries also on [GitHub Releases](https://github.com/denis-peshkov/update-nuspec-action/releases)):
+
+```bash
+brew install update-nuspec
+```
+
+```powershell
+choco install update-nuspec
+```
+
+First Homebrew submission: [packaging/README.md](packaging/README.md#homebrew-homebrew-core).
+
 Options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`), `--package-version` / `-pv`, `--dependency-scope` / `-ds`.
 
 ```bash
@@ -240,7 +252,7 @@ cargo build --release --bin update-nuspec
 ./target/release/update-nuspec ../UpdateNuspecTool.Tests/TestData --dry-run
 ```
 
-**Windows (x64)** — cross-compile in CI with `x86_64-pc-windows-gnu`, or build natively on Windows:
+**Windows (x64)** — CI builds with `x86_64-pc-windows-msvc` (same binary for Release, Chocolatey, and ADO), or build natively on Windows:
 
 ```powershell
 cd update-nuspec
@@ -264,23 +276,24 @@ cargo build --release --bin update-nuspec
 
 ### Docker image
 
-The action image builds the Rust CLI inside `Dockerfile`:
+The action runs a **prebuilt image** from GHCR (`action.yml` → `image: docker://ghcr.io/denis-peshkov/update-nuspec:<version>`). CI builds it from the static `musl` binary produced by the release matrix (no Rust build in Docker) and pushes tags `X.Y.Z`, `X.Y`, `X`, and `latest`. The runtime is a small `alpine` image.
+
+Build locally (stage the binary first, since `Dockerfile` only copies it):
 
 ```bash
+cd update-nuspec && cargo build --release --target x86_64-unknown-linux-musl --bin update-nuspec && cd ..
+mkdir -p docker && cp update-nuspec/target/x86_64-unknown-linux-musl/release/update-nuspec docker/update-nuspec
 docker build --platform linux/amd64 -t update-nuspec-action:local .
-docker run --rm --platform linux/amd64 \
-  -v "$PWD:/github/workspace" \
-  update-nuspec-action:local UpdateNuspecTool.Tests/TestData
-
-# dry-run: second argument true (same as action input dryRun)
 docker run --rm --platform linux/amd64 \
   -v "$PWD:/github/workspace" \
   update-nuspec-action:local UpdateNuspecTool.Tests/TestData true
 ```
 
+> First release only: make the GHCR package **public** (`github.com/users/denis-peshkov/packages/container/update-nuspec/settings`) so `uses: …@v1` can pull it without auth.
+
 On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub-hosted runners.
 
-Full pipeline on push/PR: Rust tests → .NET tests → SonarCloud → `docker build` and smoke tests (`.github/workflows/ci.yml`).
+Full pipeline on push/PR: `version` → `release-binaries` matrix → `build` (Rust/.NET tests, SonarCloud, Docker smoke tests, ADO VSIX, GHCR push, git tags) → `publish-and-package` on `master` (GitHub Release, Homebrew, Chocolatey). See `.github/workflows/ci.yml`.
 
 ## License
 

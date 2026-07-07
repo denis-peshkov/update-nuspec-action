@@ -1,13 +1,10 @@
-﻿# Publish tool inside the image (`uses: …@v1` does not require a pre-built binary in git)
-FROM --platform=linux/amd64 rust:1-bookworm AS build
-
-ARG VERSION=0.1.0
-WORKDIR /src
-COPY update-nuspec/ update-nuspec/
-RUN sed -i "s/^version = .*/version = \"${VERSION}\"/" update-nuspec/Cargo.toml \
-    && cargo build --release --manifest-path update-nuspec/Cargo.toml --bin update-nuspec
-
-FROM --platform=linux/amd64 debian:bookworm-slim
+﻿# Image published to GHCR by CI. It packages the static musl binary built by the
+# release-binaries matrix (no Rust build here). `action.yml` runs the pushed image
+# via `image: docker://ghcr.io/...`, so consumers never build this Dockerfile.
+#
+# The binary must be staged at docker/update-nuspec before building:
+#   cp <matrix>/update-nuspec docker/update-nuspec && docker build -t update-nuspec .
+FROM alpine:3.20
 
 LABEL maintainer="Denis Peshkov <denis.peshkov@outlook.com>"
 LABEL repository="https://github.com/denis-peshkov/update-nuspec-action"
@@ -18,7 +15,7 @@ LABEL com.github.actions.description="CLI to sync NuGet *.nuspec dependencies wi
 LABEL com.github.actions.icon="activity"
 LABEL com.github.actions.color="yellow"
 
-COPY --from=build /src/update-nuspec/target/release/update-nuspec /update-nuspec
+COPY docker/update-nuspec /update-nuspec
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /update-nuspec /entrypoint.sh
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>update-nuspec</id>
+    <version>0.0.0</version>
+    <title>update-nuspec</title>
+    <authors>Denis Peshkov</authors>
+    <owners>Denis Peshkov</owners>
+    <projectUrl>https://github.com/denis-peshkov/update-nuspec-action</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/denis-peshkov/update-nuspec-action/master/update-nuspec-icon.png</iconUrl>
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>Sync NuGet dependencies in nuspec files from csproj PackageReference versions.</summary>
+    <description>CLI to sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files. Optionally updates package.json version and scoped npm dependencies.</description>
+    <releaseNotes>https://github.com/denis-peshkov/update-nuspec-action/releases</releaseNotes>
+    <tags>nuget nuspec dotnet cli csproj</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

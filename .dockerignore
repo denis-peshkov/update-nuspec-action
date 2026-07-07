@@ -18,6 +18,8 @@ action.yml
 UpdateNuspecTool/
 UpdateNuspecTool.Tests/
 azure-devops-extension/
-update-nuspec/target/
+update-nuspec/
+scripts/
+packaging/
 **/bin/
 **/obj/
