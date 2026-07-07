@@ -30,57 +30,24 @@ checksum_for() {
   echo "${line%% *}"
 }
 
-RELEASE_BASE="https://github.com/denis-peshkov/update-nuspec-action/releases/download/v${VERSION}"
+CHOCO_DIR="${REPO_ROOT}/packaging/chocolatey/update-nuspec"
+NUSPEC="${CHOCO_DIR}/update-nuspec.nuspec"
+INSTALL_PS1="${CHOCO_DIR}/tools/chocolateyinstall.ps1"
 
+for f in "${NUSPEC}" "${INSTALL_PS1}"; do
+  if [[ ! -f "${f}" ]]; then
+    echo "Template not found: ${f}" >&2
+    exit 1
+  fi
+done
+
+WINDOWS_URL="https://github.com/denis-peshkov/update-nuspec-action/releases/download/v${VERSION}/update-nuspec-${VERSION}-x86_64-pc-windows-msvc.zip"
 WINDOWS_SHA="$(checksum_for "update-nuspec-${VERSION}-x86_64-pc-windows-msvc.zip")"
 
-CHOCO_DIR="${REPO_ROOT}/packaging/chocolatey/update-nuspec"
-mkdir -p "${CHOCO_DIR}/tools"
-
-cat > "${CHOCO_DIR}/update-nuspec.nuspec" <<EOF
-<?xml version="1.0" encoding="utf-8"?>
-<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
-  <metadata>
-    <id>update-nuspec</id>
-    <version>${VERSION}</version>
-    <title>update-nuspec</title>
-    <authors>Denis Peshkov</authors>
-    <owners>Denis Peshkov</owners>
-    <projectUrl>https://github.com/denis-peshkov/update-nuspec-action</projectUrl>
-    <iconUrl>https://raw.githubusercontent.com/denis-peshkov/update-nuspec-action/master/update-nuspec-icon.png</iconUrl>
-    <license type="expression">MIT</license>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <summary>Sync NuGet dependencies in nuspec files from csproj PackageReference versions.</summary>
-    <description>CLI to sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files. Optionally updates package.json version and scoped npm dependencies.</description>
-    <releaseNotes>https://github.com/denis-peshkov/update-nuspec-action/releases/tag/v${VERSION}</releaseNotes>
-    <tags>nuget nuspec dotnet cli csproj</tags>
-  </metadata>
-  <files>
-    <file src="tools/**" target="tools" />
-  </files>
-</package>
-EOF
-
-cat > "${CHOCO_DIR}/tools/chocolateyinstall.ps1" <<EOF
-\$ErrorActionPreference = 'Stop'
-
-\$toolsDir = "\$(Split-Path -Parent \$MyInvocation.MyCommand.Definition)"
-\$packageArgs = @{
-  packageName    = \$env:ChocolateyPackageName
-  unzipLocation  = \$toolsDir
-  url64bit       = '${RELEASE_BASE}/update-nuspec-${VERSION}-x86_64-pc-windows-msvc.zip'
-  checksum64     = '${WINDOWS_SHA}'
-  checksumType64 = 'sha256'
-}
-
-Install-ChocolateyZipPackage @packageArgs
-EOF
-
-cat > "${CHOCO_DIR}/tools/chocolateyuninstall.ps1" <<'EOF'
-$ErrorActionPreference = 'Stop'
-
-$toolsDir = "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)"
-Uninstall-ChocolateyZipPackage -PackageName $env:ChocolateyPackageName -ZipFileName "$toolsDir\update-nuspec.exe"
-EOF
+# Only the version and the release-specific url/checksum change between releases;
+# everything else stays as committed in the template files.
+perl -pi -e "s|<version>.*</version>|<version>${VERSION}</version>|" "${NUSPEC}"
+perl -pi -e "s|(url64bit\s*=\s*').*(')|\${1}${WINDOWS_URL}\${2}|" "${INSTALL_PS1}"
+perl -pi -e "s|(checksum64\s*=\s*').*(')|\${1}${WINDOWS_SHA}\${2}|" "${INSTALL_PS1}"
 
 echo "Updated chocolatey package metadata for v${VERSION}"
