@@ -473,7 +473,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: |
           set -euo pipefail
-          FORMULA_URL="https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/u/update-nuspec.rb"
+          FORMULA_URL="https://raw.githubusercontent.com/Homebrew/homebrew-core/main/Formula/u/update-nuspec.rb"
           STATUS="$(curl -sSL -o /dev/null -w "%{http_code}" "${FORMULA_URL}")"
           if [ "${STATUS}" = "200" ]; then
             echo "Formula found in homebrew-core"
@@ -484,18 +484,22 @@ jobs:
           fi
 
       - name: Publish Homebrew core PR (new formula)
-        if: env.FORMULA_IN_CORE == '0'
+        if: github.ref == 'refs/heads/master' && env.FORMULA_IN_CORE == '0'
         env:
           HOMEBREW_GITHUB_API_KEY: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
           TAGTOKEN: ${{ secrets.TAGTOKEN }}
         run: |
           set -euo pipefail
-          TOKEN="${HOMEBREW_GITHUB_API_KEY:-${TAGTOKEN:-}}"
-          if [ -z "${TOKEN}" ]; then
-            echo "HOMEBREW_GITHUB_API_KEY/TAGTOKEN not set, skipping Homebrew PR"
+          GIT_TOKEN="${TAGTOKEN:-}"
+          if [ -z "${GIT_TOKEN}" ]; then
+            echo "TAGTOKEN not set, skipping Homebrew PR"
             exit 0
           fi
-          ./scripts/publish-homebrew-core-pr.sh "${{ github.workspace }}" "${TOKEN}" "${{ env.VERSION }}"
+          GH_API_TOKEN="${HOMEBREW_GITHUB_API_KEY:-}"
+          if [ -z "${GH_API_TOKEN}" ]; then
+            GH_API_TOKEN="${GIT_TOKEN}"
+          fi
+          ./scripts/publish-homebrew-core-pr.sh "${{ github.workspace }}" "${GIT_TOKEN}" "${{ env.VERSION }}" "${GH_API_TOKEN}"
 
       - name: Set up Homebrew
         if: env.FORMULA_IN_CORE == '1'

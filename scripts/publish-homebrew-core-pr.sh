@@ -2,22 +2,24 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <repo-root> <git-token> <version>" >&2
+  echo "Usage: $0 <repo-root> <git-token> <version> [github-api-token]" >&2
   exit 1
 }
 
 REPO_ROOT="${1:-}"
-TOKEN="${2:-}"
+GIT_TOKEN="${2:-}"
 VERSION="${3:-}"
+GH_API_TOKEN="${4:-${GIT_TOKEN}}"
 
 CORE_REPO="denis-peshkov/homebrew-core"
 UPSTREAM_REPO="Homebrew/homebrew-core"
-CORE_URL="https://x-access-token:${TOKEN}@github.com/${CORE_REPO}.git"
+UPSTREAM_DEFAULT_BRANCH="main"
+CORE_URL="https://x-access-token:${GIT_TOKEN}@github.com/${CORE_REPO}.git"
 BRANCH="update-nuspec"
 FORMULA_SRC="${REPO_ROOT}/packaging/homebrew-core/update-nuspec.rb"
 FORMULA_DST="Formula/u/update-nuspec.rb"
 
-if [[ -z "${REPO_ROOT}" || -z "${TOKEN}" || -z "${VERSION}" ]]; then
+if [[ -z "${REPO_ROOT}" || -z "${GIT_TOKEN}" || -z "${VERSION}" ]]; then
   usage
 fi
 
@@ -29,7 +31,7 @@ fi
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
-if git clone --depth 1 --branch main "${CORE_URL}" "${WORK_DIR}/core" 2>/dev/null; then
+if git clone --depth 1 --branch "${UPSTREAM_DEFAULT_BRANCH}" "${CORE_URL}" "${WORK_DIR}/core" 2>/dev/null; then
   :
 else
   git clone --depth 1 "${CORE_URL}" "${WORK_DIR}/core"
@@ -51,12 +53,13 @@ fi
 git push -u origin "${BRANCH}" --force
 
 if command -v gh >/dev/null 2>&1; then
-  export GH_TOKEN="${TOKEN}"
+  export GH_TOKEN="${GH_API_TOKEN}"
+  PR_URL="https://github.com/${UPSTREAM_REPO}/compare/${UPSTREAM_DEFAULT_BRANCH}...denis-peshkov:${BRANCH}?expand=1"
   if gh pr list --repo "${UPSTREAM_REPO}" --head "denis-peshkov:${BRANCH}" --state open --json number --jq 'length' | grep -qx '0'; then
-    gh pr create \
+    if ! gh pr create \
       --repo "${UPSTREAM_REPO}" \
       --head "denis-peshkov:${BRANCH}" \
-      --base master \
+      --base "${UPSTREAM_DEFAULT_BRANCH}" \
       --title "update-nuspec ${VERSION} (new formula)" \
       --body "$(cat <<EOF
 - [x] Have you followed the [guidelines for contributing](https://github.com/Homebrew/homebrew-core/blob/master/CONTRIBUTING.md)?
@@ -67,13 +70,18 @@ brew install update-nuspec
 update-nuspec --version
 \`\`\`
 EOF
-)"
-    echo "Opened PR to ${UPSTREAM_REPO}"
+)"; then
+      echo "gh pr create failed; formula is on fork — open PR manually:" >&2
+      echo "${PR_URL}" >&2
+    else
+      echo "Opened PR to ${UPSTREAM_REPO}"
+    fi
   else
     echo "Open PR already exists for ${BRANCH}"
   fi
 else
   echo "gh CLI not found; formula pushed to ${CORE_REPO}:${BRANCH}"
+  echo "Open PR manually: https://github.com/${UPSTREAM_REPO}/compare/${UPSTREAM_DEFAULT_BRANCH}...denis-peshkov:${BRANCH}?expand=1"
 fi
 
 echo "Published formula to ${CORE_REPO} branch ${BRANCH}"
