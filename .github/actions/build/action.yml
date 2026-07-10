@@ -24,6 +24,8 @@ runs:
   using: composite
   steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
@@ -90,6 +92,7 @@ runs:
           -Dsonar.scanner.skipJreProvisioning=true
           -Dsonar.verbose=true
       env:
+        GITHUB_TOKEN: ${{ github.token }}
         SONAR_TOKEN: ${{ inputs.sonar_token }}
 
     - name: Download binaries from matrix

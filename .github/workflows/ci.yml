@@ -65,6 +65,7 @@ jobs:
       contents: write
       packages: write
       actions: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build
