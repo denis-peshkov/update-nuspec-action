@@ -1,0 +1,64 @@
+name: Version
+
+on:
+  workflow_call:
+    outputs:
+      version:
+        description: Major.Minor.run_number with optional prerelease suffix
+        value: ${{ jobs.version.outputs.version }}
+      major:
+        value: ${{ jobs.version.outputs.major }}
+      minor:
+        value: ${{ jobs.version.outputs.minor }}
+      semver:
+        value: ${{ jobs.version.outputs.semver }}
+      channel:
+        value: ${{ jobs.version.outputs.channel }}
+      prerelease:
+        value: ${{ jobs.version.outputs.prerelease }}
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set.outputs.version }}
+      major: ${{ steps.gitversion.outputs.major }}
+      minor: ${{ steps.gitversion.outputs.minor }}
+      semver: ${{ steps.gitversion.outputs.semVer }}
+      channel: ${{ steps.channel.outputs.name }}
+      prerelease: ${{ steps.channel.outputs.prerelease }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup GitVersion
+        uses: gittools/actions/gitversion/setup@v1.1.1
+        with:
+          versionSpec: 5.12.0
+
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v1.1.1
+        with:
+          useConfigFile: true
+
+      - name: Set VERSION
+        id: set
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ github.run_number }}${{ steps.gitversion.outputs.preReleaseLabelWithDash }}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Version: ${VERSION} (semVer=${{ steps.gitversion.outputs.semVer }})"
+
+      - name: Set release channel
+        id: channel
+        run: |
+          if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
+            echo "name=release" >> "${GITHUB_OUTPUT}"
+            echo "prerelease=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "name=preview" >> "${GITHUB_OUTPUT}"
+            echo "prerelease=true" >> "${GITHUB_OUTPUT}"
+          fi

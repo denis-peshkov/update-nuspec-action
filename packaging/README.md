@@ -2,9 +2,31 @@
 
 Standalone CLI distribution for `update-nuspec` (outside Docker / Azure DevOps).
 
+## CI workflows
+
+Orchestrator: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+
+On each **push** to `master`, `release/*`, or `hotfix/*`, three publish workflows run **in parallel** after `build.yml` completes (preview branches produce a GitHub **Pre-release** and a prerelease Chocolatey package; Homebrew is master-only):
+
+| Workflow | What it publishes |
+|----------|-------------------|
+| [`publish-github-release.yml`](../.github/workflows/publish-github-release.yml) | GitHub Release assets (see below) |
+| [`publish-chocolatey.yml`](../.github/workflows/publish-chocolatey.yml) | chocolatey.org `.nupkg` (embedded Windows exe) |
+| [`publish-homebrew.yml`](../.github/workflows/publish-homebrew.yml) | homebrew-core formula PR / bump (`master` only) |
+
+Upstream jobs (same pipeline run):
+
+| Workflow | Role |
+|----------|------|
+| [`version.yml`](../.github/workflows/version.yml) | GitVersion |
+| [`release-binaries.yml`](../.github/workflows/release-binaries.yml) | Matrix build; `release-binary-*` artifacts for publish |
+| [`build.yml`](../.github/workflows/build.yml) | Tests, GHCR, ADO VSIX (`ado-extension-vsix` artifact) |
+
+Binaries are built once in `release-binaries.yml`; `build.yml` reuses `ado-binary-*` for Docker and ADO.
+
 ## GitHub Release assets
 
-On each push to `master`, `release/*`, or `hotfix/*`, parallel publish workflows run after `build` (preview branches produce a GitHub **Pre-release** and a prerelease Chocolatey package; Homebrew is master-only):
+Published by `publish-github-release.yml`:
 
 | Asset | Platform |
 |-------|----------|
@@ -14,8 +36,6 @@ On each push to `master`, `release/*`, or `hotfix/*`, parallel publish workflows
 | `update-nuspec-{version}-x86_64-pc-windows-msvc.zip` | Windows x64 |
 | `SHA256SUMS` | Checksums for binary archives |
 | `*.vsix` | Azure DevOps extension |
-
-Binaries are built once in the `release-binaries` matrix; `build` reuses `ado-binary-*` for Docker and ADO.
 
 ## Homebrew (homebrew-core)
 
@@ -27,23 +47,22 @@ brew install update-nuspec
 
 That works only after the formula is merged into [Homebrew/homebrew-core](https://github.com/Homebrew/homebrew-core) as `Formula/u/update-nuspec.rb`.
 
-### CI automation (each `master` release)
+### CI automation (`publish-homebrew.yml`, each `master` release)
 
 | Step | What happens |
 |------|----------------|
-| `update-homebrew-core-formula.sh` | Generates formula draft in CI workspace (`packaging/homebrew-core/`, not committed) |
+| `update-homebrew-core-formula.sh` | Patches formula draft in CI workspace (`packaging/homebrew-core/`, not committed) |
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
 | `publish-homebrew-core-pr.sh` | **If not in core:** push to `denis-peshkov/homebrew-core:update-nuspec`, open upstream PR |
 | `brew bump-formula-pr` | **If in core:** open version-bump PR (needs `HOMEBREW_GITHUB_API_KEY`) |
-| `stage-chocolatey-package.sh` | Embeds Windows `update-nuspec.exe` from release zip into `.nupkg`; optional push via `CHOCOLATEY_API_KEY` |
 
 ### Secrets
 
 | Secret | Purpose |
 |--------|---------|
-| `TAGTOKEN` | Push git tags and `action.yml` pins in `build`; fallback for `homebrew-core` fork push / initial PR (`repo` scope) |
+| `TAGTOKEN` | Push git tags and `action.yml` pins in `build.yml`; fallback for `homebrew-core` fork push / initial PR (`repo` scope) |
 | `HOMEBREW_GITHUB_API_KEY` | [PAT](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request#generating-a-personal-access-token-classic) with `public_repo` for `brew bump-formula-pr` after formula is in core |
-| `CHOCOLATEY_API_KEY` | API key for pushing the package to chocolatey.org |
+| `CHOCOLATEY_API_KEY` | API key for `publish-chocolatey.yml` → chocolatey.org |
 
 Local test before the first PR:
 
@@ -56,7 +75,7 @@ update-nuspec --version
 
 Package source: [`packaging/chocolatey/update-nuspec/`](chocolatey/update-nuspec/).
 
-CI embeds `update-nuspec.exe` from the Windows release zip (`release-binaries` matrix artifact) into the `.nupkg` — no remote download or checksum in `chocolateyinstall.ps1`.
+`publish-chocolatey.yml` embeds `update-nuspec.exe` from the Windows release zip (`release-binaries.yml` artifact) into the `.nupkg` — no remote download or checksum in `chocolateyinstall.ps1`.
 
 ### Local test
 
@@ -69,7 +88,7 @@ choco install update-nuspec -s dist/choco --force
 
 ### CI publish (optional)
 
-Set repository secret `CHOCOLATEY_API_KEY` to push to chocolatey.org on release. If a previous version is still in moderation, `.github/workflows/scripts/publish-chocolatey-package.sh` skips push and prints a GitHub Actions warning with the pending version and package URL (chocolatey.org responds with **HTTP 403**, not 409).
+Set repository secret `CHOCOLATEY_API_KEY`. If a previous version is still in moderation, `publish-chocolatey-package.sh` skips push and prints a GitHub Actions warning with the pending version and package URL (chocolatey.org responds with **HTTP 403**, not 409).
 
 ### chocolatey.org community
 
@@ -79,9 +98,9 @@ To publish publicly, open a PR to [chocolatey-community/chocolatey-packages](htt
 
 | Script | Purpose |
 |--------|---------|
-| [`scripts/package-release-binary.sh`](../scripts/package-release-binary.sh) | Build `.tar.gz` / `.zip` from a compiled binary |
-| [`scripts/pin-action-image.sh`](../scripts/pin-action-image.sh) | Pin `action.yml` to GHCR image tag per git release tag |
-| [`.github/workflows/scripts/update-homebrew-core-formula.sh`](../.github/workflows/scripts/update-homebrew-core-formula.sh) | Regenerate homebrew-core formula draft from source tarball `sha256` |
+| [`scripts/package-release-binary.sh`](../scripts/package-release-binary.sh) | Build `.tar.gz` / `.zip` from a compiled binary (`release-binaries.yml`) |
+| [`scripts/pin-action-image.sh`](../scripts/pin-action-image.sh) | Pin `action.yml` to GHCR image tag per git release tag (`build.yml`) |
+| [`.github/workflows/scripts/update-homebrew-core-formula.sh`](../.github/workflows/scripts/update-homebrew-core-formula.sh) | Patch homebrew-core formula `url` + `sha256` |
 | [`.github/workflows/scripts/publish-homebrew-core-pr.sh`](../.github/workflows/scripts/publish-homebrew-core-pr.sh) | Push formula to `denis-peshkov/homebrew-core` and open upstream PR |
 | [`.github/workflows/scripts/publish-chocolatey-package.sh`](../.github/workflows/scripts/publish-chocolatey-package.sh) | Push `.nupkg` to chocolatey.org; detect moderation queue via OData |
 | [`.github/workflows/scripts/stage-chocolatey-package.sh`](../.github/workflows/scripts/stage-chocolatey-package.sh) | Stage Chocolatey package with embedded Windows exe and `nuget pack` |
