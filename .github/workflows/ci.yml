@@ -396,130 +396,41 @@ jobs:
             --extension-pricing free \
             --extension-visibility public
 
-  publish-and-package:
-    name: Publish GitHub Release and update packages
+  publish-github-release:
+    name: Publish GitHub Release
     needs:
       - version
       - build
       - release-binaries
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
-    runs-on: ubuntu-22.04 # ubuntu-latest
-    permissions:
-      contents: write
+    uses: ./.github/workflows/publish-github-release.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      prerelease: ${{ needs.version.outputs.prerelease }}
 
-    env:
-      VERSION: ${{ needs.version.outputs.version }}
+  publish-homebrew:
+    name: Publish Homebrew
+    needs:
+      - version
+      - build
+      - release-binaries
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    uses: ./.github/workflows/publish-homebrew.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+    secrets:
+      TAGTOKEN: ${{ secrets.TAGTOKEN }}
+      HOMEBREW_GITHUB_API_KEY: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download VSIX artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ado-extension-vsix
-          path: dist/vsix
-
-      - name: Download release binaries
-        uses: actions/download-artifact@v4
-        with:
-          pattern: release-binary-*
-          path: dist/binaries
-          merge-multiple: true
-
-      - name: Create checksums
-        run: |
-          set -euo pipefail
-          cd dist/binaries
-          sha256sum update-nuspec-* > SHA256SUMS
-          mv SHA256SUMS ../SHA256SUMS
-
-      - name: Create GitHub Release with all assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.version.outputs.version }}
-          name: v${{ needs.version.outputs.version }}
-          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
-          generate_release_notes: true
-          files: |
-            dist/binaries/update-nuspec-*
-            dist/SHA256SUMS
-            dist/vsix/*.vsix
-
-      # Homebrew core only accepts stable releases → source checksum + formula steps run on master only.
-      - name: Compute source tarball checksum
-        if: github.ref == 'refs/heads/master'
-        run: |
-          set -euo pipefail
-          URL="https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v${{ env.VERSION }}.tar.gz"
-          curl -fsSL "${URL}" -o dist/source.tar.gz
-          sha256sum dist/source.tar.gz | tee dist/SOURCE_SHA256
-          echo "SOURCE_SHA256=$(cut -d' ' -f1 dist/SOURCE_SHA256)" >> "${GITHUB_ENV}"
-
-      - name: Update Homebrew core formula draft
-        if: github.ref == 'refs/heads/master'
-        run: ./scripts/update-homebrew-core-formula.sh "${{ env.VERSION }}" "${{ env.SOURCE_SHA256 }}" "${{ github.workspace }}"
-
-      - name: Detect Homebrew formula in core
-        if: github.ref == 'refs/heads/master'
-        run: |
-          set -euo pipefail
-          FORMULA_URL="https://raw.githubusercontent.com/Homebrew/homebrew-core/main/Formula/u/update-nuspec.rb"
-          STATUS="$(curl -sSL -o /dev/null -w "%{http_code}" "${FORMULA_URL}")"
-          if [ "${STATUS}" = "200" ]; then
-            echo "Formula found in homebrew-core"
-            echo "FORMULA_IN_CORE=1" >> "${GITHUB_ENV}"
-          else
-            echo "Formula not in homebrew-core (HTTP ${STATUS})"
-            echo "FORMULA_IN_CORE=0" >> "${GITHUB_ENV}"
-          fi
-
-      - name: Publish Homebrew core PR (new formula)
-        if: github.ref == 'refs/heads/master' && env.FORMULA_IN_CORE == '0'
-        env:
-          HOMEBREW_GITHUB_API_KEY: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
-          TAGTOKEN: ${{ secrets.TAGTOKEN }}
-        run: |
-          set -euo pipefail
-          GIT_TOKEN="${TAGTOKEN:-}"
-          if [ -z "${GIT_TOKEN}" ]; then
-            echo "TAGTOKEN not set, skipping Homebrew PR"
-            exit 0
-          fi
-          GH_API_TOKEN="${HOMEBREW_GITHUB_API_KEY:-}"
-          if [ -z "${GH_API_TOKEN}" ]; then
-            GH_API_TOKEN="${GIT_TOKEN}"
-          fi
-          ./scripts/publish-homebrew-core-pr.sh "${{ github.workspace }}" "${GIT_TOKEN}" "${{ env.VERSION }}" "${GH_API_TOKEN}"
-
-      - name: Set up Homebrew
-        if: env.FORMULA_IN_CORE == '1'
-        uses: Homebrew/actions/setup-homebrew@master
-
-      - name: Bump homebrew-core formula
-        if: env.FORMULA_IN_CORE == '1'
-        env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
-        run: |
-          set -euo pipefail
-          if [ -z "${HOMEBREW_GITHUB_API_TOKEN}" ]; then
-            echo "HOMEBREW_GITHUB_API_KEY not set, skipping bump-formula-pr"
-            exit 0
-          fi
-          brew bump-formula-pr update-nuspec \
-            --version="${{ env.VERSION }}" \
-            --url="https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v${{ env.VERSION }}.tar.gz" \
-            --sha256="${{ env.SOURCE_SHA256 }}"
-
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
-
-      - name: Stage and pack Chocolatey package
-        run: |
-          set -euo pipefail
-          WINDOWS_ZIP="dist/binaries/update-nuspec-${VERSION}-x86_64-pc-windows-msvc.zip"
-          ./scripts/stage-chocolatey-package.sh "${VERSION}" "${WINDOWS_ZIP}" "${{ github.workspace }}" dist/choco
-
-      - name: Publish Chocolatey package
-        env:
-          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
-        run: ./scripts/publish-chocolatey-package.sh "${{ env.VERSION }}" "dist/choco/update-nuspec.${{ env.VERSION }}.nupkg"
+  publish-chocolatey:
+    name: Publish Chocolatey
+    needs:
+      - version
+      - build
+      - release-binaries
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    uses: ./.github/workflows/publish-chocolatey.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+    secrets:
+      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}

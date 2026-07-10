@@ -166,11 +166,11 @@ jobs:
 | Branch | SemVer (example) | Git tags | GHCR image | GitHub Release | Chocolatey | Homebrew | ADO extension |
 |--------|------------------|----------|------------|----------------|------------|----------|---------------|
 | `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | `:1.2.3`, `:1.2`, `:1`, `:latest` | **Release** (binaries + VSIX) | push (stable) | core PR / bump | Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | — (no `@v` tags; Pre-release tag only in `publish-and-package`) | `:1.3.0-preview.4` only | **Pre-release** (binaries + VSIX) | push (prerelease) | — (skipped) | `--share-with peshkov` (preview) |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | — (no `@v` tags; Pre-release tag in `publish-github-release`) | `:1.3.0-preview.4` only | **Pre-release** (binaries + VSIX) | push (prerelease) | — (skipped) | `--share-with peshkov` (preview) |
 
 Preview branches publish everywhere except Homebrew (homebrew-core does not accept prereleases) and moving git tags (`@v1`, `@v1.2`, `:latest` point to stable master only). GHCR image `:version` is still pushed for preview.
 
-CI creates a [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) in the `publish-and-package` job: binary archives, `SHA256SUMS`, and the ADO `.vsix`. On `master`, git tags and pinned `action.yml` are pushed from `build` first; on preview branches the release tag is created only when publishing the Pre-release (not pushed from `build`).
+CI creates a [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) in `publish-github-release` (parallel with `publish-chocolatey` and, on `master`, `publish-homebrew`): binary archives, `SHA256SUMS`, and the ADO `.vsix`. On `master`, git tags and pinned `action.yml` are pushed from `build` first; on preview branches the release tag is created only when publishing the Pre-release (not pushed from `build`).
 
 ADO Marketplace publish uses secret `AZDO_MARKETPLACE_PAT` (scope **Marketplace (Publish)**), publisher **peshkov**.
 
@@ -293,7 +293,7 @@ docker run --rm --platform linux/amd64 \
 
 On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub-hosted runners.
 
-Full pipeline on push/PR: `version` → `release-binaries` matrix → `build` (Rust/.NET tests, SonarCloud, Docker smoke tests, ADO VSIX, GHCR push, git tags) → `publish-and-package` on `master` (GitHub Release, Homebrew, Chocolatey). See `.github/workflows/ci.yml`.
+Full pipeline on push/PR: `version` → `release-binaries` matrix → `build` (Rust/.NET tests, SonarCloud, Docker smoke tests, ADO VSIX, GHCR push, git tags) → parallel publish workflows (`publish-github-release`, `publish-chocolatey`, `publish-homebrew` on `master`). See `.github/workflows/ci.yml` and `.github/workflows/publish-*.yml`.
 
 ## License
 

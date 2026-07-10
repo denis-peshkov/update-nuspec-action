@@ -4,7 +4,7 @@ Standalone CLI distribution for `update-nuspec` (outside Docker / Azure DevOps).
 
 ## GitHub Release assets
 
-On each push to `master`, `release/*`, or `hotfix/*`, the `publish-and-package` job builds and publishes (preview branches produce a GitHub **Pre-release** and a prerelease Chocolatey package; Homebrew is master-only):
+On each push to `master`, `release/*`, or `hotfix/*`, parallel publish workflows run after `build` (preview branches produce a GitHub **Pre-release** and a prerelease Chocolatey package; Homebrew is master-only):
 
 | Asset | Platform |
 |-------|----------|
@@ -63,13 +63,13 @@ CI embeds `update-nuspec.exe` from the Windows release zip (`release-binaries` m
 Build or download the Windows zip, then stage and pack:
 
 ```bash
-./scripts/stage-chocolatey-package.sh 1.2.3 dist/update-nuspec-1.2.3-x86_64-pc-windows-msvc.zip . dist/choco
+./.github/workflows/scripts/stage-chocolatey-package.sh 1.2.3 dist/update-nuspec-1.2.3-x86_64-pc-windows-msvc.zip . dist/choco
 choco install update-nuspec -s dist/choco --force
 ```
 
 ### CI publish (optional)
 
-Set repository secret `CHOCOLATEY_API_KEY` to push to chocolatey.org on release. If a previous version is still in moderation, `publish-chocolatey-package.sh` skips push and prints a GitHub Actions warning with the pending version and package URL (chocolatey.org responds with **HTTP 403**, not 409).
+Set repository secret `CHOCOLATEY_API_KEY` to push to chocolatey.org on release. If a previous version is still in moderation, `.github/workflows/scripts/publish-chocolatey-package.sh` skips push and prints a GitHub Actions warning with the pending version and package URL (chocolatey.org responds with **HTTP 403**, not 409).
 
 ### chocolatey.org community
 
@@ -81,16 +81,16 @@ To publish publicly, open a PR to [chocolatey-community/chocolatey-packages](htt
 |--------|---------|
 | [`scripts/package-release-binary.sh`](../scripts/package-release-binary.sh) | Build `.tar.gz` / `.zip` from a compiled binary |
 | [`scripts/pin-action-image.sh`](../scripts/pin-action-image.sh) | Pin `action.yml` to GHCR image tag per git release tag |
-| [`scripts/update-homebrew-core-formula.sh`](../scripts/update-homebrew-core-formula.sh) | Regenerate homebrew-core formula draft from source tarball `sha256` |
-| [`scripts/publish-homebrew-core-pr.sh`](../scripts/publish-homebrew-core-pr.sh) | Push formula to `denis-peshkov/homebrew-core` and open upstream PR |
-| [`scripts/publish-chocolatey-package.sh`](../scripts/publish-chocolatey-package.sh) | Push `.nupkg` to chocolatey.org; detect moderation queue via OData and emit a clear warning (HTTP 403 from chocolatey.org, not 409) |
-| [`scripts/stage-chocolatey-package.sh`](../scripts/stage-chocolatey-package.sh) | Stage Chocolatey package with embedded Windows exe and `nuget pack` |
+| [`.github/workflows/scripts/update-homebrew-core-formula.sh`](../.github/workflows/scripts/update-homebrew-core-formula.sh) | Regenerate homebrew-core formula draft from source tarball `sha256` |
+| [`.github/workflows/scripts/publish-homebrew-core-pr.sh`](../.github/workflows/scripts/publish-homebrew-core-pr.sh) | Push formula to `denis-peshkov/homebrew-core` and open upstream PR |
+| [`.github/workflows/scripts/publish-chocolatey-package.sh`](../.github/workflows/scripts/publish-chocolatey-package.sh) | Push `.nupkg` to chocolatey.org; detect moderation queue via OData |
+| [`.github/workflows/scripts/stage-chocolatey-package.sh`](../.github/workflows/scripts/stage-chocolatey-package.sh) | Stage Chocolatey package with embedded Windows exe and `nuget pack` |
 
 Manual bump after a release:
 
 ```bash
 curl -fsSL -o dist/source.tar.gz "https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v1.2.3.tar.gz"
 sha256sum dist/source.tar.gz
-./scripts/update-homebrew-core-formula.sh 1.2.3 <sha256> .
-./scripts/stage-chocolatey-package.sh 1.2.3 dist/update-nuspec-1.2.3-x86_64-pc-windows-msvc.zip . dist/choco
+./.github/workflows/scripts/update-homebrew-core-formula.sh 1.2.3 <sha256> .
+./.github/workflows/scripts/stage-chocolatey-package.sh 1.2.3 dist/update-nuspec-1.2.3-x86_64-pc-windows-msvc.zip . dist/choco
 ```
