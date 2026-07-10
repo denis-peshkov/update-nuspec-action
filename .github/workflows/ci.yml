@@ -372,20 +372,13 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
           git push origin HEAD:master
 
-      - name: Push git Tag
-        if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
-        run: |
-          git config --global user.name 'Denis Peshkov'
-          git config --global user.email 'denis.peshkov@outlook.com'
-          git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
-          git push origin v${{ needs.version.outputs.version }} -f
-
-      - name: Push git Tag
+      - name: Push git tags
         if: ${{ github.ref == 'refs/heads/master' }}
         run: |
           git config --global user.name 'Denis Peshkov'
           git config --global user.email 'denis.peshkov@outlook.com'
           git remote set-url origin https://x-access-token:${{ secrets.TAGTOKEN }}@github.com/${{ github.repository }}
+          git push origin v${{ needs.version.outputs.version }} -f
           git push origin v${{ needs.version.outputs.major }}.${{ needs.version.outputs.minor }} -f
           git push origin v${{ needs.version.outputs.major }} -f
 
