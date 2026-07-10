@@ -1,7 +1,7 @@
 use std::env;
 use std::process;
 
-use update_nuspec::cli::args::{help_text, parse_args, version};
+use update_nuspec::cli::args::{help_text, parse_args, print_version};
 use update_nuspec::cli::run;
 
 fn main() {
@@ -14,7 +14,7 @@ fn main() {
     }
 
     if options.show_version {
-        println!("update-nuspec {}", version());
+        print_version();
         return;
     }
 

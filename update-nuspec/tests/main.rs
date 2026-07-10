@@ -12,7 +12,6 @@ fn main_with_help_prints_usage() {
 #[test]
 fn main_with_version_prints_version_line() {
     let (_, output) = support::run_cli(&["--version"]);
-    assert!(output.contains("update-nuspec"));
     assert!(output.contains(env!("CARGO_PKG_VERSION")));
 }
 

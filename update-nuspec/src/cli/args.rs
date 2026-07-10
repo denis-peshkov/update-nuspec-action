@@ -1,6 +1,8 @@
 use std::env;
 use std::path::PathBuf;
 
+use crate::cli::console::{Color, Console};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CliRunOptions {
     pub path: PathBuf,
@@ -105,6 +107,10 @@ pub fn resolve_dependency_scope(cli_value: Option<&str>, cli_provided: bool) -> 
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
+}
+
+pub fn print_version() {
+    Console::new(false).write_line(version(), Color::Green);
 }
 
 pub fn help_text() -> String {

@@ -17,8 +17,7 @@ public sealed class ProgramCliTests
     {
         var (_, output) = ToolProcessRunner.Run("--version");
 
-        output.Should().Contain("UpdateNuspecTool");
-        output.Should().Contain(CliHelper.GetVersion());
+        output.Trim().Should().Be(CliHelper.GetVersion());
     }
 
     [Test]

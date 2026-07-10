@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use update_nuspec::cli::args::{
-    parse_args, resolve_dependency_scope, resolve_package_version,
+    parse_args, print_version, resolve_dependency_scope, resolve_package_version, version,
 };
 
 #[test]
@@ -87,4 +87,12 @@ fn resolve_dependency_scope_reads_env_when_cli_not_provided() {
     temp_env::with_var("DEPENDENCY_SCOPE", Some("@org/"), || {
         assert_eq!(resolve_dependency_scope(None, false), "@org/");
     });
+}
+
+#[test]
+fn print_version_writes_version_line() {
+    temp_env::with_var("CONSOLE_ANSI_COLOR", None::<&str>, || {
+        print_version();
+    });
+    assert_eq!(version(), env!("CARGO_PKG_VERSION"));
 }

@@ -1,3 +1,5 @@
+using System.Drawing;
+
 namespace UpdateNuspecTool.Helper;
 
 internal static class CliHelper
@@ -133,7 +135,7 @@ internal static class CliHelper
     }
 
     public static void PrintVersion()
-        => Console.WriteLine($"UpdateNuspecTool {GetVersion()}");
+        => Console.WriteLine(GetVersion(), ConsoleColor.Green);
 
     public static string GetHelpText()
     {

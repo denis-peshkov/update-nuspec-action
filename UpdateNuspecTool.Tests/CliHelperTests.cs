@@ -21,6 +21,6 @@ public sealed class CliHelperTests
 
         CliHelper.PrintVersion();
 
-        capture.Output.Should().Contain("UpdateNuspecTool");
+        capture.Output.Trim().Should().Be(CliHelper.GetVersion());
     }
 }
