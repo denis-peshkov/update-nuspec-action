@@ -80,7 +80,7 @@ runs:
       uses: sonarsource/sonarcloud-github-action@v5
       with:
         args: >
-          -Dsonar.organization=peshkov
+          -Dsonar.organization=denis-peshkov
           -Dsonar.projectKey=UpdateNuspecTool
           -Dsonar.projectName=UpdateNuspecTool
           -Dsonar.cs.opencover.reportsPaths=TestResults/**/coverage.opencover.xml
