@@ -81,7 +81,7 @@ runs:
       with:
         args: >
           -Dsonar.organization=denis-peshkov
-          -Dsonar.projectKey=UpdateNuspecTool
+          -Dsonar.projectKey=denis-peshkov.UpdateNuspecTool
           -Dsonar.projectName=UpdateNuspecTool
           -Dsonar.cs.opencover.reportsPaths=TestResults/**/coverage.opencover.xml
           -Dsonar.rust.lcov.reportPaths=TestResults/rust/lcov.info
