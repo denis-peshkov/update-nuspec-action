@@ -27,11 +27,19 @@ runs:
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, llvm-tools-preview
 
-    - name: Run Rust tests
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
+
+    - name: Run Rust tests with coverage
       shell: bash
       working-directory: update-nuspec
-      run: cargo test --verbose
+      run: |
+        set -euo pipefail
+        mkdir -p ../TestResults/rust
+        cargo llvm-cov test --verbose --lcov --output-path ../TestResults/rust/lcov.info
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -74,6 +82,8 @@ runs:
           -Dsonar.projectKey=UpdateNuspecTool
           -Dsonar.projectName=UpdateNuspecTool
           -Dsonar.cs.opencover.reportsPaths=TestResults/**/coverage.opencover.xml
+          -Dsonar.rust.lcov.reportPaths=TestResults/rust/lcov.info
+          -Dsonar.rust.cargo.manifestPaths=update-nuspec/Cargo.toml
           -Dsonar.sources=UpdateNuspecTool/,update-nuspec/src/
           -Dsonar.tests=UpdateNuspecTool.Tests/,update-nuspec/tests/
           -Dsonar.exclusions=UpdateNuspecTool.Tests/TestData/**
