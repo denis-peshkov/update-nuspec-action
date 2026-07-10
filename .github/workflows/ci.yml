@@ -354,7 +354,7 @@ jobs:
 
       # Each git tag must reference the matching GHCR image tag in action.yml.
       - name: Pin action.yml to GHCR image tags
-        if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/') }}
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
         run: |
           set -euo pipefail
           if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
@@ -364,7 +364,7 @@ jobs:
           fi
 
       - name: Push action.yml commits to master
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         run: |
           set -euo pipefail
           git config --global user.name 'Denis Peshkov'
@@ -373,7 +373,7 @@ jobs:
           git push origin HEAD:master
 
       - name: Push git tags
-        if: ${{ github.ref == 'refs/heads/master' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         run: |
           git config --global user.name 'Denis Peshkov'
           git config --global user.email 'denis.peshkov@outlook.com'
