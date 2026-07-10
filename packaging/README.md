@@ -35,7 +35,7 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
 | `publish-homebrew-core-pr.sh` | **If not in core:** push to `denis-peshkov/homebrew-core:update-nuspec`, open upstream PR |
 | `brew bump-formula-pr` | **If in core:** open version-bump PR (needs `HOMEBREW_GITHUB_API_KEY`) |
-| `update-packaging-metadata.sh` | Regenerates Chocolatey metadata; optional push via `CHOCOLATEY_API_KEY` |
+| `stage-chocolatey-package.sh` | Embeds Windows `update-nuspec.exe` from release zip into `.nupkg`; optional push via `CHOCOLATEY_API_KEY` |
 
 ### Secrets
 
@@ -56,11 +56,15 @@ update-nuspec --version
 
 Package source: [`packaging/chocolatey/update-nuspec/`](chocolatey/update-nuspec/).
 
+CI embeds `update-nuspec.exe` from the Windows release zip (`release-binaries` matrix artifact) into the `.nupkg` — no remote download or checksum in `chocolateyinstall.ps1`.
+
 ### Local test
 
-```powershell
-choco pack packaging/chocolatey/update-nuspec/update-nuspec.nuspec
-choco install update-nuspec -s . --force
+Build or download the Windows zip, then stage and pack:
+
+```bash
+./scripts/stage-chocolatey-package.sh 1.2.3 dist/update-nuspec-1.2.3-x86_64-pc-windows-msvc.zip . dist/choco
+choco install update-nuspec -s dist/choco --force
 ```
 
 ### CI publish (optional)
@@ -79,7 +83,7 @@ To publish publicly, open a PR to [chocolatey-community/chocolatey-packages](htt
 | [`scripts/pin-action-image.sh`](../scripts/pin-action-image.sh) | Pin `action.yml` to GHCR image tag per git release tag |
 | [`scripts/update-homebrew-core-formula.sh`](../scripts/update-homebrew-core-formula.sh) | Regenerate homebrew-core formula draft from source tarball `sha256` |
 | [`scripts/publish-homebrew-core-pr.sh`](../scripts/publish-homebrew-core-pr.sh) | Push formula to `denis-peshkov/homebrew-core` and open upstream PR |
-| [`scripts/update-packaging-metadata.sh`](../scripts/update-packaging-metadata.sh) | Regenerate Chocolatey metadata from `SHA256SUMS` |
+| [`scripts/stage-chocolatey-package.sh`](../scripts/stage-chocolatey-package.sh) | Stage Chocolatey package with embedded Windows exe and `nuget pack` |
 
 Manual bump after a release:
 
@@ -87,5 +91,5 @@ Manual bump after a release:
 curl -fsSL -o dist/source.tar.gz "https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v1.2.3.tar.gz"
 sha256sum dist/source.tar.gz
 ./scripts/update-homebrew-core-formula.sh 1.2.3 <sha256> .
-./scripts/update-packaging-metadata.sh 1.2.3 dist/SHA256SUMS .
+./scripts/stage-chocolatey-package.sh 1.2.3 dist/update-nuspec-1.2.3-x86_64-pc-windows-msvc.zip . dist/choco
 ```

@@ -459,9 +459,6 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: ./scripts/update-homebrew-core-formula.sh "${{ env.VERSION }}" "${{ env.SOURCE_SHA256 }}" "${{ github.workspace }}"
 
-      - name: Update Chocolatey metadata
-        run: ./scripts/update-packaging-metadata.sh "${{ env.VERSION }}" dist/SHA256SUMS "${{ github.workspace }}"
-
       - name: Detect Homebrew formula in core
         if: github.ref == 'refs/heads/master'
         run: |
@@ -516,14 +513,11 @@ jobs:
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
 
-      - name: Pack Chocolatey package
+      - name: Stage and pack Chocolatey package
         run: |
           set -euo pipefail
-          mkdir -p dist/choco
-          nuget pack packaging/chocolatey/update-nuspec/update-nuspec.nuspec \
-            -Version "${{ env.VERSION }}" \
-            -OutputDirectory dist/choco \
-            -NoDefaultExcludes
+          WINDOWS_ZIP="dist/binaries/update-nuspec-${VERSION}-x86_64-pc-windows-msvc.zip"
+          ./scripts/stage-chocolatey-package.sh "${VERSION}" "${WINDOWS_ZIP}" "${{ github.workspace }}" dist/choco
 
       - name: Publish Chocolatey package
         env:
