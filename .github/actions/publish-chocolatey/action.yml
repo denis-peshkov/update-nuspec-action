@@ -1,0 +1,40 @@
+name: Publish Chocolatey
+description: Stage and push Chocolatey package
+
+inputs:
+  version:
+    required: true
+  chocolatey_api_key:
+    description: chocolatey.org API key
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Download release binaries
+      uses: actions/download-artifact@v4
+      with:
+        pattern: release-binary-*
+        path: dist/binaries
+        merge-multiple: true
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    - name: Stage and pack Chocolatey package
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        WINDOWS_ZIP="dist/binaries/update-nuspec-${VERSION}-x86_64-pc-windows-msvc.zip"
+        ./.github/scripts/stage-chocolatey-package.sh "${VERSION}" "${WINDOWS_ZIP}" "${{ github.workspace }}" dist/choco
+
+    - name: Publish Chocolatey package
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        CHOCOLATEY_API_KEY: ${{ inputs.chocolatey_api_key }}
+      run: ./.github/scripts/publish-chocolatey-package.sh "${VERSION}" "dist/choco/update-nuspec.${VERSION}.nupkg"

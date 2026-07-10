@@ -14,6 +14,9 @@ azure-devops-extension/task/linux-x64/
 azure-devops-extension/task/win-x64/
 azure-devops-extension/task/index.js
 azure-devops-extension/task/node_modules/
+update-nuspec/target/
+dist/
+docker/
 *.user
 *.suo
 .run/

@@ -1,0 +1,77 @@
+name: Publish Homebrew
+description: Update homebrew-core formula and open PR or bump
+
+inputs:
+  version:
+    required: true
+  tagtoken:
+    description: GitHub PAT for homebrew-core fork push
+    required: true
+  homebrew_github_api_key:
+    description: GitHub PAT for brew bump-formula-pr and gh pr create
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Compute source tarball checksum
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        mkdir -p dist
+        URL="https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v${VERSION}.tar.gz"
+        curl -fsSL "${URL}" -o dist/source.tar.gz
+        sha256sum dist/source.tar.gz | tee dist/SOURCE_SHA256
+        echo "SOURCE_SHA256=$(cut -d' ' -f1 dist/SOURCE_SHA256)" >> "${GITHUB_ENV}"
+
+    - name: Update Homebrew core formula draft
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: ./.github/scripts/update-homebrew-core-formula.sh "${VERSION}" "${{ env.SOURCE_SHA256 }}" "${{ github.workspace }}"
+
+    - name: Detect Homebrew formula in core
+      shell: bash
+      run: |
+        set -euo pipefail
+        FORMULA_URL="https://raw.githubusercontent.com/Homebrew/homebrew-core/main/Formula/u/update-nuspec.rb"
+        STATUS="$(curl -sSL -o /dev/null -w "%{http_code}" "${FORMULA_URL}")"
+        if [ "${STATUS}" = "200" ]; then
+          echo "Formula found in homebrew-core"
+          echo "FORMULA_IN_CORE=1" >> "${GITHUB_ENV}"
+        else
+          echo "Formula not in homebrew-core (HTTP ${STATUS})"
+          echo "FORMULA_IN_CORE=0" >> "${GITHUB_ENV}"
+        fi
+
+    - name: Publish Homebrew core PR (new formula)
+      if: env.FORMULA_IN_CORE == '0'
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        GIT_TOKEN: ${{ inputs.tagtoken }}
+        GH_API_TOKEN: ${{ inputs.homebrew_github_api_key }}
+      run: |
+        set -euo pipefail
+        ./.github/scripts/publish-homebrew-core-pr.sh "${{ github.workspace }}" "${GIT_TOKEN}" "${VERSION}" "${GH_API_TOKEN}"
+
+    - name: Set up Homebrew
+      if: env.FORMULA_IN_CORE == '1'
+      uses: Homebrew/actions/setup-homebrew@master
+
+    - name: Bump homebrew-core formula
+      if: env.FORMULA_IN_CORE == '1'
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        HOMEBREW_GITHUB_API_TOKEN: ${{ inputs.homebrew_github_api_key }}
+      run: |
+        set -euo pipefail
+        brew bump-formula-pr update-nuspec \
+          --version="${VERSION}" \
+          --url="https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v${VERSION}.tar.gz" \
+          --sha256="${{ env.SOURCE_SHA256 }}"

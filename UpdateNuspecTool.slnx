@@ -1,5 +1,30 @@
 <Solution>
   <Folder Name="/.github/" />
+  <Folder Name="/.github/actions/" />
+  <Folder Name="/.github/actions/build/">
+    <File Path=".github\actions\build\action.yml" />
+  </Folder>
+  <Folder Name="/.github/actions/publish-chocolatey/">
+    <File Path=".github\actions\publish-chocolatey\action.yml" />
+  </Folder>
+  <Folder Name="/.github/actions/publish-github-release/">
+    <File Path=".github\actions\publish-github-release\action.yml" />
+  </Folder>
+  <Folder Name="/.github/actions/publish-homebrew/">
+    <File Path=".github\actions\publish-homebrew\action.yml" />
+  </Folder>
+  <Folder Name="/.github/actions/release-binary/">
+    <File Path=".github\actions\release-binary\action.yml" />
+  </Folder>
+  <Folder Name="/.github/actions/version/">
+    <File Path=".github\actions\version\action.yml" />
+  </Folder>
+  <Folder Name="/.github/scripts/">
+    <File Path=".github\scripts\publish-chocolatey-package.sh" />
+    <File Path=".github\scripts\publish-homebrew-core-pr.sh" />
+    <File Path=".github\scripts\stage-chocolatey-package.sh" />
+    <File Path=".github\scripts\update-homebrew-core-formula.sh" />
+  </Folder>
   <Folder Name="/.github/workflows/">
     <File Path=".github\workflows\ci.yml" />
   </Folder>

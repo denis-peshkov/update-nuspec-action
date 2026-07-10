@@ -13,7 +13,7 @@ async function run(): Promise<void> {
         const dependencyScope = tl.getInput('dependencyScope', false)?.trim() ?? '';
 
         const rid = process.platform === 'win32' ? 'win-x64' : 'linux-x64';
-        const exeName = process.platform === 'win32' ? 'UpdateNuspecTool.exe' : 'UpdateNuspecTool';
+        const exeName = process.platform === 'win32' ? 'update-nuspec.exe' : 'update-nuspec';
         const exePath = path.join(__dirname, rid, exeName);
 
         const ridDir = path.join(__dirname, rid);
@@ -23,7 +23,7 @@ async function run(): Promise<void> {
                 : `Missing folder ${ridDir}. Reinstall the extension from a CI build that publishes linux-x64/win-x64 binaries.`;
             tl.setResult(
                 tl.TaskResult.Failed,
-                `UpdateNuspecTool binary not found at ${exePath}. ${hint} Agents: windows-latest, ubuntu-latest.`);
+                `update-nuspec binary not found at ${exePath}. ${hint} Agents: windows-latest, ubuntu-latest.`);
             return;
         }
 
@@ -67,7 +67,7 @@ async function run(): Promise<void> {
 
         const exitCode = await tool.exec({ env });
         if (exitCode !== 0) {
-            tl.setResult(tl.TaskResult.Failed, `UpdateNuspecTool exited with code ${exitCode}`);
+            tl.setResult(tl.TaskResult.Failed, `update-nuspec exited with code ${exitCode}`);
             return;
         }
 

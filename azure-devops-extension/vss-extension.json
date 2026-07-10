@@ -27,9 +27,9 @@
   },
   "public": true,
   "name": "Update *.nuspec",
-  "description": "Sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files.",
+  "description": "CLI to sync NuGet dependencies in *.nuspec with PackageReference versions from matching *.csproj files.",
   "categories": ["Azure Pipelines"],
-  "tags": ["nuget", "nuspec", "dotnet", "build", "ci", "continuous integration", "azure-pipelines"],
+  "tags": ["cli", "nuget", "nuspec", "dotnet", "csproj", "azure-pipelines", "ci"],
   "icons": {
     "default": "marketplace/extension-icon.png"
   },

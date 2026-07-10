@@ -1,0 +1,98 @@
+use std::path::PathBuf;
+
+use update_nuspec::cli::args::{
+    parse_args, print_version, resolve_dependency_scope, resolve_package_version, version,
+};
+
+#[test]
+fn parse_args_reads_package_version_and_scope() {
+    let options = parse_args(&[
+        "./dist".to_string(),
+        "--package-version".to_string(),
+        "1.2.3".to_string(),
+        "--dependency-scope".to_string(),
+        "@guru/".to_string(),
+        "--dry-run".to_string(),
+    ]);
+
+    assert_eq!(options.path, PathBuf::from("./dist"));
+    assert_eq!(options.package_version.as_deref(), Some("1.2.3"));
+    assert_eq!(options.dependency_scope, "@guru/");
+    assert!(options.dry_run);
+}
+
+#[test]
+fn parse_args_reads_inline_option_values() {
+    let options = parse_args(&[
+        "./dist".to_string(),
+        "-pv=2.0.0".to_string(),
+        "-ds=".to_string(),
+    ]);
+
+    assert_eq!(options.package_version.as_deref(), Some("2.0.0"));
+    assert_eq!(options.dependency_scope, "");
+}
+
+#[test]
+fn resolve_package_version_prefers_cli_over_env() {
+    temp_env::with_var("PACKAGE_VERSION", Some("9.9.9"), || {
+        let result = resolve_package_version(Some("1.0.0"));
+        assert_eq!(result.as_deref(), Some("1.0.0"));
+    });
+}
+
+#[test]
+fn resolve_package_version_reads_gitversion_env() {
+    temp_env::with_var("GitVersion_SemVer", Some("1.3.0-preview.4"), || {
+        let result = resolve_package_version(None);
+        assert_eq!(result.as_deref(), Some("1.3.0-preview.4"));
+    });
+}
+
+#[test]
+fn resolve_dependency_scope_uses_empty_default_when_not_provided() {
+    temp_env::with_var("DEPENDENCY_SCOPE", None::<&str>, || {
+        assert_eq!(resolve_dependency_scope(None, false), "");
+    });
+}
+
+#[test]
+fn parse_args_treats_positional_true_as_dry_run() {
+    let options = parse_args(&["./data".to_string(), "true".to_string()]);
+    assert!(options.dry_run);
+    assert_eq!(options.path, PathBuf::from("./data"));
+}
+
+#[test]
+fn parse_args_reads_help_and_version_switches() {
+    let help = parse_args(&["--help".to_string()]);
+    assert!(help.show_help);
+    assert!(!help.show_version);
+
+    let version = parse_args(&["-v".to_string()]);
+    assert!(version.show_version);
+    assert!(!version.show_help);
+}
+
+#[test]
+fn resolve_package_version_reads_semver_env_aliases() {
+    temp_env::with_var("SEMVER", Some("2.4.6"), || {
+        let result = resolve_package_version(None);
+        assert_eq!(result.as_deref(), Some("2.4.6"));
+    });
+}
+
+#[test]
+fn resolve_dependency_scope_reads_env_when_cli_not_provided() {
+    temp_env::with_var("DEPENDENCY_SCOPE", Some("@org/"), || {
+        assert_eq!(resolve_dependency_scope(None, false), "@org/");
+    });
+}
+
+#[test]
+fn print_version_writes_version_line() {
+    temp_env::with_var("CONSOLE_ANSI_COLOR", None::<&str>, || {
+        print_version();
+    });
+    assert_eq!(version(), env!("CARGO_PKG_VERSION"));
+}

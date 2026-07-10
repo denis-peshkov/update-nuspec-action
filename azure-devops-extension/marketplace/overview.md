@@ -10,12 +10,6 @@ Single extension **`update-nuspec`**, single task **`UpdateNuspec@1`**. Use `@1`
 
 ```yaml
 steps:
-  - task: UseDotNet@2
-    displayName: Use .NET 8 runtime
-    inputs:
-      packageType: runtime
-      version: 8.0.x
-
   - task: UpdateNuspec@1
     displayName: Sync nuspec dependencies
     inputs:
@@ -51,7 +45,7 @@ Sets pipeline variable `PackageVersion` when `packageVersion` is provided.
 
 ## Example output
 
-The task runs the same `UpdateNuspecTool` binary as the GitHub Action. Colored log when `CONSOLE_ANSI_COLOR=true` (enabled by default). Set `dryRun: true` to preview changes without writing files.
+The task runs the same `update-nuspec` CLI binary as the GitHub Action. Colored log when `CONSOLE_ANSI_COLOR=true` (enabled by default). Set `dryRun: true` to preview changes without writing files.
 
 ### 1. Sync nuspec dependencies
 
@@ -103,8 +97,7 @@ Same task with `packageVersion` and `dependencyScope` — updates `version` and 
 
 ## Requirements
 
-- **Agent:** `windows-latest` or `ubuntu-latest` (bundled `win-x64` / `linux-x64` tool).
-- **.NET:** .NET 8 **runtime** on the agent (`UseDotNet@2`), framework-dependent publish.
+- **Agent:** `windows-latest` or `ubuntu-latest` (bundled native `win-x64` / `linux-x64` `update-nuspec` binary).
 
 ## Installing a preview version
 
@@ -113,7 +106,7 @@ Preview builds are published from `release/*` and `hotfix/*` branches before the
 1. Org slug in CI: **peshkov** → `https://dev.azure.com/peshkov`.
 2. After publish: **Organization settings** → **Extensions** → **Shared** → **Update \*.nuspec** / `peshkov.update-nuspec` → install the version you need.
 
-Preview VSIX version: `major.minor.patch.preReleaseNumber` (for example `1.1.0.4`); git tags remain `1.1.0-preview.4`.
+Preview VSIX version: `major.minor.patch.preReleaseNumber` (for example `1.1.0.4`); git tags remain `1.1.0-preview.4`. Preview builds do not push `@v` git tags — install the VSIX from the GitHub Pre-release assets.
 
 ## Links
 

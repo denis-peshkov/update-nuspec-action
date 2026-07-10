@@ -15,6 +15,11 @@ UpdateNuspecTool.slnx
 UpdateNuspecTool.sln.DotSettings.user
 action.yml
 
+UpdateNuspecTool/
 UpdateNuspecTool.Tests/
+azure-devops-extension/
+update-nuspec/
+scripts/
+packaging/
 **/bin/
 **/obj/

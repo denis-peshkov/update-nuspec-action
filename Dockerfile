@@ -1,26 +1,23 @@
-﻿# Publish tool inside the image (`uses: …@v1` does not require a pre-built binary in git)
-FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY UpdateNuspecTool/ UpdateNuspecTool/
-RUN dotnet publish UpdateNuspecTool/UpdateNuspecTool.csproj \
-    -c Release \
-    -r linux-x64 \
-    -o /app/publish
-
-FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/runtime:8.0
+﻿# Image published to GHCR by CI. It packages the static musl binary built by the
+# release-binaries matrix (no Rust build here). `action.yml` runs the pushed image
+# via `image: docker://ghcr.io/...`, so consumers never build this Dockerfile.
+#
+# The binary must be staged at docker/update-nuspec before building:
+#   cp <matrix>/update-nuspec docker/update-nuspec && docker build -t update-nuspec .
+FROM alpine:3.20
 
 LABEL maintainer="Denis Peshkov <denis.peshkov@outlook.com>"
 LABEL repository="https://github.com/denis-peshkov/update-nuspec-action"
 LABEL homepage="https://github.com/denis-peshkov/update-nuspec-action"
 
 LABEL com.github.actions.name="Update *.nuspec"
-LABEL com.github.actions.description="A Github action that scans .NET projects, and update in nuspec-file dependencies node."
+LABEL com.github.actions.description="CLI to sync NuGet *.nuspec dependencies with PackageReference versions from matching *.csproj files."
 LABEL com.github.actions.icon="activity"
 LABEL com.github.actions.color="yellow"
 
-COPY --from=build /app/publish/UpdateNuspecTool /UpdateNuspecTool
+COPY docker/update-nuspec /update-nuspec
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /UpdateNuspecTool /entrypoint.sh
+RUN chmod +x /update-nuspec /entrypoint.sh
 
 WORKDIR /github/workspace
 
