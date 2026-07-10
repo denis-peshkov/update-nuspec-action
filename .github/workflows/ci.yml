@@ -403,6 +403,9 @@ jobs:
       - build
       - release-binaries
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    permissions:
+      contents: write
+      actions: read
     uses: ./.github/workflows/publish-github-release.yml
     with:
       version: ${{ needs.version.outputs.version }}
@@ -415,6 +418,8 @@ jobs:
       - build
       - release-binaries
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    permissions:
+      contents: read
     uses: ./.github/workflows/publish-homebrew.yml
     with:
       version: ${{ needs.version.outputs.version }}
@@ -429,6 +434,9 @@ jobs:
       - build
       - release-binaries
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/publish-chocolatey.yml
     with:
       version: ${{ needs.version.outputs.version }}
