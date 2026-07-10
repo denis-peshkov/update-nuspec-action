@@ -60,13 +60,13 @@ find_pending_version() {
 
 report_moderation_block() {
   local pending_version="$1"
-  echo "::warning title=Chocolatey moderation queue::Push skipped: ${PACKAGE_ID} ${pending_version} is still in moderation (PackageSubmittedStatus=Pending). chocolatey.org returns HTTP 403 for the next version until the previous one is approved. Open ${PACKAGE_URL}/${pending_version} and re-run this job after approval."
+  echo "::error title=Chocolatey moderation queue::Push failed: ${PACKAGE_ID} ${pending_version} is still in moderation (PackageSubmittedStatus=Pending). chocolatey.org returns HTTP 403 for the next version until the previous one is approved. Open ${PACKAGE_URL}/${pending_version} and re-run this job after approval." >&2
 }
 
 PENDING_VERSION="$(find_pending_version "${VERSION}" || true)"
 if [[ -n "${PENDING_VERSION}" ]]; then
   report_moderation_block "${PENDING_VERSION}"
-  exit 0
+  exit 1
 fi
 
 PUSH_LOG="$(mktemp)"
@@ -83,11 +83,11 @@ if grep -q '403' "${PUSH_LOG}" || grep -qi 'Forbidden' "${PUSH_LOG}"; then
   PENDING_VERSION="$(find_pending_version "${VERSION}" || true)"
   if [[ -n "${PENDING_VERSION}" ]]; then
     report_moderation_block "${PENDING_VERSION}"
-    exit 0
+    exit 1
   fi
 
-  echo "::warning title=Chocolatey push forbidden (HTTP 403)::nuget push was rejected by chocolatey.org. This is not HTTP 409 (duplicate version). Common causes: invalid CHOCOLATEY_API_KEY, not a package maintainer, or a previous version still in moderation. Check ${PACKAGE_URL}#versionhistory"
-  exit 0
+  echo "::error title=Chocolatey push forbidden (HTTP 403)::nuget push was rejected by chocolatey.org. This is not HTTP 409 (duplicate version). Common causes: invalid CHOCOLATEY_API_KEY, not a package maintainer, or a previous version still in moderation. Check ${PACKAGE_URL}#versionhistory" >&2
+  exit 1
 fi
 
 echo "Chocolatey push failed:"

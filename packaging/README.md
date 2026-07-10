@@ -88,7 +88,7 @@ choco install update-nuspec -s dist/choco --force
 
 ### CI publish (optional)
 
-Set repository secret `CHOCOLATEY_API_KEY`. If a previous version is still in moderation, `publish-chocolatey-package.sh` skips push and prints a GitHub Actions warning with the pending version and package URL (chocolatey.org responds with **HTTP 403**, not 409).
+Set repository secret `CHOCOLATEY_API_KEY`. If a previous version is still in moderation, `publish-chocolatey-package.sh` fails the job with an error and the pending version URL (chocolatey.org responds with **HTTP 403**, not 409).
 
 ### chocolatey.org community
 
