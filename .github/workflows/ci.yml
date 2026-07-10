@@ -20,6 +20,7 @@ jobs:
       channel: ${{ steps.version.outputs.channel }}
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
+      - uses: actions/checkout@v4
       - id: version
         uses: ./.github/actions/version
 
@@ -47,6 +48,7 @@ jobs:
       contents: read
       actions: write
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/release-binary
         with:
           version: ${{ needs.version.outputs.version }}
@@ -64,6 +66,7 @@ jobs:
       packages: write
       actions: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/build
         with:
           version: ${{ needs.version.outputs.version }}
@@ -86,6 +89,7 @@ jobs:
       contents: write
       actions: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/publish-github-release
         with:
           version: ${{ needs.version.outputs.version }}
@@ -102,6 +106,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/publish-homebrew
         with:
           version: ${{ needs.version.outputs.version }}
@@ -120,6 +125,7 @@ jobs:
       contents: read
       actions: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/publish-chocolatey
         with:
           version: ${{ needs.version.outputs.version }}
