@@ -27,7 +27,7 @@ runs:
   using: 'docker'
   # Prebuilt image (pushed to GHCR by CI). Each git tag points to action.yml with the
   # matching GHCR tag: @v1.2.3 → :1.2.3, @v1.2 → :1.2, @v1 → :1, master → :latest.
-  image: 'docker://ghcr.io/denis-peshkov/update-nuspec:2.0'
+  image: 'docker://ghcr.io/denis-peshkov/update-nuspec:2'
   env:
     PACKAGE_VERSION: ${{ inputs.packageVersion }}
     DEPENDENCY_SCOPE: ${{ inputs.dependencyScope }}
