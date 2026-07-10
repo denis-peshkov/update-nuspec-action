@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{self, Write};
 
-use update_nuspec::{Dependency, DependencyComparisonResult};
+use crate::{Dependency, DependencyComparisonResult};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Color {

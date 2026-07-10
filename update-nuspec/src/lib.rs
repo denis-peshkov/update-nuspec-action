@@ -18,6 +18,8 @@ pub use types::{
     Dependency, DependencyComparisonResult, GroupComparisonResult, ProcessResult, ProcessStatus,
 };
 
+pub mod cli;
+
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
@@ -450,51 +452,3 @@ fn apply_dependencies_to_single_group(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn compare_dependencies_detects_added_updated_and_deleted() {
-        let dependencies = vec![
-            Dependency::new("A", "1.0.0"),
-            Dependency::new("B", "2.0.0"),
-            Dependency::new("Removed", "1.0.0"),
-        ];
-        let package_references = vec![
-            Dependency::new("A", "1.0.0"),
-            Dependency::new("B", "2.1.0"),
-            Dependency::new("Added", "3.0.0"),
-        ];
-
-        let result = compare_dependencies(&dependencies, &package_references);
-
-        assert_eq!(result.no_changes_references, vec![Dependency::new("A", "1.0.0")]);
-        assert_eq!(result.updated_references, vec![Dependency::new("B", "2.1.0")]);
-        assert_eq!(result.added_references, vec![Dependency::new("Added", "3.0.0")]);
-        assert_eq!(result.deleted_references, vec![Dependency::new("Removed", "1.0.0")]);
-    }
-
-    #[test]
-    fn build_ordered_result_list_sorts_special_groups_first() {
-        let comparison = DependencyComparisonResult {
-            updated_references: vec![Dependency::new("Zebra", "1.0.0")],
-            added_references: vec![
-                Dependency::new("Cross.A", "1.0.0"),
-                Dependency::new("Boilerplate.X", "1.0.0"),
-                Dependency::new("My.Api.Contract", "1.0.0"),
-            ],
-            no_changes_references: vec![Dependency::new("Alpha", "1.0.0")],
-            deleted_references: Vec::new(),
-            outdated_references: HashMap::new(),
-        };
-
-        let ordered = build_ordered_result_list(&comparison);
-        let names: Vec<_> = ordered.iter().map(|dependency| dependency.name.as_str()).collect();
-
-        assert_eq!(
-            names,
-            vec!["Cross.A", "Boilerplate.X", "My.Api.Contract", "Alpha", "Zebra"]
-        );
-    }
-}

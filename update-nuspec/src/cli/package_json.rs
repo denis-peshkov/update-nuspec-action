@@ -4,7 +4,7 @@ use std::path::Path;
 use serde_json::{Map, Value};
 
 use crate::cli::console::{Color, Console};
-use update_nuspec::LibError;
+use crate::LibError;
 
 const DEPENDENCY_SECTIONS: [&str; 4] = [
     "dependencies",

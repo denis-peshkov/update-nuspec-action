@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use update_nuspec::{process_nuspec, LibError, ProcessStatus};
+use crate::{process_nuspec, LibError, ProcessStatus};
 use walkdir::WalkDir;
 
 use crate::cli::args::CliRunOptions;
