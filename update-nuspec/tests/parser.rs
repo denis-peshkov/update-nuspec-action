@@ -72,3 +72,48 @@ fn get_package_references_resolves_version_from_msbuild_property() {
     let packages = get_package_references(project).expect("valid project");
     assert_eq!(packages[0].version, "9.9.9");
 }
+
+#[test]
+fn get_package_references_excludes_private_assets_all() {
+    let project = r#"
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net8.0</TargetFramework>
+          </PropertyGroup>
+          <ItemGroup>
+            <PackageReference Include="Visible.Package" Version="1.0.0" />
+            <PackageReference Include="Hidden.Package" Version="2.0.0" PrivateAssets="All" />
+          </ItemGroup>
+        </Project>
+    "#;
+
+    let packages = get_package_references(project).expect("valid project");
+    let names: Vec<_> = packages.iter().map(|dependency| dependency.name.as_str()).collect();
+
+    assert_eq!(names, vec!["Visible.Package"]);
+}
+
+#[test]
+fn get_package_references_reads_version_from_child_element() {
+    let project = r#"
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net8.0</TargetFramework>
+          </PropertyGroup>
+          <ItemGroup>
+            <PackageReference Include="Child.Versioned">
+              <Version>3.3.3</Version>
+            </PackageReference>
+          </ItemGroup>
+        </Project>
+    "#;
+
+    let packages = get_package_references(project).expect("valid project");
+    assert_eq!(packages[0], Dependency::new("Child.Versioned", "3.3.3"));
+}
+
+#[test]
+fn get_package_references_returns_error_for_invalid_xml() {
+    let error = get_package_references("<Project").expect_err("invalid xml");
+    assert!(!error.is_empty());
+}

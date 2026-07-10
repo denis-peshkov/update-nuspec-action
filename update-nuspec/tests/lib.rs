@@ -257,3 +257,135 @@ fn dry_run_does_not_modify_nuspec() {
     let after = fs::read_to_string(&nuspec_path).expect("read after");
     assert_eq!(before, after);
 }
+
+#[test]
+fn process_missing_dependencies_returns_error() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let nuspec_path = temp.path().join("NoDependencies.nuspec");
+    fs::write(
+        &nuspec_path,
+        r#"<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>MyPackage</id>
+    <version>1.0.0</version>
+  </metadata>
+</package>"#,
+    )
+    .expect("write nuspec");
+    fs::write(
+        temp.path().join("MyPackage.csproj"),
+        r#"<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>"#,
+    )
+    .expect("write csproj");
+
+    let error = process_nuspec(&nuspec_path, temp.path(), true).expect_err("missing dependencies");
+    assert!(matches!(error, LibError::MissingDependencies { .. }));
+}
+
+#[test]
+fn flat_nuspec_syncs_dependencies_from_csproj() {
+    let workspace = support::copy_test_data();
+    let nuspec_path = workspace.path().join("config.nuspec");
+    let before = support::dependency_versions(&nuspec_path, "Microsoft.AspNetCore.Authentication.JwtBearer");
+
+    let result = process_nuspec(&nuspec_path, workspace.path(), false).expect("process");
+    assert_eq!(result.status, ProcessStatus::Completed);
+    assert!(result.comparison.is_some());
+    assert!(result.group_comparisons.is_empty());
+
+    let after = support::dependency_versions(&nuspec_path, "Microsoft.AspNetCore.Authentication.JwtBearer");
+    assert_eq!(before, after);
+    assert!(!after.is_empty());
+}
+
+#[test]
+fn process_updates_outdated_flat_dependency() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let nuspec_path = temp.path().join("Sample.nuspec");
+    fs::write(
+        &nuspec_path,
+        r#"<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Sample</id>
+    <version>1.0.0</version>
+    <dependencies>
+      <dependency id="Sample.Package" version="1.0.0" />
+      <dependency id="Removed.Package" version="9.9.9" />
+    </dependencies>
+  </metadata>
+</package>"#,
+    )
+    .expect("write nuspec");
+    fs::write(
+        temp.path().join("Sample.csproj"),
+        r#"<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Sample.Package" Version="2.0.0" />
+    <PackageReference Include="Added.Package" Version="3.0.0" />
+  </ItemGroup>
+</Project>"#,
+    )
+    .expect("write csproj");
+
+    let result = process_nuspec(&nuspec_path, temp.path(), false).expect("process");
+    assert_eq!(result.status, ProcessStatus::Completed);
+
+    let comparison = result.comparison.expect("flat comparison");
+    assert_eq!(comparison.updated_references, vec![Dependency::new("Sample.Package", "2.0.0")]);
+    assert_eq!(comparison.added_references, vec![Dependency::new("Added.Package", "3.0.0")]);
+    assert_eq!(comparison.deleted_references, vec![Dependency::new("Removed.Package", "9.9.9")]);
+
+    assert_eq!(
+        support::dependency_versions(&nuspec_path, "Sample.Package"),
+        vec!["2.0.0".to_string()]
+    );
+    assert!(support::contains_dependency(&nuspec_path, "Added.Package"));
+    assert!(!support::contains_dependency(&nuspec_path, "Removed.Package"));
+}
+
+#[test]
+fn process_updates_group_dependencies_for_target_framework() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let nuspec_path = temp.path().join("Sample.nuspec");
+    fs::write(
+        &nuspec_path,
+        r#"<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Sample</id>
+    <version>1.0.0</version>
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="Grouped.Package" version="1.0.0" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>"#,
+    )
+    .expect("write nuspec");
+    fs::write(
+        temp.path().join("Sample.csproj"),
+        r#"<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFrameworks>net8.0;net9.0</TargetFrameworks></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Grouped.Package" Version="4.0.0" />
+  </ItemGroup>
+</Project>"#,
+    )
+    .expect("write csproj");
+
+    let result = process_nuspec(&nuspec_path, temp.path(), false).expect("process");
+    assert_eq!(result.status, ProcessStatus::Completed);
+    assert_eq!(result.group_comparisons.len(), 1);
+    assert_eq!(
+        result.group_comparisons[0].comparison.updated_references,
+        vec![Dependency::new("Grouped.Package", "4.0.0")]
+    );
+    assert_eq!(
+        support::dependency_version_in_group(&nuspec_path, "net8.0", "Grouped.Package"),
+        Some("4.0.0".to_string())
+    );
+}

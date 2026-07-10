@@ -36,6 +36,18 @@ tempfile = "3.27"
 name = "args"
 path = "tests/cli/args.rs"
 
+[[test]]
+name = "console"
+path = "tests/cli/console.rs"
+
+[[test]]
+name = "package_json"
+path = "tests/cli/package_json.rs"
+
+[[test]]
+name = "run"
+path = "tests/cli/run.rs"
+
 [lints.rust]
 unsafe_code = "deny"
 warnings = "deny"

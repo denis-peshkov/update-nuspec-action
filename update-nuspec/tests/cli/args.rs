@@ -62,3 +62,29 @@ fn parse_args_treats_positional_true_as_dry_run() {
     assert!(options.dry_run);
     assert_eq!(options.path, PathBuf::from("./data"));
 }
+
+#[test]
+fn parse_args_reads_help_and_version_switches() {
+    let help = parse_args(&["--help".to_string()]);
+    assert!(help.show_help);
+    assert!(!help.show_version);
+
+    let version = parse_args(&["-v".to_string()]);
+    assert!(version.show_version);
+    assert!(!version.show_help);
+}
+
+#[test]
+fn resolve_package_version_reads_semver_env_aliases() {
+    temp_env::with_var("SEMVER", Some("2.4.6"), || {
+        let result = resolve_package_version(None);
+        assert_eq!(result.as_deref(), Some("2.4.6"));
+    });
+}
+
+#[test]
+fn resolve_dependency_scope_reads_env_when_cli_not_provided() {
+    temp_env::with_var("DEPENDENCY_SCOPE", Some("@org/"), || {
+        assert_eq!(resolve_dependency_scope(None, false), "@org/");
+    });
+}

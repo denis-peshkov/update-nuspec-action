@@ -80,3 +80,51 @@ fn main_with_package_version_updates_package_json() {
     let json = fs::read_to_string(package_json_path).expect("read json");
     assert!(json.contains(r#""version": "3.0.0"#));
 }
+
+#[test]
+fn main_with_dependency_scope_updates_scoped_dependencies() {
+    let workspace = support::copy_test_data();
+    let package_json_path = workspace.path().join("package.json");
+
+    let (code, output) = support::run_cli(&[
+        workspace.path().to_str().expect("path"),
+        "--package-version",
+        "5.0.0",
+        "--dependency-scope",
+        "@guru/",
+        "--dry-run",
+    ]);
+
+    assert_eq!(code, 0);
+    assert!(output.contains("package.json"));
+    assert!(output.contains("Updated scoped dependencies"));
+
+    let json = fs::read_to_string(package_json_path).expect("read json");
+    assert!(json.contains(r#""version": "1.0.0"#));
+    assert!(json.contains(r#""@guru/core": "^1.0.0"#));
+}
+
+#[test]
+fn main_returns_error_when_nuspec_is_missing_dependencies() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    fs::write(
+        temp.path().join("Broken.nuspec"),
+        r#"<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Broken</id>
+    <version>1.0.0</version>
+  </metadata>
+</package>"#,
+    )
+    .expect("write nuspec");
+    fs::write(
+        temp.path().join("Broken.csproj"),
+        r#"<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>"#,
+    )
+    .expect("write csproj");
+
+    let (code, output) = support::run_cli(&[temp.path().to_str().expect("path")]);
+    assert_eq!(code, 1);
+    assert!(output.contains("missing <dependencies>"));
+}
