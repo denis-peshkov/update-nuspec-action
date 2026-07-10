@@ -1,0 +1,67 @@
+name: Release Binary
+description: Build release binary for one matrix target and upload artifacts
+
+inputs:
+  version:
+    required: true
+  target:
+    required: true
+  exe:
+    required: true
+  publish_artifacts:
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ inputs.target }}
+
+    - name: Install musl tools
+      if: inputs.target == 'x86_64-unknown-linux-musl'
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update
+        sudo apt-get install -y musl-tools
+
+    - name: Set Rust crate version
+      if: inputs.publish_artifacts == 'true'
+      shell: bash
+      run: |
+        perl -pi -e 's/^version = .*/version = "${{ inputs.version }}"/' update-nuspec/Cargo.toml
+
+    - name: Build release binary
+      shell: bash
+      working-directory: update-nuspec
+      run: cargo build --release --bin update-nuspec --target ${{ inputs.target }}
+
+    - name: Upload ADO binary
+      if: inputs.target == 'x86_64-unknown-linux-musl' || inputs.target == 'x86_64-pc-windows-msvc'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ado-binary-${{ inputs.target }}
+        path: update-nuspec/target/${{ inputs.target }}/release/${{ inputs.exe }}
+        if-no-files-found: error
+
+    - name: Package release binary
+      if: inputs.publish_artifacts == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        BINARY="update-nuspec/target/${{ inputs.target }}/release/${{ inputs.exe }}"
+        ARCHIVE="$(./scripts/package-release-binary.sh "${{ inputs.version }}" "${{ inputs.target }}" "${BINARY}" dist)"
+        echo "ARCHIVE=${ARCHIVE}" >> "${GITHUB_ENV}"
+
+    - name: Upload release binary
+      if: inputs.publish_artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-binary-${{ inputs.target }}
+        path: ${{ env.ARCHIVE }}
+        if-no-files-found: error

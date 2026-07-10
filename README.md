@@ -166,11 +166,11 @@ jobs:
 | Branch | SemVer (example) | Git tags | GHCR image | GitHub Release | Chocolatey | Homebrew | ADO extension |
 |--------|------------------|----------|------------|----------------|------------|----------|---------------|
 | `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | `:1.2.3`, `:1.2`, `:1`, `:latest` | **Release** (binaries + VSIX) | push (stable) | core PR / bump | Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | — (no `@v` tags; Pre-release tag in `publish-github-release.yml`) | `:1.3.0-preview.4` only | **Pre-release** (binaries + VSIX) | push (prerelease) | — (skipped) | VSIX in Release assets |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | — (no `@v` tags; Pre-release tag via `publish-github-release` action) | `:1.3.0-preview.4` only | **Pre-release** (binaries + VSIX) | push (prerelease) | — (skipped) | VSIX in Release assets |
 
 Preview branches publish everywhere except Homebrew (homebrew-core does not accept prereleases) and moving git tags (`@v1`, `@v1.2`, `:latest` point to stable master only). GHCR image `:version` is still pushed for preview.
 
-CI creates a [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) via `publish-github-release.yml` (parallel with `publish-chocolatey.yml` and, on `master`, `publish-homebrew.yml`). On `master`, git tags and pinned `action.yml` are pushed from `build.yml` first; on preview branches the release tag is created only when publishing the Pre-release (not pushed from `build.yml`).
+CI creates a [GitHub Release](https://github.com/denis-peshkov/update-nuspec-action/releases) via the `publish-github-release` composite action (parallel with `publish-chocolatey` and, on `master`, `publish-homebrew`). On `master`, git tags and pinned `action.yml` are pushed from the `build` action first; on preview branches the release tag is created only when publishing the Pre-release (not pushed from `build`).
 
 ADO Marketplace publish uses secret `AZDO_MARKETPLACE_PAT` (scope **Marketplace (Publish)**), publisher **peshkov**.
 
@@ -201,9 +201,10 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | `Dockerfile` | Runtime image (`alpine`): copies prebuilt `musl` binary + `entrypoint.sh` (no Rust build in Docker) |
 | `action.yml` | Action metadata; runs prebuilt GHCR image (`docker://ghcr.io/denis-peshkov/update-nuspec:…`) |
 | `update-nuspec-icon.png` | Project icon (repo root) |
-| `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in `build.yml` |
-| `.github/workflows/` | CI orchestrator (`ci.yml`) and reusable workflow templates |
-| `.github/workflows/scripts/` | Publish helper scripts (Homebrew, Chocolatey) |
+| `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in `build` action |
+| `.github/workflows/ci.yml` | CI orchestrator (jobs, matrix, parallel publish) |
+| `.github/actions/` | Composite actions (`version`, `release-binary`, `build`, `publish-*`) |
+| `.github/scripts/` | Publish helper scripts (Homebrew, Chocolatey) |
 | `scripts/` | Build helper scripts (`package-release-binary.sh`, `pin-action-image.sh`) |
 | `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, `extension-icon.png` (symlink to project icon), screenshots |
 | `azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript wrapper + bundled `update-nuspec` binaries) |
@@ -219,7 +220,7 @@ dotnet restore UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
 dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release --no-restore
 ```
 
-CI runs both Rust and .NET tests in `build.yml` (orchestrated by `ci.yml`).
+CI runs both Rust and .NET tests in the `build` composite action (orchestrated by `ci.yml`).
 
 Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `package.json`, …).
 
@@ -300,16 +301,16 @@ On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub
 
 Entry point: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — triggers on **push** (`master`, `release/*`, `hotfix/*`), **pull_request**, and **workflow_dispatch**.
 
-Reusable workflow templates (one resource per file):
+Composite actions in [`.github/actions/`](.github/actions/) (one action per resource):
 
-| Template | Role | Runs when |
-|----------|------|-----------|
-| [`version.yml`](.github/workflows/version.yml) | GitVersion → `version`, `major`, `minor`, `channel`, `prerelease` | always |
-| [`release-binaries.yml`](.github/workflows/release-binaries.yml) | Rust matrix (linux musl, macOS arm/intel, Windows); uploads `ado-binary-*` and, on release branches, `release-binary-*` | always |
-| [`build.yml`](.github/workflows/build.yml) | Rust/.NET tests, SonarCloud, Docker smoke tests, GHCR push, ADO VSIX, pin `action.yml`, git tags (master) | always |
-| [`publish-github-release.yml`](.github/workflows/publish-github-release.yml) | GitHub Release + binaries + VSIX + `SHA256SUMS` | push to release branches |
-| [`publish-chocolatey.yml`](.github/workflows/publish-chocolatey.yml) | Embed Windows exe into `.nupkg`, push to chocolatey.org | push to release branches |
-| [`publish-homebrew.yml`](.github/workflows/publish-homebrew.yml) | Formula draft, fork PR or `brew bump-formula-pr` | push to `master` only |
+| Action | Role | Runs when |
+|--------|------|-----------|
+| [`version`](.github/actions/version/action.yml) | GitVersion → `version`, `major`, `minor`, `channel`, `prerelease` | always |
+| [`release-binary`](.github/actions/release-binary/action.yml) | Rust matrix cell; uploads `ado-binary-*` and, on release branches, `release-binary-*` | always (matrix in `ci.yml`) |
+| [`build`](.github/actions/build/action.yml) | Rust/.NET tests, SonarCloud, Docker smoke tests, GHCR push, ADO VSIX, pin `action.yml`, git tags (master) | always |
+| [`publish-github-release`](.github/actions/publish-github-release/action.yml) | GitHub Release + binaries + VSIX + `SHA256SUMS` | push to release branches |
+| [`publish-chocolatey`](.github/actions/publish-chocolatey/action.yml) | Embed Windows exe into `.nupkg`, push to chocolatey.org | push to release branches |
+| [`publish-homebrew`](.github/actions/publish-homebrew/action.yml) | Formula draft, fork PR or `brew bump-formula-pr` | push to `master` only |
 
 Pipeline (push to a release branch):
 
@@ -326,13 +327,15 @@ On **pull_request**: `version` → `release-binaries` → `build` only — no GH
 
 ### Repository secrets (CI)
 
+All secrets below are **required** in the composite action that uses them (`required: true` in `action.yml`).
+
 | Secret | Used in | Purpose |
 |--------|---------|---------|
-| `SONAR_TOKEN` | `build.yml` | SonarCloud scan |
-| `TAGTOKEN` | `build.yml`, `publish-homebrew.yml` | Push git tags and pinned `action.yml`; Homebrew fork push / initial PR (`repo` scope) |
-| `AZDO_MARKETPLACE_PAT` | `build.yml` | Publish ADO extension to Marketplace (master) |
-| `HOMEBREW_GITHUB_API_KEY` | `publish-homebrew.yml` | `brew bump-formula-pr` / `gh pr create` (`public_repo`) |
-| `CHOCOLATEY_API_KEY` | `publish-chocolatey.yml` | Push `.nupkg` to chocolatey.org |
+| `SONAR_TOKEN` | `build` action | SonarCloud scan |
+| `TAGTOKEN` | `build`, `publish-homebrew` actions | Push git tags and pinned `action.yml`; Homebrew fork push / initial PR (`repo` scope) |
+| `AZDO_MARKETPLACE_PAT` | `build` action | Publish ADO extension to Marketplace (master) |
+| `HOMEBREW_GITHUB_API_KEY` | `publish-homebrew` action | `brew bump-formula-pr` / `gh pr create` (`public_repo`) |
+| `CHOCOLATEY_API_KEY` | `publish-chocolatey` action | Push `.nupkg` to chocolatey.org |
 
 Packaging details: [packaging/README.md](packaging/README.md).
 

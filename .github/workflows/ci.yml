@@ -11,77 +11,119 @@ on:
 
 jobs:
   version:
-    uses: ./.github/workflows/version.yml
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      major: ${{ steps.version.outputs.major }}
+      minor: ${{ steps.version.outputs.minor }}
+      semver: ${{ steps.version.outputs.semver }}
+      channel: ${{ steps.version.outputs.channel }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - id: version
+        uses: ./.github/actions/version
 
   release-binaries:
     needs: version
+    name: binary-${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            exe: update-nuspec
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            exe: update-nuspec
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            exe: update-nuspec
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            exe: update-nuspec.exe
     permissions:
       contents: read
       actions: write
-    uses: ./.github/workflows/release-binaries.yml
-    with:
-      version: ${{ needs.version.outputs.version }}
-      publish_artifacts: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    steps:
+      - uses: ./.github/actions/release-binary
+        with:
+          version: ${{ needs.version.outputs.version }}
+          target: ${{ matrix.target }}
+          exe: ${{ matrix.exe }}
+          publish_artifacts: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
 
   build:
     needs:
       - version
       - release-binaries
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
       actions: read
-    uses: ./.github/workflows/build.yml
-    with:
-      version: ${{ needs.version.outputs.version }}
-      major: ${{ needs.version.outputs.major }}
-      minor: ${{ needs.version.outputs.minor }}
-      channel: ${{ needs.version.outputs.channel }}
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      TAGTOKEN: ${{ secrets.TAGTOKEN }}
-      AZDO_MARKETPLACE_PAT: ${{ secrets.AZDO_MARKETPLACE_PAT }}
+    steps:
+      - uses: ./.github/actions/build
+        with:
+          version: ${{ needs.version.outputs.version }}
+          major: ${{ needs.version.outputs.major }}
+          minor: ${{ needs.version.outputs.minor }}
+          channel: ${{ needs.version.outputs.channel }}
+        secrets:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          TAGTOKEN: ${{ secrets.TAGTOKEN }}
+          AZDO_MARKETPLACE_PAT: ${{ secrets.AZDO_MARKETPLACE_PAT }}
 
   publish-github-release:
+    name: Publish GitHub Release
     needs:
       - version
       - build
       - release-binaries
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
       actions: read
-    uses: ./.github/workflows/publish-github-release.yml
-    with:
-      version: ${{ needs.version.outputs.version }}
-      prerelease: ${{ needs.version.outputs.prerelease }}
+    steps:
+      - uses: ./.github/actions/publish-github-release
+        with:
+          version: ${{ needs.version.outputs.version }}
+          prerelease: ${{ needs.version.outputs.prerelease }}
 
   publish-homebrew:
+    name: Publish Homebrew
     needs:
       - version
       - build
       - release-binaries
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
-    uses: ./.github/workflows/publish-homebrew.yml
-    with:
-      version: ${{ needs.version.outputs.version }}
-    secrets:
-      TAGTOKEN: ${{ secrets.TAGTOKEN }}
-      HOMEBREW_GITHUB_API_KEY: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
+    steps:
+      - uses: ./.github/actions/publish-homebrew
+        with:
+          version: ${{ needs.version.outputs.version }}
+        secrets:
+          TAGTOKEN: ${{ secrets.TAGTOKEN }}
+          HOMEBREW_GITHUB_API_KEY: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
 
   publish-chocolatey:
+    name: Publish Chocolatey
     needs:
       - version
       - build
       - release-binaries
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       actions: read
-    uses: ./.github/workflows/publish-chocolatey.yml
-    with:
-      version: ${{ needs.version.outputs.version }}
-    secrets:
-      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+    steps:
+      - uses: ./.github/actions/publish-chocolatey
+        with:
+          version: ${{ needs.version.outputs.version }}
+        secrets:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}

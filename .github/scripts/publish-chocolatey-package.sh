@@ -22,8 +22,8 @@ if [[ ! -f "${NUPKG}" ]]; then
 fi
 
 if [[ -z "${CHOCOLATEY_API_KEY:-}" ]]; then
-  echo "CHOCOLATEY_API_KEY not set, skipping Chocolatey push"
-  exit 0
+  echo "CHOCOLATEY_API_KEY is required" >&2
+  exit 1
 fi
 
 package_submitted_status() {
