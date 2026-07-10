@@ -69,7 +69,7 @@ choco install update-nuspec -s dist/choco --force
 
 ### CI publish (optional)
 
-Set repository secret `CHOCOLATEY_API_KEY` to push to chocolatey.org on release.
+Set repository secret `CHOCOLATEY_API_KEY` to push to chocolatey.org on release. If a previous version is still in moderation, `publish-chocolatey-package.sh` skips push and prints a GitHub Actions warning with the pending version and package URL (chocolatey.org responds with **HTTP 403**, not 409).
 
 ### chocolatey.org community
 
@@ -83,6 +83,7 @@ To publish publicly, open a PR to [chocolatey-community/chocolatey-packages](htt
 | [`scripts/pin-action-image.sh`](../scripts/pin-action-image.sh) | Pin `action.yml` to GHCR image tag per git release tag |
 | [`scripts/update-homebrew-core-formula.sh`](../scripts/update-homebrew-core-formula.sh) | Regenerate homebrew-core formula draft from source tarball `sha256` |
 | [`scripts/publish-homebrew-core-pr.sh`](../scripts/publish-homebrew-core-pr.sh) | Push formula to `denis-peshkov/homebrew-core` and open upstream PR |
+| [`scripts/publish-chocolatey-package.sh`](../scripts/publish-chocolatey-package.sh) | Push `.nupkg` to chocolatey.org; detect moderation queue via OData and emit a clear warning (HTTP 403 from chocolatey.org, not 409) |
 | [`scripts/stage-chocolatey-package.sh`](../scripts/stage-chocolatey-package.sh) | Stage Chocolatey package with embedded Windows exe and `nuget pack` |
 
 Manual bump after a release:

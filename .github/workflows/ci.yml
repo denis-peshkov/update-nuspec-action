@@ -522,13 +522,4 @@ jobs:
       - name: Publish Chocolatey package
         env:
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
-        run: |
-          set -euo pipefail
-          if [ -z "${CHOCOLATEY_API_KEY}" ]; then
-            echo "CHOCOLATEY_API_KEY not set, skipping Chocolatey push"
-            exit 0
-          fi
-          nuget push "dist/choco/update-nuspec.${{ env.VERSION }}.nupkg" \
-            -ApiKey "${CHOCOLATEY_API_KEY}" \
-            -Source https://push.chocolatey.org/api/v2/package \
-            -SkipDuplicate
+        run: ./scripts/publish-chocolatey-package.sh "${{ env.VERSION }}" "dist/choco/update-nuspec.${{ env.VERSION }}.nupkg"
