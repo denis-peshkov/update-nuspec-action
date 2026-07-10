@@ -10,13 +10,14 @@ inputs:
     required: true
   channel:
     required: true
-
-secrets:
-  SONAR_TOKEN:
+  sonar_token:
+    description: SonarCloud token
     required: true
-  TAGTOKEN:
+  tagtoken:
+    description: GitHub PAT for git push and tags
     required: true
-  AZDO_MARKETPLACE_PAT:
+  azdo_marketplace_pat:
+    description: Azure DevOps Marketplace publish PAT
     required: true
 
 runs:
@@ -79,7 +80,7 @@ runs:
           -Dsonar.scanner.skipJreProvisioning=true
           -Dsonar.verbose=true
       env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_TOKEN: ${{ inputs.sonar_token }}
 
     - name: Download binaries from matrix
       uses: actions/download-artifact@v4
@@ -124,7 +125,7 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ github.token }}
 
     - name: Push image to GHCR
       if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
@@ -259,7 +260,7 @@ runs:
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       shell: bash
       env:
-        TAGTOKEN: ${{ secrets.TAGTOKEN }}
+        TAGTOKEN: ${{ inputs.tagtoken }}
       run: |
         set -euo pipefail
         git config --global user.name 'Denis Peshkov'
@@ -271,7 +272,7 @@ runs:
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       shell: bash
       env:
-        TAGTOKEN: ${{ secrets.TAGTOKEN }}
+        TAGTOKEN: ${{ inputs.tagtoken }}
       run: |
         git config --global user.name 'Denis Peshkov'
         git config --global user.email 'denis.peshkov@outlook.com'
@@ -285,7 +286,7 @@ runs:
       shell: bash
       working-directory: azure-devops-extension
       env:
-        AZDO_MARKETPLACE_PAT: ${{ secrets.AZDO_MARKETPLACE_PAT }}
+        AZDO_MARKETPLACE_PAT: ${{ inputs.azdo_marketplace_pat }}
       run: |
         set -euo pipefail
         VSIX=( *.vsix )

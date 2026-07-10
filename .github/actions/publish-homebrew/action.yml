@@ -4,11 +4,11 @@ description: Update homebrew-core formula and open PR or bump
 inputs:
   version:
     required: true
-
-secrets:
-  TAGTOKEN:
+  tagtoken:
+    description: GitHub PAT for homebrew-core fork push
     required: true
-  HOMEBREW_GITHUB_API_KEY:
+  homebrew_github_api_key:
+    description: GitHub PAT for brew bump-formula-pr and gh pr create
     required: true
 
 runs:
@@ -53,8 +53,8 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
-        GIT_TOKEN: ${{ secrets.TAGTOKEN }}
-        GH_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
+        GIT_TOKEN: ${{ inputs.tagtoken }}
+        GH_API_TOKEN: ${{ inputs.homebrew_github_api_key }}
       run: |
         set -euo pipefail
         ./.github/scripts/publish-homebrew-core-pr.sh "${{ github.workspace }}" "${GIT_TOKEN}" "${VERSION}" "${GH_API_TOKEN}"
@@ -68,7 +68,7 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
-        HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
+        HOMEBREW_GITHUB_API_TOKEN: ${{ inputs.homebrew_github_api_key }}
       run: |
         set -euo pipefail
         brew bump-formula-pr update-nuspec \

@@ -4,9 +4,8 @@ description: Stage and push Chocolatey package
 inputs:
   version:
     required: true
-
-secrets:
-  CHOCOLATEY_API_KEY:
+  chocolatey_api_key:
+    description: chocolatey.org API key
     required: true
 
 runs:
@@ -37,5 +36,5 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
-        CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        CHOCOLATEY_API_KEY: ${{ inputs.chocolatey_api_key }}
       run: ./.github/scripts/publish-chocolatey-package.sh "${VERSION}" "dist/choco/update-nuspec.${VERSION}.nupkg"

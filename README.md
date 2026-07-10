@@ -327,7 +327,7 @@ On **pull_request**: `version` → `release-binaries` → `build` only — no GH
 
 ### Repository secrets (CI)
 
-All secrets below are **required** in the composite action that uses them (`required: true` in `action.yml`).
+All secrets below are **required** inputs in the composite action that uses them (`required: true` in `action.yml`). Pass them from the workflow via `with:` — composite actions cannot use a step-level `secrets:` block.
 
 | Secret | Used in | Purpose |
 |--------|---------|---------|

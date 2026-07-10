@@ -70,10 +70,9 @@ jobs:
           major: ${{ needs.version.outputs.major }}
           minor: ${{ needs.version.outputs.minor }}
           channel: ${{ needs.version.outputs.channel }}
-        secrets:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          TAGTOKEN: ${{ secrets.TAGTOKEN }}
-          AZDO_MARKETPLACE_PAT: ${{ secrets.AZDO_MARKETPLACE_PAT }}
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          tagtoken: ${{ secrets.TAGTOKEN }}
+          azdo_marketplace_pat: ${{ secrets.AZDO_MARKETPLACE_PAT }}
 
   publish-github-release:
     name: Publish GitHub Release
@@ -106,9 +105,8 @@ jobs:
       - uses: ./.github/actions/publish-homebrew
         with:
           version: ${{ needs.version.outputs.version }}
-        secrets:
-          TAGTOKEN: ${{ secrets.TAGTOKEN }}
-          HOMEBREW_GITHUB_API_KEY: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
+          tagtoken: ${{ secrets.TAGTOKEN }}
+          homebrew_github_api_key: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
 
   publish-chocolatey:
     name: Publish Chocolatey
@@ -125,5 +123,4 @@ jobs:
       - uses: ./.github/actions/publish-chocolatey
         with:
           version: ${{ needs.version.outputs.version }}
-        secrets:
-          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+          chocolatey_api_key: ${{ secrets.CHOCOLATEY_API_KEY }}
