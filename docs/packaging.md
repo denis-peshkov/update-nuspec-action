@@ -114,6 +114,8 @@ Package source: [`packaging/chocolatey/update-nuspec/`](../packaging/chocolatey/
 
 The `publish-chocolatey` action embeds `update-nuspec.exe` from the Windows release zip (`release-binary` matrix artifact) into the `.nupkg` — no remote download or checksum in `chocolateyinstall.ps1`.
 
+Embedded binaries require `tools/LICENSE.txt` and a generated `tools/VERIFICATION.txt` (SHA256 + official release URL). If moderation rejects a version, re-upload the **same version** after fixing the package.
+
 ### Local test
 
 Build or download the Windows zip, then stage and pack:
