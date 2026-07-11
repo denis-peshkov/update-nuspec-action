@@ -78,10 +78,14 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 | `HOMEBREW_GITHUB_API_KEY` | [Classic PAT](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request#generating-a-personal-access-token-classic) with **`public_repo`** for `gh pr create`, REST PR API, and `brew bump-formula-pr`. If PR creation fails, CI also retries with `TAGTOKEN`. Without `public_repo` you get `Resource not accessible by personal access token (createPullRequest)`. |
 | `CHOCOLATEY_API_KEY` | API key for `publish-chocolatey` action → chocolatey.org |
 
-Local test before the first PR:
+Local test before the first PR (Homebrew 5+ requires a tap, not a bare `.rb` path):
 
 ```bash
-brew install --build-from-source ./distribution/homebrew-core/update-nuspec.rb
+TAP_DIR="$(mktemp -d)/homebrew-local"
+mkdir -p "${TAP_DIR}/Formula"
+cp distribution/homebrew-core/update-nuspec.rb "${TAP_DIR}/Formula/"
+brew tap --force-local homebrew/local "${TAP_DIR}"
+HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source homebrew/local/update-nuspec
 update-nuspec --version
 ```
 
