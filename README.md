@@ -15,6 +15,8 @@
 
 CLI (Rust) GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from the related `.csproj` (project name = `<id>` in nuspec metadata). Optionally updates `package.json` version and scoped npm dependencies.
 
+**CI/CD:** [pipeline diagram](docs/ci-cd.md) · [packaging](docs/packaging.md)
+
 ## Usage
 
 Pin a [release tag](https://github.com/denis-peshkov/update-nuspec-action/releases) (recommended):
@@ -169,9 +171,7 @@ jobs:
 | `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | `:1.2.3`, `:1.2`, `:1`, `:latest` | **Release** (binaries + VSIX) | push (stable) | core PR / bump | Marketplace **public** |
 | `release/*`, `hotfix/*` | `1.3.0-preview.4` | — | `:1.3.0-preview.4` only | — | push (prerelease) | — (skipped) | VSIX in CI artifacts |
 
-Preview branches publish GHCR and Chocolatey. **Git tags** and **GitHub Release** run on **`master` only** (moving `@v` tags and `:latest` stay on master).
-
-On **`master`**, `push-tags` pushes git tags; `publish-github-action` pushes GHCR image tags; `publish-ado-extension` publishes the ADO Marketplace extension; `publish-github-release` creates Release `v{version}` with assets.
+Preview branches publish GHCR and Chocolatey. **Git tags** and **GitHub Release** run on **`master` only** (moving `@v` tags and `:latest` stay on master). Pipeline details: [docs/ci-cd.md](docs/ci-cd.md).
 
 The action is a **composite** wrapper: at runtime it resolves the GHCR tag from the action ref (`@v2.0.117` → `:2.0.117`, `@v2.0` → `:2.0`, `@v2` → `:2`, `@master` → `:latest`) or from optional input `imageTag`.
 
@@ -206,9 +206,9 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | `Dockerfile` | Runtime image (`alpine`): copies prebuilt `musl` binary + `entrypoint.sh` (no Rust build in Docker) |
 | `action.yml` | Composite action: resolves GHCR tag from `@ref` or `imageTag`, runs `docker://ghcr.io/denis-peshkov/update-nuspec:…` |
 | `update-nuspec-icon.png` | Project icon (repo root) |
-| `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in `publish-ado-extension` |
-| `.github/workflows/ci.yml` | CI orchestrator (jobs, matrix, parallel publish) |
-| `.github/actions/` | Composite actions (`version`, `release-binary`, `test`, `push-tags`, `publish-github-action`, `publish-ado-extension`, `publish-*`) |
+| `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in CI (`publish-ado-extension`) |
+| `.github/workflows/ci.yml` | CI workflow — see [docs/ci-cd.md](docs/ci-cd.md) |
+| `.github/actions/` | Composite CI/CD actions |
 | `.github/scripts/` | Publish helper scripts (Homebrew, Chocolatey) |
 | `scripts/` | Build helpers (`package-release-binary.sh`, `resolve-action-image-tag.sh`) |
 | `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, `extension-icon.png` (symlink to project icon), screenshots |
@@ -225,9 +225,7 @@ dotnet restore UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
 dotnet test UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj --configuration Release --no-restore
 ```
 
-CI runs both Rust and .NET tests in the `test` job (after `release-binaries` matrix, orchestrated by `ci.yml`).
-
-Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `package.json`, …).
+Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messaging.nuspec`, `package.json`, …). In CI the same tests run in the `test` job — see [docs/ci-cd.md](docs/ci-cd.md).
 
 ### CLI (local)
 
@@ -241,7 +239,7 @@ brew install update-nuspec
 choco install update-nuspec
 ```
 
-First Homebrew submission: [packaging/README.md](packaging/README.md#homebrew-homebrew-core).
+First Homebrew submission: [docs/packaging.md](docs/packaging.md#homebrew-homebrew-core).
 
 Options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`), `--package-version` / `-pv`, `--dependency-scope` / `-ds`.
 
@@ -304,62 +302,7 @@ On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub
 
 ## CI (GitHub Actions)
 
-Entry point: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — triggers on **push** (`master`, `release/*`, `hotfix/*`), **pull_request**, and **workflow_dispatch**.
-
-Детальная диаграмма pipeline: [docs/ci-cd.md](docs/ci-cd.md).
-
-Composite actions in [`.github/actions/`](.github/actions/) (one action per resource):
-
-| Action | Role | Runs when |
-|--------|------|-----------|
-| [`version`](.github/actions/version/action.yml) | GitVersion → `version`, `major`, `minor`, `channel`, `prerelease` | always |
-| [`release-binary`](.github/actions/release-binary/action.yml) | Rust matrix cell; uploads `ado-binary-*` and, on release branches, `release-binary-*` | always (matrix in `ci.yml`) |
-| [`test`](.github/actions/test/action.yml) | Rust/.NET tests, SonarCloud | always (after matrix) |
-| [`push-tags`](.github/actions/push-tags/action.yml) | Push git tags `v{version}`, `v{X.Y}`, `v{X}` | push to `master` only |
-| [`publish-github-action`](.github/actions/publish-github-action/action.yml) | GHCR + Docker smoke | after `test` (+ `push-tags` on master) |
-| [`publish-ado-extension`](.github/actions/publish-ado-extension/action.yml) | VSIX + ADO Marketplace | after `test` (+ `push-tags` on master) |
-| [`publish-github-release`](.github/actions/publish-github-release/action.yml) | GitHub Release `v{version}` + binaries + VSIX | push to `master` only (after `publish-ado-extension`) |
-| [`publish-chocolatey`](.github/actions/publish-chocolatey/action.yml) | Embed Windows exe into `.nupkg`, push to chocolatey.org | push to release branches |
-| [`publish-homebrew`](.github/actions/publish-homebrew/action.yml) | Formula draft, fork PR or `brew bump-formula-pr` | push to `master` only |
-
-Pipeline:
-
-```
-ci.yml
-  version
-    └─ release-binaries (matrix)
-         └─ test
-              └─ push-tags (master push only)
-                   ├─ publish-github-action (GHCR + Docker smoke) ─┐
-                   ├─ publish-ado-extension (VSIX + ADO Marketplace)    │ parallel
-                   │    └─ publish-github-release        │
-                   ├─ publish-chocolatey ────────────────┤
-                   └─ publish-homebrew ────────────────┘
-```
-
-### When jobs run
-
-| Event | Pipeline | `push-tags` | Parallel after `push-tags` / `test` | `publish-github-release` |
-|-------|----------|-------------|----------------------------------------|----------------------------|
-| **pull_request** | `version` → matrix → `test` → `publish-github-action` + `publish-ado-extension` | skipped | smoke / VSIX artifact | none |
-| **push** `master` | + `push-tags` | git tags | GHCR, ADO, Chocolatey, Homebrew | after `publish-ado-extension` |
-| **push** `release/*`, `hotfix/*` | `test` → parallel jobs | skipped | GHCR, VSIX, Chocolatey | none |
-
-On **workflow_dispatch**: same as **pull_request** (`push-tags` and publish jobs are gated on `github.event_name == 'push'`).
-
-### Repository secrets (CI)
-
-All secrets below are **required** inputs in the composite action that uses them (`required: true` in `action.yml`). Pass them from the workflow via `with:` — composite actions cannot use a step-level `secrets:` block.
-
-| Secret | Used in | Purpose |
-|--------|---------|---------|
-| `SONAR_TOKEN` | `test` action | SonarCloud scan |
-| `TAGTOKEN` | `push-tags`, `publish-homebrew` actions | Git tags; Homebrew fork push / initial PR (`repo` scope) |
-| `AZDO_MARKETPLACE_PAT` | `publish-ado-extension` action | Publish ADO extension to Marketplace (master) |
-| `HOMEBREW_GITHUB_API_KEY` | `publish-homebrew` action | `brew bump-formula-pr` / `gh pr create` (`public_repo`) |
-| `CHOCOLATEY_API_KEY` | `publish-chocolatey` action | Push `.nupkg` to chocolatey.org |
-
-Packaging details: [packaging/README.md](packaging/README.md).
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Диаграмма pipeline (jobs, артефакты, `needs`, события, секреты): [docs/ci-cd.md](docs/ci-cd.md). Публикация в registries: [docs/packaging.md](docs/packaging.md).
 
 ## License
 

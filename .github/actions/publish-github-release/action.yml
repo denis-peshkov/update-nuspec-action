@@ -1,5 +1,5 @@
 name: Publish GitHub Release
-description: Create GitHub Release with binaries, checksums, and VSIX
+description: Create GitHub Release with binaries, checksums, source archive, and VSIX
 
 inputs:
   version:
@@ -13,6 +13,18 @@ inputs:
 runs:
   using: composite
   steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.version_commit }}
+
+    - name: Package source archive
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        ./scripts/package-release-source.sh "${VERSION}" "${{ github.workspace }}" dist
+
     - name: Download VSIX artifact
       uses: actions/download-artifact@v4
       with:
@@ -28,10 +40,12 @@ runs:
 
     - name: Create checksums
       shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
       run: |
         set -euo pipefail
         cd dist/binaries
-        sha256sum update-nuspec-* > SHA256SUMS
+        sha256sum update-nuspec-* "../update-nuspec-${VERSION}-src.tar.gz" > SHA256SUMS
         mv SHA256SUMS ../SHA256SUMS
 
     - name: Create GitHub Release with all assets
@@ -43,6 +57,7 @@ runs:
         prerelease: ${{ inputs.prerelease == 'true' }}
         generate_release_notes: true
         files: |
+          dist/update-nuspec-*-src.tar.gz
           dist/binaries/update-nuspec-*
           dist/SHA256SUMS
           dist/vsix/*.vsix

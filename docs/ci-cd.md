@@ -94,13 +94,14 @@ ci.yml
 │     └─ .nupkg → chocolatey.org
 │
 ├─ publish-homebrew                     [needs: push-tags]  if: push + master
-│     ├─ curl tarball v{version}
+│     ├─ package update-nuspec-{version}-src.tar.gz (git archive)
 │     └─ brew bump-formula-pr / fork PR
 │
 └─ publish-github-release               [needs: push-tags, publish-ado-extension]
+      ├─ package update-nuspec-{version}-src.tar.gz
       ├─ download ado-extension-vsix
       ├─ download release-binary-*
-      ├─ SHA256SUMS
+      ├─ SHA256SUMS (binaries + src)
       └─ GitHub Release v{version}
 ```
 
@@ -230,3 +231,5 @@ version → matrix → test
 | `GITHUB_TOKEN` | `publish-github-action` | GHCR login + push |
 
 Все секреты передаются в composite actions через `with:` в workflow (не через `secrets:` на уровне шага composite action).
+
+Публикация в Homebrew / Chocolatey / GitHub Release assets: [packaging.md](packaging.md).
