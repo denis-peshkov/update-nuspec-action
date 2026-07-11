@@ -49,6 +49,7 @@
   <Project Path="UpdateNuspecTool/UpdateNuspecTool.csproj" />
   <Folder Name="/docs/">
     <File Path="docs\ci-cd.md" />
+    <File Path="docs\packaging.md" />
   </Folder>
   <Folder Name="/docs/examples/">
     <File Path="docs\examples\github-actions-cross-identity.png" />

@@ -227,7 +227,7 @@ version → matrix → test
 | `TAGTOKEN` | `push-tags`, `publish-homebrew` | Git tags; Homebrew fork push / initial PR (`repo` scope) |
 | `AZDO_MARKETPLACE_PAT` | `publish-ado-extension` | ADO Marketplace publish (`master`) |
 | `CHOCOLATEY_API_KEY` | `publish-chocolatey` | Push `.nupkg` → chocolatey.org |
-| `HOMEBREW_GITHUB_API_KEY` | `publish-homebrew` | `brew bump-formula-pr` / `gh pr create` (`public_repo`) |
+| `HOMEBREW_GITHUB_API_KEY` | `publish-homebrew` | Classic PAT with **`public_repo`** for `gh pr create`, REST PR API, and `brew bump-formula-pr`; fallback to `TAGTOKEN` on initial PR |
 | `GITHUB_TOKEN` | `publish-github-action` | GHCR login + push |
 
 Все секреты передаются в composite actions через `with:` в workflow (не через `secrets:` на уровне шага composite action).

@@ -16,6 +16,11 @@ runs:
   steps:
     - uses: actions/checkout@v4
 
+    - name: Set up GitHub CLI
+      uses: cli/setup-gh@v2
+      with:
+        token: ${{ inputs.homebrew_github_api_key }}
+
     - name: Package source archive and compute checksum
       shell: bash
       env:
@@ -69,9 +74,13 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         HOMEBREW_GITHUB_API_TOKEN: ${{ inputs.homebrew_github_api_key }}
+        GH_TOKEN: ${{ inputs.homebrew_github_api_key }}
       run: |
         set -euo pipefail
-        brew bump-formula-pr update-nuspec \
+        if ! brew bump-formula-pr update-nuspec \
           --version="${VERSION}" \
           --url="${{ env.SOURCE_URL }}" \
-          --sha256="${{ env.SOURCE_SHA256 }}"
+          --sha256="${{ env.SOURCE_SHA256 }}"; then
+          echo "brew bump-formula-pr failed. HOMEBREW_GITHUB_API_KEY must be a classic PAT with public_repo scope." >&2
+          exit 1
+        fi

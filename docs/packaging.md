@@ -65,7 +65,7 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 | `package-release-source.sh` | Build `update-nuspec-{version}-src.tar.gz` via `git archive` (only tracked `update-nuspec/` files) |
 | `update-homebrew-core-formula.sh` | Patches formula draft in CI workspace (`packaging/homebrew-core/`, not committed) |
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
-| `publish-homebrew-core-pr.sh` | **If not in core:** push to `denis-peshkov/homebrew-core:update-nuspec`, open upstream PR |
+| `publish-homebrew-core-pr.sh` | **If not in core:** push to fork, open upstream PR (`gh` + REST fallback; fails CI if PR cannot be created) |
 | `brew bump-formula-pr` | **If in core:** open version-bump PR (needs `HOMEBREW_GITHUB_API_KEY`) |
 
 ### Secrets
@@ -73,7 +73,7 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 | Secret | Purpose |
 |--------|---------|
 | `TAGTOKEN` | Moving git tags in `push-tags`; Homebrew fork push / initial PR (`repo` scope) |
-| `HOMEBREW_GITHUB_API_KEY` | [PAT](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request#generating-a-personal-access-token-classic) with `public_repo` for `brew bump-formula-pr` after formula is in core |
+| `HOMEBREW_GITHUB_API_KEY` | [Classic PAT](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request#generating-a-personal-access-token-classic) with **`public_repo`** for `gh pr create`, REST PR API, and `brew bump-formula-pr`. If PR creation fails, CI also retries with `TAGTOKEN`. Without `public_repo` you get `Resource not accessible by personal access token (createPullRequest)`. |
 | `CHOCOLATEY_API_KEY` | API key for `publish-chocolatey` action → chocolatey.org |
 
 Local test before the first PR:
@@ -116,7 +116,7 @@ To publish publicly, open a PR to [chocolatey-community/chocolatey-packages](htt
 | [`scripts/resolve-action-image-tag.sh`](../scripts/resolve-action-image-tag.sh) | Map action `@ref` / `imageTag` input → GHCR tag (`action.yml`) |
 | [`.github/scripts/push-release-git-tags.sh`](../.github/scripts/push-release-git-tags.sh) | Push git tags (`push-tags` action) |
 | [`.github/scripts/update-homebrew-core-formula.sh`](../.github/scripts/update-homebrew-core-formula.sh) | Patch homebrew-core formula `url` + `sha256` |
-| [`.github/scripts/publish-homebrew-core-pr.sh`](../.github/scripts/publish-homebrew-core-pr.sh) | Push formula to `denis-peshkov/homebrew-core` and open upstream PR |
+| [`.github/scripts/publish-homebrew-core-pr.sh`](../.github/scripts/publish-homebrew-core-pr.sh) | Push formula to fork and open upstream PR (`gh` + REST fallback; fails CI if PR cannot be created) |
 | [`.github/scripts/publish-chocolatey-package.sh`](../.github/scripts/publish-chocolatey-package.sh) | Push `.nupkg` to chocolatey.org; detect moderation queue via OData |
 | [`.github/scripts/stage-chocolatey-package.sh`](../.github/scripts/stage-chocolatey-package.sh) | Stage Chocolatey package with embedded Windows exe and `nuget pack` |
 
