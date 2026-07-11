@@ -8,7 +8,7 @@
     <owners>Denis Peshkov</owners>
     <projectUrl>https://github.com/denis-peshkov/update-nuspec-action</projectUrl>
     <projectSourceUrl>https://github.com/denis-peshkov/update-nuspec-action/tree/master/update-nuspec</projectSourceUrl>
-    <packageSourceUrl>https://github.com/denis-peshkov/update-nuspec-action/tree/master/packaging/chocolatey/update-nuspec</packageSourceUrl>
+    <packageSourceUrl>https://github.com/denis-peshkov/update-nuspec-action/tree/master/distribution/chocolatey/update-nuspec</packageSourceUrl>
     <docsUrl>https://github.com/denis-peshkov/update-nuspec-action#readme</docsUrl>
     <bugTrackerUrl>https://github.com/denis-peshkov/update-nuspec-action/issues</bugTrackerUrl>
     <iconUrl>https://raw.githubusercontent.com/denis-peshkov/update-nuspec-action/master/update-nuspec-icon.png</iconUrl>

@@ -27,12 +27,12 @@ runs:
       with:
         node-version: 20
         cache: yarn
-        cache-dependency-path: azure-devops-extension/task/yarn.lock
+        cache-dependency-path: distribution/azure-devops-extension/task/yarn.lock
 
     - name: Install ADO binaries
       shell: bash
       env:
-        TASK_BIN: ${{ github.workspace }}/azure-devops-extension/task
+        TASK_BIN: ${{ github.workspace }}/distribution/azure-devops-extension/task
       run: |
         set -euo pipefail
         mkdir -p "${TASK_BIN}/linux-x64" "${TASK_BIN}/win-x64"
@@ -41,13 +41,13 @@ runs:
 
     - name: Build ADO task wrapper
       shell: bash
-      working-directory: azure-devops-extension/task
+      working-directory: distribution/azure-devops-extension/task
       run: yarn install --frozen-lockfile && yarn build
 
     - name: Verify ADO task binaries
       shell: bash
       env:
-        TASK_BIN: ${{ github.workspace }}/azure-devops-extension/task
+        TASK_BIN: ${{ github.workspace }}/distribution/azure-devops-extension/task
       run: |
         set -euo pipefail
         ls -la "${TASK_BIN}/linux-x64/" "${TASK_BIN}/win-x64/"
@@ -62,7 +62,7 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
-        TASK_BIN: ${{ github.workspace }}/azure-devops-extension/task
+        TASK_BIN: ${{ github.workspace }}/distribution/azure-devops-extension/task
       run: |
         set -euo pipefail
         jq --arg sem "${VERSION}" '
@@ -78,7 +78,7 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
-        EXTENSION_ROOT: ${{ github.workspace }}/azure-devops-extension
+        EXTENSION_ROOT: ${{ github.workspace }}/distribution/azure-devops-extension
       run: |
         set -euo pipefail
         SOURCE_MANIFEST="vss-extension.json"
@@ -88,7 +88,7 @@ runs:
 
     - name: Create ADO extension VSIX
       shell: bash
-      working-directory: azure-devops-extension
+      working-directory: distribution/azure-devops-extension
       run: |
         set -euo pipefail
         rm -f ./*.vsix
@@ -114,19 +114,19 @@ runs:
     - name: Restore ADO task.json
       if: always()
       shell: bash
-      run: git checkout -- azure-devops-extension/task/task.json
+      run: git checkout -- distribution/azure-devops-extension/task/task.json
 
     - name: Upload ADO extension artifact
       uses: actions/upload-artifact@v4
       with:
         name: ado-extension-vsix
-        path: azure-devops-extension/*.vsix
+        path: distribution/azure-devops-extension/*.vsix
         if-no-files-found: error
 
     - name: Publish ADO extension (release)
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       shell: bash
-      working-directory: azure-devops-extension
+      working-directory: distribution/azure-devops-extension
       env:
         AZDO_MARKETPLACE_PAT: ${{ inputs.azdo_marketplace_pat }}
       run: |

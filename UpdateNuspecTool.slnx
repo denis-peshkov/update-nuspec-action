@@ -32,30 +32,77 @@
     <File Path=".github\actions\version\action.yml" />
   </Folder>
   <Folder Name="/.github/scripts/">
+    <File Path=".github\scripts\package-release-binary.sh" />
+    <File Path=".github\scripts\package-release-source.sh" />
     <File Path=".github\scripts\publish-chocolatey-package.sh" />
     <File Path=".github\scripts\publish-homebrew-core-pr.sh" />
-    <File Path=".github\scripts\push-release-git-tags.sh" />
     <File Path=".github\scripts\stage-chocolatey-package.sh" />
-    <File Path=".github\scripts\update-homebrew-core-formula.sh" />
-    <File Path=".github\scripts\preview-archive-url.sh" />
-    <File Path=".github\scripts\update-homebrew-preview-formula.sh" />
     <File Path=".github\scripts\publish-homebrew-preview-tap.sh" />
   </Folder>
   <Folder Name="/.github/workflows/">
     <File Path=".github\workflows\ci.yml" />
   </Folder>
+  <Folder Name="/distribution/" />
+  <Folder Name="/distribution/azure-devops-extension/">
+    <File Path="distribution\azure-devops-extension\task\index.ts" />
+    <File Path="distribution\azure-devops-extension\task\package.json" />
+    <File Path="distribution\azure-devops-extension\task\task-icon.png" />
+    <File Path="distribution\azure-devops-extension\task\task.json" />
+    <File Path="distribution\azure-devops-extension\task\tsconfig.json" />
+    <File Path="distribution\azure-devops-extension\task\yarn.lock" />
+    <File Path="distribution\azure-devops-extension\vss-extension.json" />
+  </Folder>
+  <Folder Name="/distribution/azure-devops-extension/marketplace/">
+    <File Path="distribution\azure-devops-extension\marketplace\extension-icon.png" />
+    <File Path="distribution\azure-devops-extension\marketplace\license.md" />
+    <File Path="distribution\azure-devops-extension\marketplace\overview.md" />
+  </Folder>
+  <Folder Name="/distribution/azure-devops-extension/marketplace/images/">
+    <File Path="distribution\azure-devops-extension\marketplace\images\example-boilerplate-url-normalizer.png" />
+    <File Path="distribution\azure-devops-extension\marketplace\images\example-package-json.png" />
+  </Folder>
+  <Folder Name="/distribution/azure-devops-extension/task/">
+    <File Path="distribution\azure-devops-extension\task\index.ts" />
+    <File Path="distribution\azure-devops-extension\task\package.json" />
+    <File Path="distribution\azure-devops-extension\task\task-icon.png" />
+    <File Path="distribution\azure-devops-extension\task\task.json" />
+    <File Path="distribution\azure-devops-extension\task\tsconfig.json" />
+    <File Path="distribution\azure-devops-extension\task\yarn.lock" />
+  </Folder>
+  <Folder Name="/distribution/chocolatey/" />
+  <Folder Name="/distribution/chocolatey/update-nuspec/">
+    <File Path="distribution\chocolatey\update-nuspec\update-nuspec.nuspec" />
+  </Folder>
+  <Folder Name="/distribution/chocolatey/update-nuspec/tools/">
+    <File Path="distribution\chocolatey\update-nuspec\tools\chocolateyinstall.ps1" />
+    <File Path="distribution\chocolatey\update-nuspec\tools\chocolateyuninstall.ps1" />
+    <File Path="distribution\chocolatey\update-nuspec\tools\LICENSE.txt" />
+    <File Path="distribution\chocolatey\update-nuspec\tools\VERIFICATION.txt" />
+  </Folder>
+  <Folder Name="/distribution/github-action/">
+    <File Path="distribution\github-action\Dockerfile" />
+    <File Path="distribution\github-action\entrypoint.sh" />
+    <File Path="distribution\github-action\.dockerignore" />
+    <File Path="distribution\github-action\resolve-action-image-tag.sh" />
+  </Folder>
   <Folder Name="/assets/">
     <File Path="action.yml" />
-    <File Path="Dockerfile" />
-    <File Path="entrypoint.sh" />
     <File Path="GitVersion.yml" />
     <File Path="LICENSE" />
+    <File Path=".gitignore" />
     <File Path="README.md" />
   </Folder>
   <Project Path="UpdateNuspecTool/UpdateNuspecTool.csproj" />
+  <Folder Name="/distribution/homebrew-core/">
+    <File Path="distribution\homebrew-core\update-nuspec.rb" />
+  </Folder>
+  <Folder Name="/distribution/homebrew-preview/">
+    <File Path="distribution\homebrew-preview\TAP_README.md" />
+    <File Path="distribution\homebrew-preview\update-nuspec-preview.rb" />
+  </Folder>
   <Folder Name="/docs/">
     <File Path="docs\ci-cd.md" />
-    <File Path="docs\packaging.md" />
+    <File Path="docs\distribution.md" />
   </Folder>
   <Folder Name="/docs/examples/">
     <File Path="docs\examples\github-actions-cross-identity.png" />

@@ -25,10 +25,10 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        mkdir -p docker
-        cp dist/ado-binaries/update-nuspec docker/update-nuspec
-        chmod +x docker/update-nuspec
-        docker build -t update-nuspec-action:ci .
+        mkdir -p distribution/github-action/docker
+        cp dist/ado-binaries/update-nuspec distribution/github-action/docker/update-nuspec
+        chmod +x distribution/github-action/docker/update-nuspec
+        docker build -t update-nuspec-action:ci distribution/github-action
 
     - name: Smoke test (repo root, recursive scan)
       shell: bash

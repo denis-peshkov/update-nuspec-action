@@ -108,15 +108,6 @@ Preview builds are published from `release/*` and `hotfix/*` branches before the
 
 Preview VSIX version: `major.minor.patch.preReleaseNumber` (for example `1.1.0.4`). Preview builds do not push git tags or GitHub Releases — install the VSIX from the CI artifact `ado-extension-vsix`.
 
-**Homebrew preview** (macOS/Linux, builds from source):
-
-```bash
-brew tap denis-peshkov/update-nuspec https://github.com/denis-peshkov/update-nuspec-action --branch homebrew-preview-tap
-brew install update-nuspec-preview
-```
-
-CI updates branch `homebrew-preview-tap` on each push to `release/*` or `hotfix/*` (commit SHA archive, no git tag).
-
 ## Links
 
 - [Repository](https://github.com/denis-peshkov/update-nuspec-action)

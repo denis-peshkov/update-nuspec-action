@@ -55,7 +55,7 @@ runs:
       run: |
         set -euo pipefail
         BINARY="update-nuspec/target/${{ inputs.target }}/release/${{ inputs.exe }}"
-        ARCHIVE="$(./scripts/package-release-binary.sh "${{ inputs.version }}" "${{ inputs.target }}" "${BINARY}" dist)"
+        ARCHIVE="$(./.github/scripts/package-release-binary.sh "${{ inputs.version }}" "${{ inputs.target }}" "${BINARY}" dist)"
         echo "ARCHIVE=${ARCHIVE}" >> "${GITHUB_ENV}"
 
     - name: Upload release binary

@@ -25,10 +25,27 @@ runs:
       shell: bash
       env:
         TAGTOKEN: ${{ inputs.tagtoken }}
+        VERSION: ${{ inputs.version }}
+        MAJOR: ${{ inputs.major }}
+        MINOR: ${{ inputs.minor }}
       run: |
         set -euo pipefail
-        version_commit="$(./.github/scripts/push-release-git-tags.sh \
-          "${{ inputs.version }}" \
-          "${{ inputs.major }}" \
-          "${{ inputs.minor }}")"
-        echo "version_commit=${version_commit}" >> "${GITHUB_OUTPUT}"
+
+        if [[ -z "${TAGTOKEN}" ]]; then
+          echo "TAGTOKEN is required" >&2
+          exit 1
+        fi
+
+        git config user.name 'Denis Peshkov'
+        git config user.email 'denis.peshkov@outlook.com'
+        git remote set-url origin "https://x-access-token:${TAGTOKEN}@github.com/${GITHUB_REPOSITORY}"
+
+        commit="$(git rev-parse HEAD)"
+
+        git tag -f "v${VERSION}" "${commit}" >&2
+        git tag -f "v${MAJOR}.${MINOR}" "${commit}" >&2
+        git tag -f "v${MAJOR}" "${commit}" >&2
+        git push origin "v${VERSION}" "v${MAJOR}.${MINOR}" "v${MAJOR}" -f >&2
+
+        echo "Pushed tags v${VERSION}, v${MAJOR}.${MINOR}, and v${MAJOR} at ${commit}" >&2
+        echo "version_commit=${commit}" >> "${GITHUB_OUTPUT}"

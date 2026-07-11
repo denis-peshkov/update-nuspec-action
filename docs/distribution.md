@@ -1,6 +1,6 @@
-# Packaging
+# Distribution
 
-Standalone CLI distribution for `update-nuspec` (outside Docker / Azure DevOps).
+Standalone CLI distribution for `update-nuspec` outside the root composite `action.yml`: GHCR Docker image ([`distribution/github-action/`](../distribution/github-action/)), Homebrew, Chocolatey, GitHub Release binaries, and the Azure DevOps extension ([`distribution/azure-devops-extension/`](../distribution/azure-devops-extension/)).
 
 Pipeline overview: [ci-cd.md](ci-cd.md).
 
@@ -64,7 +64,7 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 | Step | What happens |
 |------|----------------|
 | `package-release-source.sh` | Build `update-nuspec-{version}-src.tar.gz` via `git archive` (only tracked `update-nuspec/` files) |
-| `update-homebrew-core-formula.sh` | Patches formula draft in CI workspace (`packaging/homebrew-core/`, not committed) |
+| inline in action | Patch formula draft `url` + `sha256` in `distribution/homebrew-core/` (not committed) |
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
 | `publish-homebrew-core-pr.sh` | **If not in core:** push to fork, open upstream PR (`gh` + REST fallback; fails CI if PR cannot be created) |
 | `brew bump-formula-pr` | **If in core:** open version-bump PR (needs `HOMEBREW_GITHUB_API_KEY`) |
@@ -80,7 +80,7 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 Local test before the first PR:
 
 ```bash
-brew install --build-from-source ./packaging/homebrew-core/update-nuspec.rb
+brew install --build-from-source ./distribution/homebrew-core/update-nuspec.rb
 update-nuspec --version
 ```
 
@@ -99,18 +99,25 @@ brew install update-nuspec-preview
 
 | Step | What happens |
 |------|----------------|
-| `preview-archive-url.sh` | Build GitHub archive URL for `${{ github.sha }}` |
-| `curl` + `sha256sum` | Checksum of the preview source tarball |
-| `update-homebrew-preview-formula.sh` | Patch template `packaging/homebrew-preview/update-nuspec-preview.rb` |
+| inline in action | GitHub archive URL for commit SHA, `curl` + `sha256sum` |
+| inline in action | Patch template `distribution/homebrew-preview/update-nuspec-preview.rb` |
 | `publish-homebrew-preview-tap.sh` | Push `Formula/update-nuspec-preview.rb` to branch `homebrew-preview-tap` |
 
 Secret: **`TAGTOKEN`** (`repo` scope) — push branch `homebrew-preview-tap`.
 
-Template (not installed directly): [`packaging/homebrew-preview/update-nuspec-preview.rb`](../packaging/homebrew-preview/update-nuspec-preview.rb).
+Template (not installed directly): [`distribution/homebrew-preview/update-nuspec-preview.rb`](../distribution/homebrew-preview/update-nuspec-preview.rb).
+
+## Azure DevOps extension
+
+Source: [`distribution/azure-devops-extension/`](../distribution/azure-devops-extension/) (`vss-extension.json`, task `UpdateNuspec@1`).
+
+Marketplace listing: [`marketplace/overview.md`](../distribution/azure-devops-extension/marketplace/overview.md).
+
+Built and published by `publish-ado-extension` (VSIX artifact → `publish-github-release`; Marketplace on `master`).
 
 ## Chocolatey
 
-Package source: [`packaging/chocolatey/update-nuspec/`](../packaging/chocolatey/update-nuspec/).
+Package source: [`distribution/chocolatey/update-nuspec/`](../distribution/chocolatey/update-nuspec/).
 
 The `publish-chocolatey` action embeds `update-nuspec.exe` from the Windows release zip (`release-binary` matrix artifact) into the `.nupkg` — no remote download or checksum in `chocolateyinstall.ps1`.
 
@@ -135,26 +142,17 @@ To publish publicly, open a PR to [chocolatey-community/chocolatey-packages](htt
 
 ## Scripts
 
-| Script | Purpose |
-|--------|---------|
-| [`scripts/package-release-binary.sh`](../scripts/package-release-binary.sh) | Build `.tar.gz` / `.zip` from a compiled binary (`release-binary` action) |
-| [`scripts/package-release-source.sh`](../scripts/package-release-source.sh) | Build `update-nuspec-{version}-src.tar.gz` for Release and Homebrew (`git archive`) |
-| [`.github/scripts/release-source-url.sh`](../.github/scripts/release-source-url.sh) | Release download URL for the source archive |
-| [`scripts/resolve-action-image-tag.sh`](../scripts/resolve-action-image-tag.sh) | Map action `@ref` / `imageTag` input → GHCR tag (`action.yml`) |
-| [`.github/scripts/push-release-git-tags.sh`](../.github/scripts/push-release-git-tags.sh) | Push git tags (`push-tags` action) |
-| [`.github/scripts/update-homebrew-core-formula.sh`](../.github/scripts/update-homebrew-core-formula.sh) | Patch homebrew-core formula `url` + `sha256` |
-| [`.github/scripts/publish-homebrew-core-pr.sh`](../.github/scripts/publish-homebrew-core-pr.sh) | Push formula to fork and open upstream PR (`gh` + REST fallback; fails CI if PR cannot be created) |
-| [`.github/scripts/preview-archive-url.sh`](../.github/scripts/preview-archive-url.sh) | GitHub archive URL for a commit SHA (preview tap) |
-| [`.github/scripts/update-homebrew-preview-formula.sh`](../.github/scripts/update-homebrew-preview-formula.sh) | Patch preview tap formula `version` + `url` + `sha256` |
-| [`.github/scripts/publish-homebrew-preview-tap.sh`](../.github/scripts/publish-homebrew-preview-tap.sh) | Push `Formula/update-nuspec-preview.rb` to branch `homebrew-preview-tap` |
-| [`.github/scripts/publish-chocolatey-package.sh`](../.github/scripts/publish-chocolatey-package.sh) | Push `.nupkg` to chocolatey.org; detect moderation queue via OData |
-| [`.github/scripts/stage-chocolatey-package.sh`](../.github/scripts/stage-chocolatey-package.sh) | Stage Chocolatey package with embedded Windows exe and `nuget pack` |
+Список скриптов: [README.md — Scripts](../README.md#scripts).
 
 Manual bump after a release:
 
 ```bash
-./scripts/package-release-source.sh 1.2.3 . dist
-sha256sum dist/update-nuspec-1.2.3-src.tar.gz
-./.github/scripts/update-homebrew-core-formula.sh 1.2.3 <sha256> .
-./.github/scripts/stage-chocolatey-package.sh 1.2.3 dist/update-nuspec-1.2.3-x86_64-pc-windows-msvc.zip . dist/choco
+VERSION=1.2.3
+./.github/scripts/package-release-source.sh "${VERSION}" . dist
+SHA256="$(sha256sum "dist/update-nuspec-${VERSION}-src.tar.gz" | awk '{print $1}')"
+URL="https://github.com/denis-peshkov/update-nuspec-action/releases/download/v${VERSION}/update-nuspec-${VERSION}-src.tar.gz"
+FORMULA=distribution/homebrew-core/update-nuspec.rb
+perl -pi -e "s|^  url \".*\"|  url \"${URL}\"|" "${FORMULA}"
+perl -pi -e "s|^  sha256 \".*\"|  sha256 \"${SHA256}\"|" "${FORMULA}"
+./.github/scripts/stage-chocolatey-package.sh "${VERSION}" "dist/update-nuspec-${VERSION}-x86_64-pc-windows-msvc.zip" . dist/choco
 ```

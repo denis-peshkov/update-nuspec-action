@@ -15,7 +15,7 @@
 
 CLI (Rust) GitHub Action (Docker) that scans .NET projects in a directory and updates the `<dependencies>` section in matching `*.nuspec` files according to `PackageReference` versions from the related `.csproj` (project name = `<id>` in nuspec metadata). Optionally updates `package.json` version and scoped npm dependencies.
 
-**CI/CD:** [pipeline diagram](docs/ci-cd.md) · [packaging](docs/packaging.md)
+**CI/CD:** [pipeline diagram](docs/ci-cd.md) · [distribution](docs/distribution.md)
 
 ## Usage
 
@@ -191,7 +191,7 @@ ADO Marketplace publish uses secret `AZDO_MARKETPLACE_PAT` (scope **Marketplace 
 
 ## Azure DevOps extension
 
-The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec). Usage, examples, inputs, and preview install: [azure-devops-extension/marketplace/overview.md](azure-devops-extension/marketplace/overview.md).
+The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=peshkov.update-nuspec). Usage, examples, inputs, and preview install: [distribution/azure-devops-extension/marketplace/overview.md](distribution/azure-devops-extension/marketplace/overview.md).
 
 ## Development
 
@@ -200,20 +200,30 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | Path | Role |
 |------|------|
 | `update-nuspec/` | Rust CLI and library (`update-nuspec` binary) |
-| `UpdateNuspecTool/` | Legacy .NET CLI (parity tests) |
-| `UpdateNuspecTool.Tests/` | NUnit tests and fixtures |
-| `UpdateNuspecTool.Tests/TestData/` | Sample `.nuspec` / `.csproj` pairs |
-| `Dockerfile` | Runtime image (`alpine`): copies prebuilt `musl` binary + `entrypoint.sh` (no Rust build in Docker) |
-| `action.yml` | Composite action: resolves GHCR tag from `@ref` or `imageTag`, runs `docker://ghcr.io/denis-peshkov/update-nuspec:…` |
-| `update-nuspec-icon.png` | Project icon (repo root) |
-| `azure-devops-extension/` | Extension root (`vss-extension.json`); VSIX build in CI (`publish-ado-extension`) |
-| `.github/workflows/ci.yml` | CI workflow — see [docs/ci-cd.md](docs/ci-cd.md) |
-| `.github/actions/` | Composite CI/CD actions |
-| `.github/scripts/` | Publish helper scripts (Homebrew, Chocolatey) |
-| `scripts/` | Build helpers (`package-release-binary.sh`, `resolve-action-image-tag.sh`) |
-| `packaging/homebrew-preview/` | Preview Homebrew formula template → CI pushes to branch `homebrew-preview-tap` |
-| `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, `extension-icon.png` (symlink to project icon), screenshots |
-| `azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript wrapper + bundled `update-nuspec` binaries) |
+| `UpdateNuspecTool/` | Legacy .NET CLI (parity reference) |
+| `UpdateNuspecTool.Tests/` | NUnit tests; fixtures in `TestData/` (`.nuspec`, `.csproj`, `package.json`) |
+| `UpdateNuspecTool.slnx` | Solution (.NET projects + repo file links) |
+| `GitVersion.yml` | SemVer for CI (`version` job) |
+| `action.yml` | Public composite action: GHCR tag from `@ref` / `imageTag`, `docker run` |
+| `distribution/github-action/` | GHCR image + action helper: [`Dockerfile`](distribution/github-action/Dockerfile), [`entrypoint.sh`](distribution/github-action/entrypoint.sh), [`resolve-action-image-tag.sh`](distribution/github-action/resolve-action-image-tag.sh) |
+| `distribution/` | Other channels: [`homebrew-core/`](distribution/homebrew-core/), [`homebrew-preview/`](distribution/homebrew-preview/), [`chocolatey/`](distribution/chocolatey/), [`azure-devops-extension/`](distribution/azure-devops-extension/) |
+| `distribution/azure-devops-extension/marketplace/` | ADO Marketplace listing: `overview.md`, `license.md`, screenshots |
+| `distribution/azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript + bundled binaries) |
+| `.github/workflows/ci.yml` | CI orchestrator — [docs/ci-cd.md](docs/ci-cd.md) |
+| `.github/actions/version/` | GitVersion → `version`, `major`, `minor`, `prerelease` |
+| `.github/actions/release-binary/` | Matrix `cargo build --release`; `ado-binary-*` / `release-binary-*` artifacts |
+| `.github/actions/test/` | Rust + .NET tests, SonarCloud |
+| `.github/actions/push-tags/` | Push git tags `v{version}`, `v{X.Y}`, `v{X}` (`master` only) |
+| `.github/actions/publish-github-action/` | GHCR push + Docker smoke |
+| `.github/actions/publish-ado-extension/` | VSIX build + ADO Marketplace (`master` only) |
+| `.github/actions/publish-chocolatey/` | Chocolatey `.nupkg` pack + push |
+| `.github/actions/publish-homebrew/` | homebrew-core formula PR / bump (`master` only) |
+| `.github/actions/publish-homebrew-tap/` | Preview tap branch `homebrew-preview-tap` (`release/*`, `hotfix/*`) |
+| `.github/actions/publish-github-release/` | GitHub Release assets (`master` only) |
+| `.github/scripts/` | CI shell scripts — [Scripts](#scripts) below |
+| `docs/` | [ci-cd.md](docs/ci-cd.md) (pipeline), [distribution.md](docs/distribution.md) (registries + ADO), `examples/` |
+| `update-nuspec-icon.png` | Project / marketplace icon |
+| `LICENSE` | MIT |
 
 ### Tests
 
@@ -247,7 +257,7 @@ brew install update-nuspec-preview
 choco install update-nuspec
 ```
 
-First Homebrew submission: [docs/packaging.md](docs/packaging.md#homebrew-homebrew-core).
+First Homebrew submission: [docs/distribution.md](docs/distribution.md#homebrew-homebrew-core).
 
 Options: `--help` / `-h`, `--version` / `-v`, `--dry-run` / `-d` / `--demo` (or positional `true`), `--package-version` / `-pv`, `--dependency-scope` / `-ds`.
 
@@ -293,12 +303,13 @@ cargo build --release --bin update-nuspec
 
 The action pulls a **prebuilt image** from GHCR at runtime. CI builds it from the static `musl` binary and pushes tags `X.Y.Z`, `X.Y`, `X`, and `latest` on `master`. The composite `action.yml` maps your `@ref` (or `imageTag` input) to the GHCR tag.
 
-Build locally (stage the binary first, since `Dockerfile` only copies it):
+Build locally (stage the binary first; `Dockerfile` only copies it):
 
 ```bash
 cd update-nuspec && cargo build --release --target x86_64-unknown-linux-musl --bin update-nuspec && cd ..
-mkdir -p docker && cp update-nuspec/target/x86_64-unknown-linux-musl/release/update-nuspec docker/update-nuspec
-docker build --platform linux/amd64 -t update-nuspec-action:local .
+mkdir -p distribution/github-action/docker
+cp update-nuspec/target/x86_64-unknown-linux-musl/release/update-nuspec distribution/github-action/docker/update-nuspec
+docker build --platform linux/amd64 -t update-nuspec-action:local distribution/github-action
 docker run --rm --platform linux/amd64 \
   -v "$PWD:/github/workspace" \
   update-nuspec-action:local UpdateNuspecTool.Tests/TestData true
@@ -310,7 +321,11 @@ On Apple Silicon hosts, use `--platform linux/amd64` so the image matches GitHub
 
 ## CI (GitHub Actions)
 
-Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Диаграмма pipeline (jobs, артефакты, `needs`, события, секреты): [docs/ci-cd.md](docs/ci-cd.md). Публикация в registries: [docs/packaging.md](docs/packaging.md).
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). 
+
+Диаграмма pipeline (jobs, артефакты, `needs`, события, секреты): [docs/ci-cd.md](docs/ci-cd.md). 
+
+Публикация в registries: [docs/distribution.md](docs/distribution.md).
 
 ## License
 

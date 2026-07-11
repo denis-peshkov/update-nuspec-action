@@ -35,7 +35,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        IMAGE_TAG="$("${GITHUB_ACTION_PATH}/scripts/resolve-action-image-tag.sh" \
+        IMAGE_TAG="$("${GITHUB_ACTION_PATH}/distribution/github-action/resolve-action-image-tag.sh" \
           "${{ inputs.imageTag }}" \
           "${{ github.action_ref }}")"
         IMAGE="ghcr.io/denis-peshkov/update-nuspec:${IMAGE_TAG}"

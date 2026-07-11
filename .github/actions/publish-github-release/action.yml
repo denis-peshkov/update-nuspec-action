@@ -23,7 +23,7 @@ runs:
         VERSION: ${{ inputs.version }}
       run: |
         set -euo pipefail
-        ./scripts/package-release-source.sh "${VERSION}" "${{ github.workspace }}" dist
+        ./.github/scripts/package-release-source.sh "${VERSION}" "${{ github.workspace }}" dist
 
     - name: Download VSIX artifact
       uses: actions/download-artifact@v4

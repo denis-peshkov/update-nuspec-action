@@ -1,9 +1,11 @@
 ﻿# Image published to GHCR by CI. It packages the static musl binary built by the
-# release-binaries matrix (no Rust build here). `action.yml` runs the pushed image
-# via `image: docker://ghcr.io/...`, so consumers never build this Dockerfile.
+# release-binaries matrix (no Rust build here). Root `action.yml` runs the pushed image
+# via `docker run ghcr.io/...`, so consumers never build this Dockerfile.
 #
-# The binary must be staged at docker/update-nuspec before building:
-#   cp <matrix>/update-nuspec docker/update-nuspec && docker build -t update-nuspec .
+# Build from repo root (CI and local):
+#   mkdir -p distribution/github-action/docker
+#   cp <binary> distribution/github-action/docker/update-nuspec
+#   docker build -t update-nuspec distribution/github-action
 FROM alpine:3.20
 
 LABEL maintainer="Denis Peshkov <denis.peshkov@outlook.com>"

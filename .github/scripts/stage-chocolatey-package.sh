@@ -20,7 +20,7 @@ if [[ ! -f "${WINDOWS_ZIP}" ]]; then
   exit 1
 fi
 
-TEMPLATE_DIR="${REPO_ROOT}/packaging/chocolatey/update-nuspec"
+TEMPLATE_DIR="${REPO_ROOT}/distribution/chocolatey/update-nuspec"
 NUSPEC_TEMPLATE="${TEMPLATE_DIR}/update-nuspec.nuspec"
 LICENSE_TXT="${TEMPLATE_DIR}/tools/LICENSE.txt"
 VERIFICATION_TEMPLATE="${TEMPLATE_DIR}/tools/VERIFICATION.txt"

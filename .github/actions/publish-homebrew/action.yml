@@ -21,23 +21,29 @@ runs:
       with:
         token: ${{ inputs.homebrew_github_api_key }}
 
-    - name: Package source archive and compute checksum
+    - name: Package source archive and update formula draft
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
       run: |
         set -euo pipefail
         mkdir -p dist
-        ARCHIVE="$(./scripts/package-release-source.sh "${VERSION}" "${{ github.workspace }}" dist)"
-        sha256sum "${ARCHIVE}" | tee dist/SOURCE_SHA256
-        echo "SOURCE_SHA256=$(cut -d' ' -f1 dist/SOURCE_SHA256)" >> "${GITHUB_ENV}"
-        echo "SOURCE_URL=$(./.github/scripts/release-source-url.sh "${VERSION}")" >> "${GITHUB_ENV}"
+        ARCHIVE="$(./.github/scripts/package-release-source.sh "${VERSION}" "${{ github.workspace }}" dist)"
+        SOURCE_SHA256="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
+        SOURCE_URL="https://github.com/denis-peshkov/update-nuspec-action/releases/download/v${VERSION}/update-nuspec-${VERSION}-src.tar.gz"
 
-    - name: Update Homebrew core formula draft
-      shell: bash
-      env:
-        VERSION: ${{ inputs.version }}
-      run: ./.github/scripts/update-homebrew-core-formula.sh "${VERSION}" "${{ env.SOURCE_SHA256 }}" "${{ github.workspace }}"
+        echo "SOURCE_SHA256=${SOURCE_SHA256}" >> "${GITHUB_ENV}"
+        echo "SOURCE_URL=${SOURCE_URL}" >> "${GITHUB_ENV}"
+
+        FORMULA="${{ github.workspace }}/distribution/homebrew-core/update-nuspec.rb"
+        if [[ ! -f "${FORMULA}" ]]; then
+          echo "Formula template not found: ${FORMULA}" >&2
+          exit 1
+        fi
+
+        perl -pi -e "s|^  url \".*\"|  url \"${SOURCE_URL}\"|" "${FORMULA}"
+        perl -pi -e "s|^  sha256 \".*\"|  sha256 \"${SOURCE_SHA256}\"|" "${FORMULA}"
+        echo "Updated homebrew-core formula for v${VERSION}"
 
     - name: Detect Homebrew formula in core
       shell: bash

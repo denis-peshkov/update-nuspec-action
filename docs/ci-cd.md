@@ -119,7 +119,7 @@ ci.yml
 | `version` | [`version`](../.github/actions/version/action.yml) | GitVersion |
 | `binary-*` | [`release-binary`](../.github/actions/release-binary/action.yml) | `cargo build --release` |
 | `test` | [`test`](../.github/actions/test/action.yml) | Rust + .NET + Sonar |
-| `push-tags` | [`push-tags`](../.github/actions/push-tags/action.yml) | `push-release-git-tags.sh` |
+| `push-tags` | [`push-tags`](../.github/actions/push-tags/action.yml) | Push git tags `v{version}`, `v{X.Y}`, `v{X}` |
 | `publish-github-action` (**GHCR + Docker smoke**) | [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | Docker smoke + GHCR |
 | `publish-ado-extension` (**VSIX + ADO Marketplace**) | [`publish-ado-extension`](../.github/actions/publish-ado-extension/action.yml) | VSIX + Marketplace |
 | `publish-chocolatey` | [`publish-chocolatey`](../.github/actions/publish-chocolatey/action.yml) | Chocolatey pack/push |
@@ -243,4 +243,4 @@ version → matrix → test
 
 Все секреты передаются в composite actions через `with:` в workflow (не через `secrets:` на уровне шага composite action).
 
-Публикация в Homebrew / Chocolatey / GitHub Release assets: [packaging.md](packaging.md).
+Публикация в Homebrew / Chocolatey / GitHub Release assets: [distribution.md](distribution.md).

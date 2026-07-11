@@ -97,7 +97,7 @@ jobs:
           tagtoken: ${{ secrets.TAGTOKEN }}
 
   publish-github-action:
-    name: GHCR + Docker smoke
+    name: Publish GitHub Action (GHCR + Docker smoke)
     needs:
       - version
       - release-binaries
@@ -118,7 +118,7 @@ jobs:
           minor: ${{ needs.version.outputs.minor }}
 
   publish-ado-extension:
-    name: VSIX + ADO Marketplace
+    name: Publish ADO Extension (VSIX + ADO Marketplace)
     needs:
       - version
       - release-binaries
@@ -155,6 +155,25 @@ jobs:
         with:
           version: ${{ needs.version.outputs.version }}
           chocolatey_api_key: ${{ secrets.CHOCOLATEY_API_KEY }}
+
+  publish-homebrew-tap:
+    name: Publish Homebrew Preview Tap
+    needs:
+      - version
+      - release-binaries
+      - test
+      - push-tags
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/publish-homebrew-tap
+        with:
+          version: ${{ needs.version.outputs.version }}
+          commit_sha: ${{ github.sha }}
+          tagtoken: ${{ secrets.TAGTOKEN }}
 
   publish-homebrew:
     name: Publish Homebrew
@@ -193,21 +212,3 @@ jobs:
           version: ${{ needs.version.outputs.version }}
           version_commit: ${{ needs.push-tags.outputs.version_commit }}
           prerelease: ${{ needs.version.outputs.prerelease }}
-
-  publish-homebrew-tap:
-    name: Publish Homebrew Preview Tap
-    needs:
-      - version
-      - release-binaries
-      - test
-    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/publish-homebrew-tap
-        with:
-          version: ${{ needs.version.outputs.version }}
-          commit_sha: ${{ github.sha }}
-          tagtoken: ${{ secrets.TAGTOKEN }}

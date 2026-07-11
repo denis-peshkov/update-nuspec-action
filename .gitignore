@@ -8,15 +8,18 @@
 **/bin/
 **/obj/
 TestResults/
+
+# Other
 *.vsix
-azure-devops-extension/.vss-extension.build.json
-azure-devops-extension/task/linux-x64/
-azure-devops-extension/task/win-x64/
-azure-devops-extension/task/index.js
-azure-devops-extension/task/node_modules/
+distribution/azure-devops-extension/.vss-extension.build.json
+distribution/azure-devops-extension/task/linux-x64/
+distribution/azure-devops-extension/task/win-x64/
+distribution/azure-devops-extension/task/index.js
+distribution/azure-devops-extension/task/node_modules/
 update-nuspec/target/
 dist/
-docker/
+distribution/github-action/docker/
 *.user
 *.suo
 .run/
+.DS_Store

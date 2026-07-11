@@ -14,8 +14,8 @@ if [[ -z "${VERSION}" || -z "${REPO_ROOT}" || -z "${GIT_TOKEN}" ]]; then
   usage
 fi
 
-FORMULA_SRC="${REPO_ROOT}/packaging/homebrew-preview/update-nuspec-preview.rb"
-TAP_README_SRC="${REPO_ROOT}/packaging/homebrew-preview/TAP_README.md"
+FORMULA_SRC="${REPO_ROOT}/distribution/homebrew-preview/update-nuspec-preview.rb"
+TAP_README_SRC="${REPO_ROOT}/distribution/homebrew-preview/TAP_README.md"
 if [[ ! -f "${FORMULA_SRC}" ]]; then
   echo "Formula not found: ${FORMULA_SRC}" >&2
   exit 1
