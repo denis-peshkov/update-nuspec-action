@@ -1,5 +1,5 @@
 name: Publish ADO Extension
-description: VSIX + ADO Marketplace
+description: Build ADO VSIX and publish to Azure DevOps Marketplace
 
 inputs:
   version:
