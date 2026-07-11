@@ -24,8 +24,24 @@ jobs:
       - id: version
         uses: ./.github/actions/version
 
+  test:
+    name: Test
+    needs:
+      - version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/test
+        with:
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+
   release-binaries:
-    needs: version
+    needs:
+      - version
+      - test
     name: binary-${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -56,27 +72,11 @@ jobs:
           exe: ${{ matrix.exe }}
           publish_artifacts: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
 
-  test:
-    name: Test
-    needs:
-      - version
-      - release-binaries
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/test
-        with:
-          sonar_token: ${{ secrets.SONAR_TOKEN }}
-
   push-tags:
     name: Push Git Tags
     needs:
       - version
       - release-binaries
-      - test
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-22.04
     outputs:
@@ -100,10 +100,8 @@ jobs:
     name: Publish GitHub Action
     needs:
       - version
-      - release-binaries
-      - test
       - push-tags
-    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') }}
+    if: ${{ !failure() && !cancelled() && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -121,10 +119,8 @@ jobs:
     name: Publish ADO Extension
     needs:
       - version
-      - release-binaries
-      - test
       - push-tags
-    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') }}
+    if: ${{ !failure() && !cancelled() && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -141,10 +137,8 @@ jobs:
     name: Publish Chocolatey
     needs:
       - version
-      - release-binaries
-      - test
       - push-tags
-    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    if: ${{ !failure() && !cancelled() && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -157,13 +151,11 @@ jobs:
           chocolatey_api_key: ${{ secrets.CHOCOLATEY_API_KEY }}
 
   publish-homebrew-tap:
-    name: Publish Homebrew Preview Tap
+    name: Publish Homebrew Preview
     needs:
       - version
-      - release-binaries
-      - test
       - push-tags
-    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    if: ${{ !failure() && !cancelled() && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') && github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -179,10 +171,8 @@ jobs:
     name: Publish Homebrew
     needs:
       - version
-      - release-binaries
-      - test
       - push-tags
-    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && needs.push-tags.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: ${{ !failure() && !cancelled() && needs.push-tags.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read

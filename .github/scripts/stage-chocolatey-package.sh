@@ -68,9 +68,14 @@ perl -pe "s|__RELEASE_URL__|${RELEASE_URL}|g; s|__EXE_SHA256__|${EXE_SHA256}|g" 
 
 perl -pi -e "s|<version>.*</version>|<version>${VERSION}</version>|" "${STAGING}/update-nuspec.nuspec"
 
-nuget pack "${STAGING}/update-nuspec.nuspec" \
-  -Version "${VERSION}" \
-  -OutputDirectory "${OUTPUT_DIR}" \
-  -NoDefaultExcludes
+if ! command -v choco >/dev/null 2>&1; then
+  echo "Chocolatey CLI (choco) is required to pack packages with Chocolatey nuspec metadata." >&2
+  echo "Run .github/scripts/setup-chocolatey-cli.sh first, or install choco locally." >&2
+  exit 1
+fi
+
+choco pack "${STAGING}/update-nuspec.nuspec" \
+  --version="${VERSION}" \
+  --outputdirectory="${OUTPUT_DIR}"
 
 echo "Packed Chocolatey package: ${OUTPUT_DIR}/update-nuspec.${VERSION}.nupkg"

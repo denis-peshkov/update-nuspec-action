@@ -35,6 +35,7 @@
     <File Path=".github\scripts\package-release-binary.sh" />
     <File Path=".github\scripts\package-release-source.sh" />
     <File Path=".github\scripts\publish-chocolatey-package.sh" />
+    <File Path=".github\scripts\setup-chocolatey-cli.sh" />
     <File Path=".github\scripts\publish-homebrew-core-pr.sh" />
     <File Path=".github\scripts\stage-chocolatey-package.sh" />
     <File Path=".github\scripts\publish-homebrew-preview-tap.sh" />
