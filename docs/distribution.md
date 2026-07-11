@@ -81,12 +81,14 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 Local test before the first PR (Homebrew 5+ requires a tap, not a bare `.rb` path):
 
 ```bash
-TAP_DIR="$(mktemp -d)/homebrew-local"
-mkdir -p "${TAP_DIR}/Formula"
-cp distribution/homebrew-core/update-nuspec.rb "${TAP_DIR}/Formula/"
-brew tap --force-local homebrew/local "${TAP_DIR}"
-HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source homebrew/local/update-nuspec
+brew tap-new update-nuspec/local
+TAP="$(brew --repository update-nuspec/local)"
+cp distribution/homebrew-core/update-nuspec.rb "${TAP}/Formula/"
+git -C "${TAP}" add Formula/update-nuspec.rb
+git -C "${TAP}" commit -m "local validation"
+HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source update-nuspec/local/update-nuspec
 update-nuspec --version
+brew untap update-nuspec/local
 ```
 
 ## Homebrew preview tap (branch `homebrew-preview-tap`)

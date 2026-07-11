@@ -63,12 +63,16 @@ runs:
       run: |
         set -euo pipefail
         FORMULA="${{ github.workspace }}/distribution/homebrew-core/update-nuspec.rb"
-        TAP_DIR="$(mktemp -d)/homebrew-ci"
-        mkdir -p "${TAP_DIR}/Formula"
-        cp "${FORMULA}" "${TAP_DIR}/Formula/update-nuspec.rb"
-        brew tap --force-local homebrew/ci "${TAP_DIR}"
+        brew untap update-nuspec/ci 2>/dev/null || true
+        brew tap-new update-nuspec/ci
+        TAP="$(brew --repository update-nuspec/ci)"
+        cp "${FORMULA}" "${TAP}/Formula/update-nuspec.rb"
+        git -C "${TAP}" add Formula/update-nuspec.rb
+        git -C "${TAP}" -c user.name="GitHub Actions" \
+          -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+          commit -m "CI validation"
         export HOMEBREW_NO_INSTALL_FROM_API=1
-        brew install --build-from-source homebrew/ci/update-nuspec
+        brew install --build-from-source update-nuspec/ci/update-nuspec
         brew test update-nuspec
         brew audit --strict --new update-nuspec
 
