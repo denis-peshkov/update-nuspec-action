@@ -19,6 +19,9 @@
   <Folder Name="/.github/actions/publish-homebrew/">
     <File Path=".github\actions\publish-homebrew\action.yml" />
   </Folder>
+  <Folder Name="/.github/actions/publish-homebrew-tap/">
+    <File Path=".github\actions\publish-homebrew-tap\action.yml" />
+  </Folder>
   <Folder Name="/.github/actions/release-binary/">
     <File Path=".github\actions\release-binary\action.yml" />
   </Folder>
@@ -34,6 +37,9 @@
     <File Path=".github\scripts\push-release-git-tags.sh" />
     <File Path=".github\scripts\stage-chocolatey-package.sh" />
     <File Path=".github\scripts\update-homebrew-core-formula.sh" />
+    <File Path=".github\scripts\preview-archive-url.sh" />
+    <File Path=".github\scripts\update-homebrew-preview-formula.sh" />
+    <File Path=".github\scripts\publish-homebrew-preview-tap.sh" />
   </Folder>
   <Folder Name="/.github/workflows/">
     <File Path=".github\workflows\ci.yml" />

@@ -160,8 +160,10 @@ jobs:
     name: Publish Homebrew
     needs:
       - version
+      - release-binaries
+      - test
       - push-tags
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && needs.push-tags.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -191,3 +193,21 @@ jobs:
           version: ${{ needs.version.outputs.version }}
           version_commit: ${{ needs.push-tags.outputs.version_commit }}
           prerelease: ${{ needs.version.outputs.prerelease }}
+
+  publish-homebrew-tap:
+    name: Publish Homebrew Preview Tap
+    needs:
+      - version
+      - release-binaries
+      - test
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/publish-homebrew-tap
+        with:
+          version: ${{ needs.version.outputs.version }}
+          commit_sha: ${{ github.sha }}
+          tagtoken: ${{ secrets.TAGTOKEN }}

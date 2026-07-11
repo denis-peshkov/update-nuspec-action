@@ -30,8 +30,13 @@ flowchart TD
 
   PGA["publish-github-action<br/>GHCR + Docker smoke"]
   PADO["publish-ado-extension<br/>VSIX + ADO Marketplace"]
-  CHR["publish-chocolatey"]
-  HB["publish-homebrew<br/>master only"]
+
+  subgraph pkg["Package managers"]
+    CHR["publish-chocolatey"]
+    HB["publish-homebrew<br/>master only"]
+    HBT["publish-homebrew-tap<br/>release/hotfix"]
+  end
+
   REL["publish-github-release<br/>master only"]
 
   triggers --> V
@@ -42,6 +47,7 @@ flowchart TD
   PT --> PADO
   PT --> CHR
   PT --> HB
+  TEST --> HBT
   PADO --> REL
   PT --> REL
 ```
@@ -93,9 +99,10 @@ ci.yml
 │     ├─ download release-binary-*
 │     └─ .nupkg → chocolatey.org
 │
-├─ publish-homebrew                     [needs: push-tags]  if: push + master
+├─ publish-homebrew                     if: push + master
 │     ├─ package update-nuspec-{version}-src.tar.gz (git archive)
 │     └─ brew bump-formula-pr / fork PR
+│     (оба job — package managers, один блок в GHA UI)
 │
 └─ publish-github-release               [needs: push-tags, publish-ado-extension]
       ├─ package update-nuspec-{version}-src.tar.gz
@@ -116,7 +123,8 @@ ci.yml
 | `publish-github-action` (**GHCR + Docker smoke**) | [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | Docker smoke + GHCR |
 | `publish-ado-extension` (**VSIX + ADO Marketplace**) | [`publish-ado-extension`](../.github/actions/publish-ado-extension/action.yml) | VSIX + Marketplace |
 | `publish-chocolatey` | [`publish-chocolatey`](../.github/actions/publish-chocolatey/action.yml) | Chocolatey pack/push |
-| `publish-homebrew` | [`publish-homebrew`](../.github/actions/publish-homebrew/action.yml) | Homebrew formula |
+| `publish-homebrew` | [`publish-homebrew`](../.github/actions/publish-homebrew/action.yml) | Homebrew core formula |
+| `publish-homebrew-tap` | [`publish-homebrew-tap`](../.github/actions/publish-homebrew-tap/action.yml) | Preview tap branch `homebrew-preview-tap` |
 | `publish-github-release` | [`publish-github-release`](../.github/actions/publish-github-release/action.yml) | GitHub Release assets |
 
 ---
@@ -153,8 +161,9 @@ publish-ado-extension
 | `push-tags` | `version`, `release-binaries`, `test` | `push` + `master` |
 | `publish-github-action` | `version`, `release-binaries`, `test`, `push-tags` | test OK; `push-tags` success/skipped |
 | `publish-ado-extension` | то же | то же |
-| `publish-chocolatey` | то же | + `push` на `master` / `release/*` / `hotfix/*` |
-| `publish-homebrew` | `version`, `push-tags` | `push` + `master` |
+| `publish-chocolatey` | `version`, `release-binaries`, `test`, `push-tags` | + `push` на `master` / `release/*` / `hotfix/*` |
+| `publish-homebrew` | `version`, `release-binaries`, `test`, `push-tags` | `push` + `master` (`push-tags` must succeed) |
+| `publish-homebrew-tap` | `version`, `release-binaries`, `test` | `push` + `release/*` / `hotfix/*` (no git tag) |
 | `publish-github-release` | `version`, `push-tags`, `publish-ado-extension` | `push` + `master` |
 
 ### Критический путь (`master` push)
@@ -194,8 +203,8 @@ version → matrix → test
 version → matrix → test → push-tags
                               ├─ publish-github-action      (GHCR все теги)
                               ├─ publish-ado-extension        (VSIX + ADO)
-                              ├─ publish-chocolatey
-                              ├─ publish-homebrew
+                              ├─ publish-chocolatey           ┐ package managers
+                              ├─ publish-homebrew             ┘
                               └─ publish-ado-extension
                                     └─ publish-github-release
 ```
@@ -206,16 +215,18 @@ version → matrix → test → push-tags
 version → matrix → test
                     ├─ publish-github-action   (GHCR :version)
                     ├─ publish-ado-extension   (VSIX artifact)
-                    └─ publish-chocolatey
+                    ├─ publish-chocolatey
+                    └─ publish-homebrew-tap    (branch homebrew-preview-tap)
 ```
 
 `push-tags`, `publish-homebrew`, `publish-github-release` — **skipped**.
 
-| Job | GHCR | ADO | Chocolatey |
-|-----|------|-----|------------|
-| `publish-github-action` | `:version` only | — | — |
-| `publish-ado-extension` | — | ❌ | — |
-| `publish-chocolatey` | — | — | ✅ |
+| Job | GHCR | ADO | Chocolatey | Homebrew preview tap |
+|-----|------|-----|------------|----------------------|
+| `publish-github-action` | `:version` only | — | — | — |
+| `publish-ado-extension` | — | ❌ | — | — |
+| `publish-chocolatey` | — | — | ✅ | — |
+| `publish-homebrew-tap` | — | — | — | ✅ (`homebrew-preview-tap`) |
 
 ---
 
@@ -224,7 +235,7 @@ version → matrix → test
 | Secret | Job / Action | Назначение |
 |--------|--------------|------------|
 | `SONAR_TOKEN` | `test` | SonarCloud scan |
-| `TAGTOKEN` | `push-tags`, `publish-homebrew` | Git tags; Homebrew fork push / initial PR (`repo` scope) |
+| `TAGTOKEN` | `push-tags`, `publish-homebrew`, `publish-homebrew-tap` | Git tags; Homebrew core fork push; push branch `homebrew-preview-tap` (`repo` scope) |
 | `AZDO_MARKETPLACE_PAT` | `publish-ado-extension` | ADO Marketplace publish (`master`) |
 | `CHOCOLATEY_API_KEY` | `publish-chocolatey` | Push `.nupkg` → chocolatey.org |
 | `HOMEBREW_GITHUB_API_KEY` | `publish-homebrew` | Classic PAT with **`public_repo`** for `gh pr create`, REST PR API, and `brew bump-formula-pr`; fallback to `TAGTOKEN` on initial PR |

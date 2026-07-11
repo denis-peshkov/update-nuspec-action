@@ -11,7 +11,7 @@ Orchestrator: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 On each **push** to `master`, `release/*`, or `hotfix/*`:
 
 - **`push-tags`** runs after `test` on **`master` only**
-- Then in parallel: **`publish-github-action`**, **`publish-ado-extension`**, **`publish-chocolatey`**, **`publish-homebrew`** (master)
+- Then in parallel: **`publish-github-action`**, **`publish-ado-extension`**, **`publish-chocolatey`**, **`publish-homebrew`** (master), **`publish-homebrew-tap`** (release/hotfix)
 - **`publish-github-release`** runs after **`publish-ado-extension`** (master only)
 
 | Composite action | What it publishes |
@@ -20,6 +20,7 @@ On each **push** to `master`, `release/*`, or `hotfix/*`:
 | [`publish-github-release`](../.github/actions/publish-github-release/action.yml) | GitHub Release assets (`master` only; after `publish-ado-extension`) |
 | [`publish-chocolatey`](../.github/actions/publish-chocolatey/action.yml) | chocolatey.org `.nupkg` (embedded Windows exe) |
 | [`publish-homebrew`](../.github/actions/publish-homebrew/action.yml) | homebrew-core formula PR / bump (`master` only) |
+| [`publish-homebrew-tap`](../.github/actions/publish-homebrew-tap/action.yml) | Preview formula on branch `homebrew-preview-tap` (`release/*`, `hotfix/*`; commit SHA, no git tag) |
 
 Upstream jobs (same pipeline run):
 
@@ -83,6 +84,30 @@ brew install --build-from-source ./packaging/homebrew-core/update-nuspec.rb
 update-nuspec --version
 ```
 
+## Homebrew preview tap (branch `homebrew-preview-tap`)
+
+Preview builds from `release/*` and `hotfix/*` — **no git tag**. CI updates `Formula/update-nuspec-preview.rb` on branch **`homebrew-preview-tap`** only (source archive: `…/archive/{commit-sha}.tar.gz`).
+
+### Install
+
+```bash
+brew tap denis-peshkov/update-nuspec https://github.com/denis-peshkov/update-nuspec-action --branch homebrew-preview-tap
+brew install update-nuspec-preview
+```
+
+### CI automation (`publish-homebrew-tap` action)
+
+| Step | What happens |
+|------|----------------|
+| `preview-archive-url.sh` | Build GitHub archive URL for `${{ github.sha }}` |
+| `curl` + `sha256sum` | Checksum of the preview source tarball |
+| `update-homebrew-preview-formula.sh` | Patch template `packaging/homebrew-preview/update-nuspec-preview.rb` |
+| `publish-homebrew-preview-tap.sh` | Push `Formula/update-nuspec-preview.rb` to branch `homebrew-preview-tap` |
+
+Secret: **`TAGTOKEN`** (`repo` scope) — push branch `homebrew-preview-tap`.
+
+Template (not installed directly): [`packaging/homebrew-preview/update-nuspec-preview.rb`](../packaging/homebrew-preview/update-nuspec-preview.rb).
+
 ## Chocolatey
 
 Package source: [`packaging/chocolatey/update-nuspec/`](../packaging/chocolatey/update-nuspec/).
@@ -117,6 +142,9 @@ To publish publicly, open a PR to [chocolatey-community/chocolatey-packages](htt
 | [`.github/scripts/push-release-git-tags.sh`](../.github/scripts/push-release-git-tags.sh) | Push git tags (`push-tags` action) |
 | [`.github/scripts/update-homebrew-core-formula.sh`](../.github/scripts/update-homebrew-core-formula.sh) | Patch homebrew-core formula `url` + `sha256` |
 | [`.github/scripts/publish-homebrew-core-pr.sh`](../.github/scripts/publish-homebrew-core-pr.sh) | Push formula to fork and open upstream PR (`gh` + REST fallback; fails CI if PR cannot be created) |
+| [`.github/scripts/preview-archive-url.sh`](../.github/scripts/preview-archive-url.sh) | GitHub archive URL for a commit SHA (preview tap) |
+| [`.github/scripts/update-homebrew-preview-formula.sh`](../.github/scripts/update-homebrew-preview-formula.sh) | Patch preview tap formula `version` + `url` + `sha256` |
+| [`.github/scripts/publish-homebrew-preview-tap.sh`](../.github/scripts/publish-homebrew-preview-tap.sh) | Push `Formula/update-nuspec-preview.rb` to branch `homebrew-preview-tap` |
 | [`.github/scripts/publish-chocolatey-package.sh`](../.github/scripts/publish-chocolatey-package.sh) | Push `.nupkg` to chocolatey.org; detect moderation queue via OData |
 | [`.github/scripts/stage-chocolatey-package.sh`](../.github/scripts/stage-chocolatey-package.sh) | Stage Chocolatey package with embedded Windows exe and `nuget pack` |
 

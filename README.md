@@ -169,9 +169,9 @@ jobs:
 | Branch | SemVer (example) | Git tags | GHCR image | GitHub Release | Chocolatey | Homebrew | ADO extension |
 |--------|------------------|----------|------------|----------------|------------|----------|---------------|
 | `master` | `1.2.3` (stable) | `v1.2.3`, `v1.2`, `v1` | `:1.2.3`, `:1.2`, `:1`, `:latest` | **Release** (binaries + VSIX) | push (stable) | core PR / bump | Marketplace **public** |
-| `release/*`, `hotfix/*` | `1.3.0-preview.4` | — | `:1.3.0-preview.4` only | — | push (prerelease) | — (skipped) | VSIX in CI artifacts |
+| `release/*`, `hotfix/*` | `1.3.0-preview.4` | — | `:1.3.0-preview.4` only | — | push (prerelease) | preview tap (`homebrew-preview-tap`) | VSIX in CI artifacts |
 
-Preview branches publish GHCR and Chocolatey. **Git tags** and **GitHub Release** run on **`master` only** (moving `@v` tags and `:latest` stay on master). Pipeline details: [docs/ci-cd.md](docs/ci-cd.md).
+Preview branches publish GHCR, Chocolatey, and the Homebrew preview tap (branch `homebrew-preview-tap`, no git tags). **Git tags** and **GitHub Release** run on **`master` only** (moving `@v` tags and `:latest` stay on master). Pipeline details: [docs/ci-cd.md](docs/ci-cd.md).
 
 The action is a **composite** wrapper: at runtime it resolves the GHCR tag from the action ref (`@v2.0.117` → `:2.0.117`, `@v2.0` → `:2.0`, `@v2` → `:2`, `@master` → `:latest`) or from optional input `imageTag`.
 
@@ -211,6 +211,7 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | `.github/actions/` | Composite CI/CD actions |
 | `.github/scripts/` | Publish helper scripts (Homebrew, Chocolatey) |
 | `scripts/` | Build helpers (`package-release-binary.sh`, `resolve-action-image-tag.sh`) |
+| `packaging/homebrew-preview/` | Preview Homebrew formula template → CI pushes to branch `homebrew-preview-tap` |
 | `azure-devops-extension/marketplace/` | Marketplace content: `overview.md`, `license.md`, `extension-icon.png` (symlink to project icon), screenshots |
 | `azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript wrapper + bundled `update-nuspec` binaries) |
 
@@ -233,6 +234,13 @@ Fixtures: `UpdateNuspecTool.Tests/TestData/` (`MyPackage.nuspec`, `Cross.Messagi
 
 ```bash
 brew install update-nuspec
+```
+
+**Preview** (from `release/*` / `hotfix/*`, branch `homebrew-preview-tap`, no git tag):
+
+```bash
+brew tap denis-peshkov/update-nuspec https://github.com/denis-peshkov/update-nuspec-action --branch homebrew-preview-tap
+brew install update-nuspec-preview
 ```
 
 ```powershell

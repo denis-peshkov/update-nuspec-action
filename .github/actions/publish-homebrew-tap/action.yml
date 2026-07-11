@@ -1,0 +1,54 @@
+name: Publish Homebrew Preview Tap
+description: Update Formula/update-nuspec-preview.rb on branch homebrew-preview-tap (no git tag)
+
+inputs:
+  version:
+    required: true
+  commit_sha:
+    description: Commit SHA for the preview source archive
+    required: true
+  tagtoken:
+    description: GitHub PAT to push branch homebrew-preview-tap
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Compute preview source archive checksum
+      shell: bash
+      env:
+        COMMIT_SHA: ${{ inputs.commit_sha }}
+      run: |
+        set -euo pipefail
+        mkdir -p dist
+        URL="$(./.github/scripts/preview-archive-url.sh "${COMMIT_SHA}")"
+        curl -fsSL "${URL}" -o dist/preview-source.tar.gz
+        sha256sum dist/preview-source.tar.gz | tee dist/PREVIEW_SOURCE_SHA256
+        echo "PREVIEW_SOURCE_SHA256=$(cut -d' ' -f1 dist/PREVIEW_SOURCE_SHA256)" >> "${GITHUB_ENV}"
+
+    - name: Update preview tap formula draft
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        COMMIT_SHA: ${{ inputs.commit_sha }}
+      run: |
+        set -euo pipefail
+        ./.github/scripts/update-homebrew-preview-formula.sh \
+          "${VERSION}" \
+          "${COMMIT_SHA}" \
+          "${{ env.PREVIEW_SOURCE_SHA256 }}" \
+          "${{ github.workspace }}"
+
+    - name: Push formula to homebrew-preview-tap branch
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        GIT_TOKEN: ${{ inputs.tagtoken }}
+      run: |
+        set -euo pipefail
+        ./.github/scripts/publish-homebrew-preview-tap.sh \
+          "${VERSION}" \
+          "${{ github.workspace }}" \
+          "${GIT_TOKEN}"
