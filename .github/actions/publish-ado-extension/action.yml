@@ -1,0 +1,141 @@
+name: Publish ADO Extension
+description: VSIX + ADO Marketplace
+
+inputs:
+  version:
+    required: true
+  channel:
+    required: true
+  azdo_marketplace_pat:
+    description: Azure DevOps Marketplace publish PAT
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Download binaries from matrix
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ado-binary-*
+        path: dist/ado-binaries
+        merge-multiple: true
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: yarn
+        cache-dependency-path: azure-devops-extension/task/yarn.lock
+
+    - name: Install ADO binaries
+      shell: bash
+      env:
+        TASK_BIN: ${{ github.workspace }}/azure-devops-extension/task
+      run: |
+        set -euo pipefail
+        mkdir -p "${TASK_BIN}/linux-x64" "${TASK_BIN}/win-x64"
+        install -Dm755 dist/ado-binaries/update-nuspec "${TASK_BIN}/linux-x64/update-nuspec"
+        install -Dm644 dist/ado-binaries/update-nuspec.exe "${TASK_BIN}/win-x64/update-nuspec.exe"
+
+    - name: Build ADO task wrapper
+      shell: bash
+      working-directory: azure-devops-extension/task
+      run: yarn install --frozen-lockfile && yarn build
+
+    - name: Verify ADO task binaries
+      shell: bash
+      env:
+        TASK_BIN: ${{ github.workspace }}/azure-devops-extension/task
+      run: |
+        set -euo pipefail
+        ls -la "${TASK_BIN}/linux-x64/" "${TASK_BIN}/win-x64/"
+        test -x "${TASK_BIN}/linux-x64/update-nuspec"
+        test -f "${TASK_BIN}/win-x64/update-nuspec.exe"
+
+    - name: Install TFX CLI
+      shell: bash
+      run: npm install -g tfx-cli@0.17.0
+
+    - name: Update ADO task.json version
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        TASK_BIN: ${{ github.workspace }}/azure-devops-extension/task
+      run: |
+        set -euo pipefail
+        jq --arg sem "${VERSION}" '
+          ($sem | split("-")[0] | split(".")) as $p |
+          .version.Major = ($p[0] | tonumber) |
+          .version.Minor = ($p[1] | tonumber) |
+          .version.Patch = ${{ github.run_number }}
+        ' "${TASK_BIN}/task.json" > "${TASK_BIN}/task.json.tmp"
+        mv "${TASK_BIN}/task.json.tmp" "${TASK_BIN}/task.json"
+        echo "task.json version: $(jq -r '.version | "\(.Major).\(.Minor).\(.Patch)"' "${TASK_BIN}/task.json")"
+
+    - name: Build ADO extension manifest
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        EXTENSION_ROOT: ${{ github.workspace }}/azure-devops-extension
+      run: |
+        set -euo pipefail
+        SOURCE_MANIFEST="vss-extension.json"
+        jq --arg v "${VERSION}" '.version = $v | .public = true' \
+          "${EXTENSION_ROOT}/${SOURCE_MANIFEST}" > "${EXTENSION_ROOT}/.vss-extension.build.json"
+        echo "Extension manifest: version=${VERSION}, channel=${{ inputs.channel }}, public=$(jq -r .public "${EXTENSION_ROOT}/.vss-extension.build.json")"
+
+    - name: Create ADO extension VSIX
+      shell: bash
+      working-directory: azure-devops-extension
+      run: |
+        set -euo pipefail
+        rm -f ./*.vsix
+        tfx extension create --manifest-globs .vss-extension.build.json
+        rm -f .vss-extension.build.json
+        shopt -s nullglob
+        vsix=( ./*.vsix )
+        if [ ${#vsix[@]} -eq 0 ]; then
+          echo "No .vsix produced" >&2
+          exit 1
+        fi
+        echo "Created ${vsix[0]}"
+        vsix_listing="$(unzip -l "${vsix[0]}")"
+        grep -Fq 'task/linux-x64/update-nuspec' <<< "${vsix_listing}" \
+          || { echo "VSIX missing task/linux-x64/update-nuspec" >&2; exit 1; }
+        grep -Fq 'task/win-x64/update-nuspec.exe' <<< "${vsix_listing}" \
+          || { echo "VSIX missing task/win-x64/update-nuspec.exe" >&2; exit 1; }
+        grep -Fq 'marketplace/images/example-boilerplate-url-normalizer.png' <<< "${vsix_listing}" \
+          || { echo "VSIX missing overview screenshot marketplace/images/example-boilerplate-url-normalizer.png" >&2; exit 1; }
+        grep -Fq 'marketplace/images/example-package-json.png' <<< "${vsix_listing}" \
+          || { echo "VSIX missing overview screenshot marketplace/images/example-package-json.png" >&2; exit 1; }
+
+    - name: Restore ADO task.json
+      if: always()
+      shell: bash
+      run: git checkout -- azure-devops-extension/task/task.json
+
+    - name: Upload ADO extension artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ado-extension-vsix
+        path: azure-devops-extension/*.vsix
+        if-no-files-found: error
+
+    - name: Publish ADO extension (release)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      shell: bash
+      working-directory: azure-devops-extension
+      env:
+        AZDO_MARKETPLACE_PAT: ${{ inputs.azdo_marketplace_pat }}
+      run: |
+        set -euo pipefail
+        VSIX=( *.vsix )
+        tfx extension publish \
+          --auth-type pat \
+          -t "${AZDO_MARKETPLACE_PAT}" \
+          --publisher peshkov \
+          --vsix "${VSIX[0]}" \
+          --extension-pricing free \
+          --extension-visibility public

@@ -1,0 +1,84 @@
+name: Publish GitHub Action
+description: GHCR + Docker smoke
+
+inputs:
+  version:
+    required: true
+  major:
+    required: true
+  minor:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Download binaries from matrix
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ado-binary-*
+        path: dist/ado-binaries
+        merge-multiple: true
+
+    - name: Build Docker image
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p docker
+        cp dist/ado-binaries/update-nuspec docker/update-nuspec
+        chmod +x docker/update-nuspec
+        docker build -t update-nuspec-action:ci .
+
+    - name: Smoke test (repo root, recursive scan)
+      shell: bash
+      run: |
+        set -euo pipefail
+        smoke_output="$(docker run --rm \
+          -v "${{ github.workspace }}:/github/workspace" \
+          update-nuspec-action:ci .)"
+        grep -Fq 'Start processing file' <<< "${smoke_output}"
+
+    - name: Smoke test (relative path under workspace)
+      shell: bash
+      run: |
+        set -euo pipefail
+        smoke_output="$(docker run --rm \
+          -v "${{ github.workspace }}:/github/workspace" \
+          update-nuspec-action:ci .github)"
+        grep -Fq 'nuspec files not found' <<< "${smoke_output}"
+
+    - name: Smoke test (dry-run)
+      shell: bash
+      run: |
+        set -euo pipefail
+        smoke_output="$(docker run --rm \
+          -v "${{ github.workspace }}:/github/workspace" \
+          update-nuspec-action:ci UpdateNuspecTool.Tests/TestData true)"
+        grep -Fq '[DRY RUN]' <<< "${smoke_output}"
+
+    - name: Log in to GHCR
+      if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Push image to GHCR
+      if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        IMAGE=ghcr.io/denis-peshkov/update-nuspec
+        TAGS=( "${{ inputs.version }}" )
+        if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
+          TAGS+=( \
+            "${{ inputs.major }}.${{ inputs.minor }}" \
+            "${{ inputs.major }}" \
+            latest )
+        fi
+        for tag in "${TAGS[@]}"; do
+          docker tag update-nuspec-action:ci "${IMAGE}:${tag}"
+          docker push "${IMAGE}:${tag}"
+        done

@@ -1,0 +1,34 @@
+name: Push Git Tags
+description: Push moving git tags and release version tag on master
+
+inputs:
+  version:
+    required: true
+  major:
+    required: true
+  minor:
+    required: true
+  tagtoken:
+    description: GitHub PAT for git tag push
+    required: true
+
+outputs:
+  version_commit:
+    description: Commit SHA tagged for v{version}
+    value: ${{ steps.push.outputs.version_commit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Push git tags
+      id: push
+      shell: bash
+      env:
+        TAGTOKEN: ${{ inputs.tagtoken }}
+      run: |
+        set -euo pipefail
+        version_commit="$(./.github/scripts/push-release-git-tags.sh \
+          "${{ inputs.version }}" \
+          "${{ inputs.major }}" \
+          "${{ inputs.minor }}")"
+        echo "version_commit=${version_commit}" >> "${GITHUB_OUTPUT}"

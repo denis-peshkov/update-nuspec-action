@@ -6,11 +6,16 @@ Standalone CLI distribution for `update-nuspec` (outside Docker / Azure DevOps).
 
 Orchestrator: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
-On each **push** to `master`, `release/*`, or `hotfix/*`, three publish jobs run **in parallel** after the `build` action completes (preview branches produce a GitHub **Pre-release** and a prerelease Chocolatey package; Homebrew is master-only):
+On each **push** to `master`, `release/*`, or `hotfix/*`:
+
+- **`push-tags`** runs after `test` on **`master` only**
+- Then in parallel: **`publish-github-action`**, **`publish-ado-extension`**, **`publish-chocolatey`**, **`publish-homebrew`** (master)
+- **`publish-github-release`** runs after **`publish-ado-extension`** (master only)
 
 | Composite action | What it publishes |
 |------------------|-------------------|
-| [`publish-github-release`](../.github/actions/publish-github-release/action.yml) | GitHub Release assets (see below) |
+| [`push-tags`](../.github/actions/push-tags/action.yml) | Push git tags (`master` only) |
+| [`publish-github-release`](../.github/actions/publish-github-release/action.yml) | GitHub Release assets (`master` only; after `publish-ado-extension`) |
 | [`publish-chocolatey`](../.github/actions/publish-chocolatey/action.yml) | chocolatey.org `.nupkg` (embedded Windows exe) |
 | [`publish-homebrew`](../.github/actions/publish-homebrew/action.yml) | homebrew-core formula PR / bump (`master` only) |
 
@@ -20,9 +25,12 @@ Upstream jobs (same pipeline run):
 |------------------|------|
 | [`version`](../.github/actions/version/action.yml) | GitVersion |
 | [`release-binary`](../.github/actions/release-binary/action.yml) | Matrix build (4 targets in `ci.yml`); `release-binary-*` artifacts for publish |
-| [`build`](../.github/actions/build/action.yml) | Tests, GHCR, ADO VSIX (`ado-extension-vsix` artifact) |
+| [`test`](../.github/actions/test/action.yml) | Rust/.NET tests, SonarCloud (after matrix) |
+| [`push-tags`](../.github/actions/push-tags/action.yml) | Git tags on `master` (after `test`) |
+| [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | GHCR + Docker smoke |
+| [`publish-ado-extension`](../.github/actions/publish-ado-extension/action.yml) | VSIX + ADO Marketplace |
 
-Binaries are built once in the `release-binary` matrix; `build` reuses `ado-binary-*` for Docker and ADO.
+After `test`, `push-tags` runs on `master`; then `publish-github-action`, `publish-ado-extension`, `publish-chocolatey`, and `publish-homebrew` run in parallel. `publish-github-release` waits for `publish-ado-extension`.
 
 ## GitHub Release assets
 
@@ -60,7 +68,7 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 
 | Secret | Purpose |
 |--------|---------|
-| `TAGTOKEN` | Push git tags and `action.yml` pins in `build` action; push to `homebrew-core` fork for initial PR (`repo` scope) |
+| `TAGTOKEN` | Moving git tags in `push-tags`; Homebrew fork push / initial PR (`repo` scope) |
 | `HOMEBREW_GITHUB_API_KEY` | [PAT](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request#generating-a-personal-access-token-classic) with `public_repo` for `brew bump-formula-pr` after formula is in core |
 | `CHOCOLATEY_API_KEY` | API key for `publish-chocolatey` action → chocolatey.org |
 
@@ -99,7 +107,8 @@ To publish publicly, open a PR to [chocolatey-community/chocolatey-packages](htt
 | Script | Purpose |
 |--------|---------|
 | [`scripts/package-release-binary.sh`](../scripts/package-release-binary.sh) | Build `.tar.gz` / `.zip` from a compiled binary (`release-binary` action) |
-| [`scripts/pin-action-image.sh`](../scripts/pin-action-image.sh) | Pin `action.yml` to GHCR image tag per git release tag (`build` action) |
+| [`scripts/resolve-action-image-tag.sh`](../scripts/resolve-action-image-tag.sh) | Map action `@ref` / `imageTag` input → GHCR tag (`action.yml`) |
+| [`.github/scripts/push-release-git-tags.sh`](../.github/scripts/push-release-git-tags.sh) | Push git tags (`push-tags` action) |
 | [`.github/scripts/update-homebrew-core-formula.sh`](../.github/scripts/update-homebrew-core-formula.sh) | Patch homebrew-core formula `url` + `sha256` |
 | [`.github/scripts/publish-homebrew-core-pr.sh`](../.github/scripts/publish-homebrew-core-pr.sh) | Push formula to `denis-peshkov/homebrew-core` and open upstream PR |
 | [`.github/scripts/publish-chocolatey-package.sh`](../.github/scripts/publish-chocolatey-package.sh) | Push `.nupkg` to chocolatey.org; detect moderation queue via OData |

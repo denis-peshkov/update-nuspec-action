@@ -4,6 +4,9 @@ description: Create GitHub Release with binaries, checksums, and VSIX
 inputs:
   version:
     required: true
+  version_commit:
+    description: Commit SHA for release target (from push-tags)
+    required: true
   prerelease:
     required: true
 
@@ -35,6 +38,7 @@ runs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ inputs.version }}
+        target_commitish: ${{ inputs.version_commit }}
         name: v${{ inputs.version }}
         prerelease: ${{ inputs.prerelease == 'true' }}
         generate_release_notes: true

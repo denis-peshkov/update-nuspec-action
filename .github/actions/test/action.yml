@@ -1,0 +1,82 @@
+name: Test
+description: Run Rust and .NET tests with coverage and SonarCloud scan
+
+inputs:
+  sonar_token:
+    description: SonarCloud token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, llvm-tools-preview
+
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
+
+    - name: Run Rust tests with coverage
+      shell: bash
+      working-directory: update-nuspec
+      run: |
+        set -euo pipefail
+        mkdir -p ../TestResults/rust
+        cargo llvm-cov test --verbose --lcov --output-path ../TestResults/rust/lcov.info
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      shell: bash
+      env:
+        TEST_PROJECT: UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
+      run: dotnet restore "${TEST_PROJECT}"
+
+    - name: Build
+      shell: bash
+      env:
+        BUILD_CONFIG: Release
+        TEST_PROJECT: UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
+      run: dotnet build "${TEST_PROJECT}" --configuration "${BUILD_CONFIG}" --no-restore
+
+    - name: Run tests
+      shell: bash
+      env:
+        BUILD_CONFIG: Release
+        TEST_PROJECT: UpdateNuspecTool.Tests/UpdateNuspecTool.Tests.csproj
+      run: >
+        dotnet test "${TEST_PROJECT}"
+        --configuration "${BUILD_CONFIG}"
+        --no-restore
+        --verbosity normal
+        --collect:"XPlat Code Coverage"
+        --results-directory ./TestResults
+        --
+        DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+    - name: SonarQube Scan
+      uses: sonarsource/sonarcloud-github-action@v5
+      with:
+        args: >
+          -Dsonar.organization=denis-peshkov
+          -Dsonar.projectKey=UpdateNuspecTool
+          -Dsonar.projectName=UpdateNuspecTool
+          -Dsonar.cs.opencover.reportsPaths=TestResults/**/coverage.opencover.xml
+          -Dsonar.rust.lcov.reportPaths=TestResults/rust/lcov.info
+          -Dsonar.rust.cargo.manifestPaths=update-nuspec/Cargo.toml
+          -Dsonar.sources=UpdateNuspecTool/,update-nuspec/src/
+          -Dsonar.tests=UpdateNuspecTool.Tests/,update-nuspec/tests/
+          -Dsonar.exclusions=UpdateNuspecTool.Tests/TestData/**
+          -Dsonar.scanner.skipJreProvisioning=true
+          -Dsonar.verbose=true
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        SONAR_TOKEN: ${{ inputs.sonar_token }}

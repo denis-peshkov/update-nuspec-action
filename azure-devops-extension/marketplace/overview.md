@@ -106,7 +106,7 @@ Preview builds are published from `release/*` and `hotfix/*` branches before the
 1. Org slug in CI: **peshkov** → `https://dev.azure.com/peshkov`.
 2. After publish: **Organization settings** → **Extensions** → **Shared** → **Update \*.nuspec** / `peshkov.update-nuspec` → install the version you need.
 
-Preview VSIX version: `major.minor.patch.preReleaseNumber` (for example `1.1.0.4`); git tags remain `1.1.0-preview.4`. Preview builds do not push `@v` git tags — install the VSIX from the GitHub Pre-release assets.
+Preview VSIX version: `major.minor.patch.preReleaseNumber` (for example `1.1.0.4`). Preview builds do not push git tags or GitHub Releases — install the VSIX from the CI artifact `ado-extension-vsix`.
 
 ## Links
 
