@@ -62,15 +62,15 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         FORMULA="${{ github.workspace }}/distribution/homebrew-core/update-nuspec.rb"
         brew untap update-nuspec/ci 2>/dev/null || true
         brew tap-new update-nuspec/ci
         TAP="$(brew --repository update-nuspec/ci)"
         cp "${FORMULA}" "${TAP}/Formula/update-nuspec.rb"
         git -C "${TAP}" add Formula/update-nuspec.rb
-        git -C "${TAP}" -c user.name="GitHub Actions" \
-          -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-          commit -m "CI validation"
+        git -C "${TAP}" commit -m "CI validation"
         export HOMEBREW_NO_INSTALL_FROM_API=1
         brew install --build-from-source update-nuspec/ci/update-nuspec
         brew test update-nuspec
