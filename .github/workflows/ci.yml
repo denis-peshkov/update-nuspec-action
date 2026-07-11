@@ -97,7 +97,7 @@ jobs:
           tagtoken: ${{ secrets.TAGTOKEN }}
 
   publish-github-action:
-    name: Publish GitHub Action (GHCR + Docker smoke)
+    name: Publish GitHub Action
     needs:
       - version
       - release-binaries
@@ -118,7 +118,7 @@ jobs:
           minor: ${{ needs.version.outputs.minor }}
 
   publish-ado-extension:
-    name: Publish ADO Extension (VSIX + ADO Marketplace)
+    name: Publish ADO Extension
     needs:
       - version
       - release-binaries

@@ -3,7 +3,7 @@
   <metadata>
     <id>update-nuspec</id>
     <version>0.0.0</version>
-    <title>CLI that scans .NET projects in a directory and updates the <dependencies> section in matching *.nuspec files according to PackageReference versions from the related .csproj. Optionally updates package.json version and scoped npm dependencies.</title>
+    <title>CLI that scans .NET projects in a directory and updates the dependencies section in matching *.nuspec files according to PackageReference versions from the related .csproj. Optionally updates package.json version and scoped npm dependencies.</title>
     <authors>Denis Peshkov</authors>
     <owners>Denis Peshkov</owners>
     <projectUrl>https://github.com/denis-peshkov/update-nuspec-action</projectUrl>
