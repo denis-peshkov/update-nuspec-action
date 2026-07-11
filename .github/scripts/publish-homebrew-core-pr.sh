@@ -18,6 +18,8 @@ CORE_URL="https://x-access-token:${GIT_TOKEN}@github.com/${CORE_REPO}.git"
 BRANCH="update-nuspec"
 FORMULA_SRC="${REPO_ROOT}/packaging/homebrew-core/update-nuspec.rb"
 FORMULA_DST="Formula/u/update-nuspec.rb"
+PR_HEAD="denis-peshkov:${BRANCH}"
+PR_COMPARE_URL="https://github.com/${UPSTREAM_REPO}/compare/${UPSTREAM_DEFAULT_BRANCH}...${PR_HEAD}?expand=1"
 
 if [[ -z "${REPO_ROOT}" || -z "${GIT_TOKEN}" || -z "${VERSION}" ]]; then
   usage
@@ -25,6 +27,11 @@ fi
 
 if [[ ! -f "${FORMULA_SRC}" ]]; then
   echo "Formula draft not found: ${FORMULA_SRC}" >&2
+  exit 1
+fi
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo "GitHub CLI (gh) is required to open a Homebrew PR" >&2
   exit 1
 fi
 
@@ -51,17 +58,9 @@ else
 fi
 
 git push -u origin "${BRANCH}" --force
+echo "Published formula to ${CORE_REPO} branch ${BRANCH}"
 
-if command -v gh >/dev/null 2>&1; then
-  export GH_TOKEN="${GH_API_TOKEN}"
-  PR_URL="https://github.com/${UPSTREAM_REPO}/compare/${UPSTREAM_DEFAULT_BRANCH}...denis-peshkov:${BRANCH}?expand=1"
-  if gh pr list --repo "${UPSTREAM_REPO}" --head "denis-peshkov:${BRANCH}" --state open --json number --jq 'length' | grep -qx '0'; then
-    if ! gh pr create \
-      --repo "${UPSTREAM_REPO}" \
-      --head "denis-peshkov:${BRANCH}" \
-      --base "${UPSTREAM_DEFAULT_BRANCH}" \
-      --title "update-nuspec ${VERSION} (new formula)" \
-      --body "$(cat <<EOF
+PR_BODY="$(cat <<EOF
 - [x] Have you followed the [guidelines for contributing](https://github.com/Homebrew/homebrew-core/blob/master/CONTRIBUTING.md)?
 - [x] Have you ensured that your commits follow the [commit style guide](https://docs.brew.sh/Formula-Cookbook#commit)?
 
@@ -70,18 +69,101 @@ brew install update-nuspec
 update-nuspec --version
 \`\`\`
 EOF
-)"; then
-      echo "gh pr create failed; formula is on fork — open PR manually:" >&2
-      echo "${PR_URL}" >&2
-    else
-      echo "Opened PR to ${UPSTREAM_REPO}"
-    fi
-  else
-    echo "Open PR already exists for ${BRANCH}"
+)"
+PR_TITLE="update-nuspec ${VERSION} (new formula)"
+
+open_pr_with_gh() {
+  local token="$1"
+  export GH_TOKEN="${token}"
+  gh auth setup-git >/dev/null 2>&1 || true
+  gh pr create \
+    --repo "${UPSTREAM_REPO}" \
+    --head "${PR_HEAD}" \
+    --base "${UPSTREAM_DEFAULT_BRANCH}" \
+    --title "${PR_TITLE}" \
+    --body "${PR_BODY}"
+}
+
+open_pr_with_rest() {
+  local token="$1"
+  local payload
+  payload="$(jq -n \
+    --arg title "${PR_TITLE}" \
+    --arg head "${PR_HEAD}" \
+    --arg base "${UPSTREAM_DEFAULT_BRANCH}" \
+    --arg body "${PR_BODY}" \
+    '{title: $title, head: $head, base: $base, body: $body}')"
+  curl -fsSL -X POST \
+    -H "Authorization: Bearer ${token}" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/${UPSTREAM_REPO}/pulls" \
+    -d "${payload}"
+}
+
+try_open_pr() {
+  local token="$1"
+  export GH_TOKEN="${token}"
+
+  if open_pr_with_gh "${token}" 2>/dev/null; then
+    return 0
   fi
-else
-  echo "gh CLI not found; formula pushed to ${CORE_REPO}:${BRANCH}"
-  echo "Open PR manually: https://github.com/${UPSTREAM_REPO}/compare/${UPSTREAM_DEFAULT_BRANCH}...denis-peshkov:${BRANCH}?expand=1"
+
+  if open_pr_with_rest "${token}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  return 1
+}
+
+print_token_help() {
+  cat >&2 <<EOF
+Failed to open a pull request to ${UPSTREAM_REPO}.
+
+Fork branch was pushed: ${CORE_REPO}:${BRANCH}
+Manual compare URL: ${PR_COMPARE_URL}
+
+HOMEBREW_GITHUB_API_KEY (or TAGTOKEN fallback) must be a classic PAT with the
+public_repo scope, or a fine-grained PAT with Pull requests: Read and write on
+${UPSTREAM_REPO}. See:
+https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request#generating-a-personal-access-token-classic
+EOF
+}
+
+export GH_TOKEN="${GH_API_TOKEN}"
+open_pr_count="$(gh pr list \
+  --repo "${UPSTREAM_REPO}" \
+  --head "${PR_HEAD}" \
+  --state open \
+  --json number \
+  --jq 'length')"
+
+if [[ "${open_pr_count}" != "0" ]]; then
+  existing_url="$(gh pr list \
+    --repo "${UPSTREAM_REPO}" \
+    --head "${PR_HEAD}" \
+    --state open \
+    --json url \
+    --jq '.[0].url')"
+  echo "Open PR already exists: ${existing_url}"
+  exit 0
 fi
 
-echo "Published formula to ${CORE_REPO} branch ${BRANCH}"
+tokens_to_try=()
+if [[ -n "${GH_API_TOKEN}" ]]; then
+  tokens_to_try+=("${GH_API_TOKEN}")
+fi
+if [[ -n "${GIT_TOKEN}" && "${GIT_TOKEN}" != "${GH_API_TOKEN}" ]]; then
+  tokens_to_try+=("${GIT_TOKEN}")
+fi
+
+for token in "${tokens_to_try[@]}"; do
+  if try_open_pr "${token}"; then
+    echo "Opened PR to ${UPSTREAM_REPO}"
+    gh pr list --repo "${UPSTREAM_REPO}" --head "${PR_HEAD}" --state open --json url --jq '.[0].url'
+    exit 0
+  fi
+done
+
+print_token_help
+exit 1

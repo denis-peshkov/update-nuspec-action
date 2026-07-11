@@ -20,7 +20,7 @@ if [[ ! -f "${FORMULA}" ]]; then
   exit 1
 fi
 
-URL="https://github.com/denis-peshkov/update-nuspec-action/archive/refs/tags/v${VERSION}.tar.gz"
+URL="$("${REPO_ROOT}/.github/scripts/release-source-url.sh" "${VERSION}")"
 
 # Only url and sha256 change between releases; the rest stays as committed.
 perl -pi -e "s|^  url \".*\"|  url \"${URL}\"|" "${FORMULA}"

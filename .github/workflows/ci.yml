@@ -56,53 +56,114 @@ jobs:
           exe: ${{ matrix.exe }}
           publish_artifacts: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
 
-  build:
+  test:
+    name: Test
     needs:
       - version
       - release-binaries
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      packages: write
-      actions: read
+      contents: read
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/build
+      - uses: ./.github/actions/test
+        with:
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+
+  push-tags:
+    name: Push Git Tags
+    needs:
+      - version
+      - release-binaries
+      - test
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-22.04
+    outputs:
+      version_commit: ${{ steps.push.outputs.version_commit }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - id: push
+        uses: ./.github/actions/push-tags
         with:
           version: ${{ needs.version.outputs.version }}
           major: ${{ needs.version.outputs.major }}
           minor: ${{ needs.version.outputs.minor }}
-          channel: ${{ needs.version.outputs.channel }}
-          sonar_token: ${{ secrets.SONAR_TOKEN }}
           tagtoken: ${{ secrets.TAGTOKEN }}
-          azdo_marketplace_pat: ${{ secrets.AZDO_MARKETPLACE_PAT }}
 
-  publish-github-release:
-    name: Publish GitHub Release
+  publish-github-action:
+    name: GHCR + Docker smoke
     needs:
       - version
-      - build
       - release-binaries
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
-    runs-on: ubuntu-22.04
+      - test
+      - push-tags
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') }}
+    runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      packages: write
       actions: read
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/publish-github-release
+      - uses: ./.github/actions/publish-github-action
         with:
           version: ${{ needs.version.outputs.version }}
-          prerelease: ${{ needs.version.outputs.prerelease }}
+          major: ${{ needs.version.outputs.major }}
+          minor: ${{ needs.version.outputs.minor }}
+
+  publish-ado-extension:
+    name: VSIX + ADO Marketplace
+    needs:
+      - version
+      - release-binaries
+      - test
+      - push-tags
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/publish-ado-extension
+        with:
+          version: ${{ needs.version.outputs.version }}
+          channel: ${{ needs.version.outputs.channel }}
+          azdo_marketplace_pat: ${{ secrets.AZDO_MARKETPLACE_PAT }}
+
+  publish-chocolatey:
+    name: Publish Chocolatey
+    needs:
+      - version
+      - release-binaries
+      - test
+      - push-tags
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/publish-chocolatey
+        with:
+          version: ${{ needs.version.outputs.version }}
+          chocolatey_api_key: ${{ secrets.CHOCOLATEY_API_KEY }}
 
   publish-homebrew:
     name: Publish Homebrew
     needs:
       - version
-      - build
       - release-binaries
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+      - test
+      - push-tags
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && needs.push-tags.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -114,20 +175,39 @@ jobs:
           tagtoken: ${{ secrets.TAGTOKEN }}
           homebrew_github_api_key: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
 
-  publish-chocolatey:
-    name: Publish Chocolatey
+  publish-github-release:
+    name: Publish GitHub Release
     needs:
       - version
-      - build
-      - release-binaries
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+      - push-tags
+      - publish-ado-extension
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-22.04
     permissions:
-      contents: read
+      contents: write
       actions: read
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/publish-chocolatey
+      - uses: ./.github/actions/publish-github-release
         with:
           version: ${{ needs.version.outputs.version }}
-          chocolatey_api_key: ${{ secrets.CHOCOLATEY_API_KEY }}
+          version_commit: ${{ needs.push-tags.outputs.version_commit }}
+          prerelease: ${{ needs.version.outputs.prerelease }}
+
+  publish-homebrew-tap:
+    name: Publish Homebrew Preview Tap
+    needs:
+      - version
+      - release-binaries
+      - test
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/publish-homebrew-tap
+        with:
+          version: ${{ needs.version.outputs.version }}
+          commit_sha: ${{ github.sha }}
+          tagtoken: ${{ secrets.TAGTOKEN }}

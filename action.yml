@@ -20,17 +20,31 @@ inputs:
     description: 'npm package name prefix to align to ^packageVersion. Skipped when empty.'
     required: false
     default: ''
+  imageTag:
+    description: 'GHCR image tag override (e.g. 2.0.117, 2.0, latest, 2.0.118-preview). When empty, derived from the action ref (@v2.0.117 → 2.0.117; @v2 → 2; @master → latest). Required for preview when using a branch ref.'
+    required: false
+    default: ''
 outputs:
   packageVersion:
     description: 'The packageVersion input value when package.json processing ran.'
 runs:
-  using: 'docker'
-  # Prebuilt image (pushed to GHCR by CI). Each git tag points to action.yml with the
-  # matching GHCR tag: @v1.2.3 → :1.2.3, @v1.2 → :1.2, @v1 → :1, master → :latest.
-  image: 'docker://ghcr.io/denis-peshkov/update-nuspec:latest'
-  env:
-    PACKAGE_VERSION: ${{ inputs.packageVersion }}
-    DEPENDENCY_SCOPE: ${{ inputs.dependencyScope }}
-  args:
-    - ${{ inputs.dir }}
-    - ${{ inputs.dryRun }}
+  using: composite
+  steps:
+    - name: Run update-nuspec container
+      id: run
+      shell: bash
+      run: |
+        set -euo pipefail
+        IMAGE_TAG="$("${GITHUB_ACTION_PATH}/scripts/resolve-action-image-tag.sh" \
+          "${{ inputs.imageTag }}" \
+          "${{ github.action_ref }}")"
+        IMAGE="ghcr.io/denis-peshkov/update-nuspec:${IMAGE_TAG}"
+        echo "Using GHCR image: ${IMAGE}"
+        docker run --rm \
+          -v "${GITHUB_WORKSPACE}:/github/workspace" \
+          -e GITHUB_OUTPUT="${GITHUB_OUTPUT:-}" \
+          -e PACKAGE_VERSION="${{ inputs.packageVersion }}" \
+          -e DEPENDENCY_SCOPE="${{ inputs.dependencyScope }}" \
+          "${IMAGE}" \
+          "${{ inputs.dir }}" \
+          "${{ inputs.dryRun }}"
