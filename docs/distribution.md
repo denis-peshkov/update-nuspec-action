@@ -66,7 +66,8 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 | `package-release-source.sh` | Build `update-nuspec-{version}-src.tar.gz` via `git archive` (only tracked `update-nuspec/` files) |
 | inline in action | Patch formula draft `url` + `sha256` in `distribution/homebrew-core/` (not committed) |
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
-| `publish-homebrew-core-pr.sh` | **If not in core:** push to fork, open upstream PR (`gh` + REST fallback; fails CI if PR cannot be created) |
+| inline in action | **If not in core:** `brew install --build-from-source`, `brew test`, `brew audit --strict --new` on formula draft |
+| `publish-homebrew-core-pr.sh` | **If not in core:** push to fork, open upstream PR with full Homebrew PR template (`gh` + REST fallback; fails CI if PR cannot be created) |
 | `brew bump-formula-pr` | **If in core:** open version-bump PR (needs `HOMEBREW_GITHUB_API_KEY`) |
 
 ### Secrets

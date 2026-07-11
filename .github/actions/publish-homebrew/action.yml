@@ -54,6 +54,21 @@ runs:
           echo "FORMULA_IN_CORE=0" >> "${GITHUB_ENV}"
         fi
 
+    - name: Set up Homebrew
+      if: env.FORMULA_IN_CORE == '0'
+      uses: Homebrew/actions/setup-homebrew@master
+
+    - name: Validate new Homebrew formula
+      if: env.FORMULA_IN_CORE == '0'
+      shell: bash
+      run: |
+        set -euo pipefail
+        FORMULA="${{ github.workspace }}/distribution/homebrew-core/update-nuspec.rb"
+        export HOMEBREW_NO_INSTALL_FROM_API=1
+        brew install --build-from-source "${FORMULA}"
+        brew test update-nuspec
+        brew audit --strict --new update-nuspec
+
     - name: Publish Homebrew core PR (new formula)
       if: env.FORMULA_IN_CORE == '0'
       shell: bash

@@ -60,14 +60,31 @@ fi
 git push -u origin "${BRANCH}" --force
 echo "Published formula to ${CORE_REPO} branch ${BRANCH}"
 
-PR_BODY="$(cat <<EOF
-- [x] Have you followed the [guidelines for contributing](https://github.com/Homebrew/homebrew-core/blob/master/CONTRIBUTING.md)?
-- [x] Have you ensured that your commits follow the [commit style guide](https://docs.brew.sh/Formula-Cookbook#commit)?
+PR_BODY="$(cat <<'EOF'
+-----
 
-\`\`\`bash
+<!-- If your PR is a formula addition/update, please rename the PR to `update-nuspec VERSION (new formula)` and ensure it passes all checks.
+`update-nuspec` is the name of the formula you're editing. -->
+
+- [x] Have you followed the [guidelines for contributing](https://github.com/Homebrew/homebrew-core/blob/HEAD/CONTRIBUTING.md)?
+- [x] Have you ensured that your commits follow the [commit style guide](https://docs.brew.sh/Formula-Cookbook#commit)?
+- [x] Have you checked that there aren't other open [pull requests](https://github.com/Homebrew/homebrew-core/pulls) for the same formula update/change?
+- [x] Have you built your formula locally with `HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source update-nuspec`?
+- [x] Is your test running fine `brew test update-nuspec`?
+- [x] Does your build pass `brew audit --strict update-nuspec` (after doing `HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source update-nuspec`)? If this is a new formula, does it pass `brew audit --new update-nuspec`?
+
+Automated release CI (`publish-homebrew`) verified the formula draft from the GitHub Release source archive before opening this PR.
+
+```bash
 brew install update-nuspec
 update-nuspec --version
-\`\`\`
+```
+
+-----
+
+- [ ] AI was used to generate or assist with generating this PR. *Please specify below how you used AI to help you, and what steps you have taken to manually verify the changes*.
+
+-----
 EOF
 )"
 PR_TITLE="update-nuspec ${VERSION} (new formula)"
