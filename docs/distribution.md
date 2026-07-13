@@ -30,11 +30,11 @@ Upstream jobs (same pipeline run):
 | [`version`](../.github/actions/version/action.yml) | GitVersion |
 | [`release-binary`](../.github/actions/release-binary/action.yml) | Matrix build (4 targets in `ci.yml`); `release-binary-*` artifacts for publish |
 | [`test`](../.github/actions/test/action.yml) | Rust/.NET tests, SonarCloud (after matrix) |
-| [`push-tags`](../.github/actions/push-tags/action.yml) | Git tags on `master` (after `test`) |
+| [`push-tags`](../.github/actions/push-tags/action.yml) | Git tags on `master` (after matrix) |
 | [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | GHCR + Docker smoke |
 | [`publish-ado-extension`](../.github/actions/publish-ado-extension/action.yml) | VSIX + ADO Marketplace |
 
-After `test`, `push-tags` runs on `master`; then `publish-github-action`, `publish-ado-extension`, and `publish-chocolatey` run in parallel. `publish-github-release` waits for `publish-ado-extension`; `publish-homebrew` waits for `publish-github-release`.
+After `test`, `release-binaries` runs; then `push-tags` (master), `publish-github-action`, `publish-ado-extension`, and `publish-chocolatey` run. `publish-github-release` waits for `publish-ado-extension` and `push-tags`; `publish-homebrew` waits for `publish-github-release`.
 
 ## GitHub Release assets
 
@@ -64,8 +64,8 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 
 | Step | What happens |
 |------|----------------|
-| `package-release-source.sh` | Build `update-nuspec-{version}-src.tar.gz` via `git archive` (only tracked `update-nuspec/` files) |
-| inline in action | Patch formula draft `url` + `sha256` in `distribution/homebrew-core/` (not committed) |
+| `package-release-source.sh` | Build `update-nuspec-{version}-src.tar.gz` via `git archive` (only tracked `update-nuspec/` files) — in `publish-github-release` |
+| inline in action | Download src archive from Release, compute `sha256`, patch formula draft `url` + `sha256` in `distribution/homebrew-core/` (not committed) |
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
 | inline in action | **If not in core:** `brew install --build-from-source`, `brew test`, `brew audit --strict --new` on formula draft (Release URL) |
 | `publish-homebrew-core-pr.sh` | **If not in core:** push to fork, open upstream PR with full Homebrew PR template (`gh` + REST fallback; fails CI if PR cannot be created) |

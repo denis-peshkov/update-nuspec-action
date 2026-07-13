@@ -4,6 +4,9 @@ description: Update homebrew-core formula and open PR or bump
 inputs:
   version:
     required: true
+  version_commit:
+    description: Commit SHA tagged for the release (from push-tags)
+    required: true
   tagtoken:
     description: GitHub PAT for homebrew-core fork push
     required: true
@@ -15,17 +18,20 @@ runs:
   using: composite
   steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.version_commit }}
 
-    - name: Package source archive and update formula draft
+    - name: Resolve source archive from Release
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
       run: |
         set -euo pipefail
         mkdir -p dist
-        ARCHIVE="$(./.github/scripts/package-release-source.sh "${VERSION}" "${{ github.workspace }}" dist)"
-        SOURCE_SHA256="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
+        ARCHIVE="dist/update-nuspec-${VERSION}-src.tar.gz"
         SOURCE_URL="https://github.com/denis-peshkov/update-nuspec-action/releases/download/v${VERSION}/update-nuspec-${VERSION}-src.tar.gz"
+        curl -fsSL -o "${ARCHIVE}" "${SOURCE_URL}"
+        SOURCE_SHA256="$(sha256sum "${ARCHIVE}" | awk '{print $1}')"
 
         echo "SOURCE_SHA256=${SOURCE_SHA256}" >> "${GITHUB_ENV}"
         echo "SOURCE_URL=${SOURCE_URL}" >> "${GITHUB_ENV}"

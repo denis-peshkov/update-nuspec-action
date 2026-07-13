@@ -100,8 +100,8 @@ jobs:
     name: Publish GitHub Action
     needs:
       - version
-      - push-tags
-    if: ${{ !failure() && !cancelled() && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') }}
+      - release-binaries
+    if: ${{ !failure() && !cancelled() && needs.release-binaries.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -119,8 +119,8 @@ jobs:
     name: Publish ADO Extension
     needs:
       - version
-      - push-tags
-    if: ${{ !failure() && !cancelled() && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') }}
+      - release-binaries
+    if: ${{ !failure() && !cancelled() && needs.release-binaries.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -137,8 +137,8 @@ jobs:
     name: Publish Chocolatey
     needs:
       - version
-      - push-tags
-    if: ${{ !failure() && !cancelled() && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+      - release-binaries
+    if: ${{ !failure() && !cancelled() && needs.release-binaries.result == 'success' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -154,8 +154,8 @@ jobs:
     name: Publish Homebrew Preview
     needs:
       - version
-      - push-tags
-    if: ${{ !failure() && !cancelled() && (needs.push-tags.result == 'success' || needs.push-tags.result == 'skipped') && github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+      - test
+    if: ${{ !failure() && !cancelled() && needs.test.result == 'success' && github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -182,6 +182,7 @@ jobs:
       - uses: ./.github/actions/publish-homebrew
         with:
           version: ${{ needs.version.outputs.version }}
+          version_commit: ${{ needs.push-tags.outputs.version_commit }}
           tagtoken: ${{ secrets.TAGTOKEN }}
           homebrew_github_api_key: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
 
