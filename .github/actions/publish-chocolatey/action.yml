@@ -4,6 +4,12 @@ description: Stage and push Chocolatey package
 inputs:
   version:
     required: true
+  channel:
+    description: release or preview (from version job)
+    required: true
+  version_commit:
+    description: Commit SHA for preview VERIFICATION
+    required: true
   chocolatey_api_key:
     description: chocolatey.org API key
     required: true
@@ -31,6 +37,10 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
+        CHANNEL: ${{ inputs.channel }}
+        COMMIT_SHA: ${{ inputs.version_commit }}
+        BRANCH: ${{ github.ref_name }}
+        CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         set -euo pipefail
         WINDOWS_ZIP="dist/binaries/update-nuspec-${VERSION}-x86_64-pc-windows-msvc.zip"

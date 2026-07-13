@@ -10,10 +10,13 @@ on:
   workflow_dispatch:
 
 jobs:
+
   version:
+    name: Versioning
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      version_commit: ${{ steps.version.outputs.version_commit }}
       major: ${{ steps.version.outputs.major }}
       minor: ${{ steps.version.outputs.minor }}
       semver: ${{ steps.version.outputs.semver }}
@@ -79,8 +82,6 @@ jobs:
       - release-binaries
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-22.04
-    outputs:
-      version_commit: ${{ steps.push.outputs.version_commit }}
     permissions:
       contents: write
     steps:
@@ -148,6 +149,8 @@ jobs:
       - uses: ./.github/actions/publish-chocolatey
         with:
           version: ${{ needs.version.outputs.version }}
+          channel: ${{ needs.version.outputs.channel }}
+          version_commit: ${{ needs.version.outputs.version_commit }}
           chocolatey_api_key: ${{ secrets.CHOCOLATEY_API_KEY }}
 
   publish-homebrew-tap:
@@ -164,16 +167,15 @@ jobs:
       - uses: ./.github/actions/publish-homebrew-tap
         with:
           version: ${{ needs.version.outputs.version }}
-          commit_sha: ${{ github.sha }}
+          commit_sha: ${{ needs.version.outputs.version_commit }}
           tagtoken: ${{ secrets.TAGTOKEN }}
 
   publish-homebrew:
     name: Publish Homebrew
     needs:
       - version
-      - push-tags
       - publish-github-release
-    if: ${{ !failure() && !cancelled() && needs.push-tags.result == 'success' && needs.publish-github-release.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: ${{ !failure() && !cancelled() && needs.publish-github-release.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -182,7 +184,7 @@ jobs:
       - uses: ./.github/actions/publish-homebrew
         with:
           version: ${{ needs.version.outputs.version }}
-          version_commit: ${{ needs.push-tags.outputs.version_commit }}
+          version_commit: ${{ needs.version.outputs.version_commit }}
           tagtoken: ${{ secrets.TAGTOKEN }}
           homebrew_github_api_key: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
 
@@ -190,9 +192,10 @@ jobs:
     name: Publish GitHub Release
     needs:
       - version
+      - release-binaries
       - push-tags
       - publish-ado-extension
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: ${{ !failure() && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.release-binaries.result == 'success' && needs.push-tags.result == 'success' && needs.publish-ado-extension.result == 'success' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -202,5 +205,5 @@ jobs:
       - uses: ./.github/actions/publish-github-release
         with:
           version: ${{ needs.version.outputs.version }}
-          version_commit: ${{ needs.push-tags.outputs.version_commit }}
+          version_commit: ${{ needs.version.outputs.version_commit }}
           prerelease: ${{ needs.version.outputs.prerelease }}

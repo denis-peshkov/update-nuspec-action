@@ -162,9 +162,9 @@ publish-ado-extension
 | `publish-github-action` | `version`, `release-binaries` | `release-binaries` success |
 | `publish-ado-extension` | `version`, `release-binaries` | `release-binaries` success |
 | `publish-chocolatey` | `version`, `release-binaries` | `release-binaries` success + `push` на `master` / `release/*` / `hotfix/*` |
-| `publish-homebrew` | `version`, `push-tags`, `publish-github-release` | `push` + `master` |
+| `publish-homebrew` | `version`, `publish-github-release` | `push` + `master` |
 | `publish-homebrew-tap` | `version`, `test` | `push` + `release/*` / `hotfix/*` |
-| `publish-github-release` | `version`, `push-tags`, `publish-ado-extension` | `push` + `master` |
+| `publish-github-release` | `version`, `release-binaries`, `push-tags`, `publish-ado-extension` | `push` + `master`, all needs success |
 
 ### Критический путь (`master` push)
 
@@ -175,7 +175,7 @@ matrix (4 OS, самый долгий)
          ├─ push-tags (master only)
          ├─ параллельно: publish-github-action | publish-ado-extension | chocolatey
          └─ publish-ado-extension
-               → publish-github-release (ждёт push-tags)
+               → publish-github-release (release-binaries + push-tags + ado)
                  → publish-homebrew
 ```
 

@@ -12,11 +12,6 @@ inputs:
     description: GitHub PAT for git tag push
     required: true
 
-outputs:
-  version_commit:
-    description: Commit SHA tagged for v{version}
-    value: ${{ steps.push.outputs.version_commit }}
-
 runs:
   using: composite
   steps:
@@ -48,4 +43,3 @@ runs:
         git push origin "v${VERSION}" "v${MAJOR}.${MINOR}" "v${MAJOR}" -f >&2
 
         echo "Pushed tags v${VERSION}, v${MAJOR}.${MINOR}, and v${MAJOR} at ${commit}" >&2
-        echo "version_commit=${commit}" >> "${GITHUB_OUTPUT}"

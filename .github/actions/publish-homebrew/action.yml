@@ -5,7 +5,7 @@ inputs:
   version:
     required: true
   version_commit:
-    description: Commit SHA tagged for the release (from push-tags)
+    description: Commit SHA for the release (from version job)
     required: true
   tagtoken:
     description: GitHub PAT for homebrew-core fork push

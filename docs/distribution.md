@@ -65,7 +65,7 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 | Step | What happens |
 |------|----------------|
 | `package-release-source.sh` | Build `update-nuspec-{version}-src.tar.gz` via `git archive` (only tracked `update-nuspec/` files) — in `publish-github-release` |
-| inline in action | Download src archive from Release, compute `sha256`, patch formula draft `url` + `sha256` in `distribution/homebrew-core/` (not committed) |
+| inline in action | Download src archive from Release, compute `sha256`, patch formula draft |
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
 | inline in action | **If not in core:** `brew install --build-from-source`, `brew test`, `brew audit --strict --new` on formula draft (Release URL) |
 | `publish-homebrew-core-pr.sh` | **If not in core:** push to fork, open upstream PR with full Homebrew PR template (`gh` + REST fallback; fails CI if PR cannot be created) |
@@ -129,7 +129,7 @@ Package source: [`distribution/chocolatey/update-nuspec/`](../distribution/choco
 
 The `publish-chocolatey` action embeds `update-nuspec.exe` from the Windows release zip (`release-binary` matrix artifact) into the `.nupkg` — no remote download or checksum in `chocolateyinstall.ps1`.
 
-Embedded binaries require `tools/LICENSE.txt` and a generated `tools/VERIFICATION.txt` (SHA256 + official release URL). If moderation rejects a version, re-upload the **same version** after fixing the package.
+Embedded binaries require `tools/LICENSE.txt` and a generated `tools/VERIFICATION.txt`. On **`master`**: SHA256 + official GitHub Release zip URL. On **`release/*` / `hotfix/*` (preview)**: `VERIFICATION-preview.txt` with commit, branch, CI run link, source archive URL, and embedded exe SHA256 (no Release URL). If moderation rejects a version, re-upload the **same version** after fixing the package.
 
 ### Local test
 

@@ -79,6 +79,7 @@
     <File Path="distribution\chocolatey\update-nuspec\tools\chocolateyuninstall.ps1" />
     <File Path="distribution\chocolatey\update-nuspec\tools\LICENSE.txt" />
     <File Path="distribution\chocolatey\update-nuspec\tools\VERIFICATION.txt" />
+    <File Path="distribution\chocolatey\update-nuspec\tools\VERIFICATION-preview.txt" />
   </Folder>
   <Folder Name="/distribution/github-action/">
     <File Path="distribution\github-action\Dockerfile" />
