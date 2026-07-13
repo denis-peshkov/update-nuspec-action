@@ -172,7 +172,8 @@ jobs:
     needs:
       - version
       - push-tags
-    if: ${{ !failure() && !cancelled() && needs.push-tags.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+      - publish-github-release
+    if: ${{ !failure() && !cancelled() && needs.push-tags.result == 'success' && needs.publish-github-release.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read

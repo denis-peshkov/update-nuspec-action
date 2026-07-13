@@ -99,17 +99,17 @@ ci.yml
 │     ├─ download release-binary-*
 │     └─ .nupkg → chocolatey.org
 │
-├─ publish-homebrew                     if: push + master
-│     ├─ package update-nuspec-{version}-src.tar.gz (git archive)
-│     └─ brew bump-formula-pr / fork PR
-│     (оба job — package managers, один блок в GHA UI)
-│
 └─ publish-github-release               [needs: push-tags, publish-ado-extension]
       ├─ package update-nuspec-{version}-src.tar.gz
       ├─ download ado-extension-vsix
       ├─ download release-binary-*
       ├─ SHA256SUMS (binaries + src)
       └─ GitHub Release v{version}
+
+publish-homebrew                        if: push + master [needs: publish-github-release]
+      ├─ patch formula url/sha256 from Release src archive
+      ├─ brew install / test / audit
+      └─ brew bump-formula-pr / fork PR
 ```
 
 ### Composite actions → шаги
@@ -162,7 +162,7 @@ publish-ado-extension
 | `publish-github-action` | `version`, `release-binaries`, `test`, `push-tags` | test OK; `push-tags` success/skipped |
 | `publish-ado-extension` | то же | то же |
 | `publish-chocolatey` | `version`, `release-binaries`, `test`, `push-tags` | + `push` на `master` / `release/*` / `hotfix/*` |
-| `publish-homebrew` | `version`, `release-binaries`, `test`, `push-tags` | `push` + `master` (`push-tags` must succeed) |
+| `publish-homebrew` | `version`, `push-tags`, `publish-github-release` | `push` + `master` |
 | `publish-homebrew-tap` | `version`, `release-binaries`, `test` | `push` + `release/*` / `hotfix/*` (no git tag) |
 | `publish-github-release` | `version`, `push-tags`, `publish-ado-extension` | `push` + `master` |
 
@@ -172,11 +172,12 @@ publish-ado-extension
 matrix (4 OS, самый долгий)
   → test
     → push-tags (~секунды)
-      → параллельно: publish-github-action | publish-ado-extension | chocolatey | homebrew
-        → publish-github-release (ждёт только publish-ado-extension + push-tags)
+      → параллельно: publish-github-action | publish-ado-extension | chocolatey
+        → publish-github-release (ждёт publish-ado-extension + push-tags)
+          → publish-homebrew
 ```
 
-`publish-github-release` **не ждёт** `publish-github-action` и `publish-homebrew`.
+`publish-github-release` **не ждёт** `publish-github-action`.
 
 ---
 
@@ -203,10 +204,10 @@ version → matrix → test
 version → matrix → test → push-tags
                               ├─ publish-github-action      (GHCR все теги)
                               ├─ publish-ado-extension        (VSIX + ADO)
-                              ├─ publish-chocolatey           ┐ package managers
-                              ├─ publish-homebrew             ┘
+                              ├─ publish-chocolatey
                               └─ publish-ado-extension
                                     └─ publish-github-release
+                                          └─ publish-homebrew
 ```
 
 ### `push` → `release/*`, `hotfix/*`
