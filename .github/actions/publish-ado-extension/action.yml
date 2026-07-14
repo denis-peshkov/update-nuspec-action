@@ -30,7 +30,7 @@ runs:
         set -euo pipefail
         shopt -s nullglob
         VSIX=( *.vsix )
-        if [ ${#vsix[@]} -eq 0 ]; then
+        if [ ${#VSIX[@]} -eq 0 ]; then
           echo "No .vsix found in artifact" >&2
           exit 1
         fi
