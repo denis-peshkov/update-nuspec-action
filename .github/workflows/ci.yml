@@ -68,7 +68,7 @@ jobs:
       actions: write
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/release-binary
+      - uses: ./.github/actions/build-release-binary
         with:
           version: ${{ needs.version.outputs.version }}
           target: ${{ matrix.target }}

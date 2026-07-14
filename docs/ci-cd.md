@@ -117,7 +117,7 @@ publish-homebrew                        if: push + master [needs: publish-releas
 | Job (UI name) | Action | Что делает |
 |---------------|--------|------------|
 | `version` | [`version`](../.github/actions/version/action.yml) | GitVersion |
-| `binary-*` | [`release-binary`](../.github/actions/release-binary/action.yml) | `cargo build --release` |
+| `binary-*` | [`build-release-binary`](../.github/actions/build-release-binary/action.yml) | `cargo build --release` |
 | `test` | [`test`](../.github/actions/test/action.yml) | Rust + .NET + Sonar |
 | `push-tags` | [`push-tags`](../.github/actions/push-tags/action.yml) | Push git tags `v{version}`, `v{X.Y}`, `v{X}` |
 | `publish-github-action` (**GHCR + Docker smoke**) | [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | Docker smoke + GHCR |
@@ -145,8 +145,8 @@ publish-ado-extension
 
 | Артефакт | Создаёт | Потребляет |
 |----------|---------|------------|
-| `ado-binary-{target}` | `release-binary` (linux + windows) | `publish-github-action`, `publish-ado-extension` |
-| `release-binary-{target}` | `release-binary` (на push) | `publish-chocolatey`, `publish-release` |
+| `ado-binary-{target}` | `build-release-binary` (linux + windows) | `publish-github-action`, `publish-ado-extension` |
+| `release-binary-{target}` | `build-release-binary` (на push) | `publish-chocolatey`, `publish-release` |
 | `ado-extension-vsix` | `publish-ado-extension` | `publish-release` |
 
 ---

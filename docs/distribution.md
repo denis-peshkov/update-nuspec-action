@@ -28,7 +28,7 @@ Upstream jobs (same pipeline run):
 | Composite action | Role |
 |------------------|------|
 | [`version`](../.github/actions/version/action.yml) | GitVersion |
-| [`release-binary`](../.github/actions/release-binary/action.yml) | Matrix build (4 targets in `ci.yml`); `release-binary-*` artifacts for publish |
+| [`build-release-binary`](../.github/actions/build-release-binary/action.yml) | Matrix build (4 targets in `ci.yml`); `release-binary-*` artifacts for publish |
 | [`test`](../.github/actions/test/action.yml) | Rust/.NET tests, SonarCloud (after matrix) |
 | [`push-tags`](../.github/actions/push-tags/action.yml) | Git tags on `master` (after matrix) |
 | [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | GHCR + Docker smoke |

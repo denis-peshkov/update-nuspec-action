@@ -3,6 +3,7 @@ description: Update Formula/update-nuspec-preview.rb on branch homebrew-preview-
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   commit_sha:
     description: Commit SHA for the preview source archive

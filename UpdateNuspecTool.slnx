@@ -25,8 +25,8 @@
   <Folder Name="/.github/actions/publish-homebrew-tap/">
     <File Path=".github\actions\publish-homebrew-tap\action.yml" />
   </Folder>
-  <Folder Name="/.github/actions/release-binary/">
-    <File Path=".github\actions\release-binary\action.yml" />
+  <Folder Name="/.github/actions/build-release-binary/">
+    <File Path=".github\actions\build-release-binary\action.yml" />
   </Folder>
   <Folder Name="/.github/actions/test/">
     <File Path=".github\actions\test\action.yml" />

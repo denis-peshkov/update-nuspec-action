@@ -3,6 +3,7 @@ description: Stage and push Chocolatey package
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   channel:
     description: release or preview (from version job)

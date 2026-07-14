@@ -3,10 +3,13 @@ description: GHCR + Docker smoke
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   major:
+    description: Major version segment for GHCR image tags
     required: true
   minor:
+    description: Minor version segment for GHCR image tags
     required: true
 
 runs:

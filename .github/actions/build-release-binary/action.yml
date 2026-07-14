@@ -1,14 +1,18 @@
-name: Release Binary
+name: Build Release Binary
 description: Build release binary for one matrix target and upload artifacts
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   target:
+    description: Rust target triple for cargo build
     required: true
   exe:
+    description: Built executable file name (e.g. update-nuspec or update-nuspec.exe)
     required: true
   publish_artifacts:
+    description: Package and upload release-binary-* artifact (push to master/release/hotfix)
     required: false
     default: 'false'
 
