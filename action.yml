@@ -2,7 +2,7 @@ name: 'Update *.nuspec'
 description: 'Sync *.nuspec dependencies with csproj PackageReference versions; optionally update package.json and scoped npm.'
 branding:
   icon: 'activity'
-  color: 'yellow'
+  color: 'red'
 inputs:
   dir:
     description: 'Root directory to scan recursively, relative to /github/workspace (e.g. src/Cross.Identity). Prefer a package folder over "." — repo root scans all subfolders. Absolute paths are passed through unchanged.'
