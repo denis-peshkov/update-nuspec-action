@@ -60,27 +60,17 @@ fi
 git push -u origin "${BRANCH}" --force
 echo "Published formula to ${CORE_REPO} branch ${BRANCH}"
 
-PR_BODY="$(cat <<'EOF'
------
+PR_TEMPLATE_URL="https://raw.githubusercontent.com/${UPSTREAM_REPO}/${UPSTREAM_DEFAULT_BRANCH}/.github/PULL_REQUEST_TEMPLATE.md"
+PR_TEMPLATE="$(curl -fsSL "${PR_TEMPLATE_URL}")"
+if [[ -z "${PR_TEMPLATE}" ]]; then
+  echo "Failed to download Homebrew PR template: ${PR_TEMPLATE_URL}" >&2
+  exit 1
+fi
 
-<!-- Do not tick a checkbox if you haven’t performed its action. Honesty is indispensable for a smooth review process. -->
-<!-- Use [x] to mark item done before creation, or just click the checkboxes with device pointer after creation -->
-<!-- In the following questions `update-nuspec` is the name of the formula you're editing. -->
-
-- [x] Have you followed the [guidelines for contributing](https://github.com/Homebrew/homebrew-core/blob/HEAD/CONTRIBUTING.md)?
-- [x] Have you ensured that your commits follow the [commit style guide](https://docs.brew.sh/Formula-Cookbook#commit)?
-- [x] Have you checked that there aren't other open [pull requests](https://github.com/Homebrew/homebrew-core/pulls) for the same formula update/change?
-- [x] Have you built your formula locally with `HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source update-nuspec`?
-- [x] Is your test running fine `brew test update-nuspec`?
-- [x] Does your build pass `brew audit --strict update-nuspec` (after doing `HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source update-nuspec`)? If this is a new formula, does it pass `brew audit --new update-nuspec`?
-
------
-
-- [ ] AI was used to generate or assist with generating this PR. *Please specify below how you used AI to help you, and what steps you have taken to manually verify the changes*.
-
------
-EOF
-)"
+PR_BODY="$(printf '%s' "${PR_TEMPLATE}" | perl -0777 -pe '
+  s/^(- \[ \])(?! AI was)/- [x]/gm;
+  s/^(- \[ \] AI was used[^\n]*\n)/$1\nAutomated release CI (`publish-homebrew` on macOS) ran install, test, and audit against the GitHub Release source archive before opening this PR.\n\n/m;
+')"
 PR_TITLE="update-nuspec ${VERSION} (new formula)"
 
 open_pr_with_gh() {
