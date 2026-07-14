@@ -123,6 +123,7 @@ jobs:
       packages: write
       actions: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/publish-github-action
         with:
           version: ${{ needs.version.outputs.version }}
