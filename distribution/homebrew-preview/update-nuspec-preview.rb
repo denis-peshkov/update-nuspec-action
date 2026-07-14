@@ -15,6 +15,6 @@ class UpdateNuspecPreview < Formula
   end
 
   test do
-    assert_match "update-nuspec", shell_output("#{bin}/update-nuspec --version")
+    assert_match version.to_s, shell_output("#{bin}/update-nuspec --version")
   end
 end

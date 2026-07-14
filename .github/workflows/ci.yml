@@ -140,7 +140,7 @@ jobs:
       - version
       - release-binaries
     if: ${{ !failure() && !cancelled() && needs.release-binaries.result == 'success' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
-    runs-on: ubuntu-22.04
+    runs-on: windows-latest
     permissions:
       contents: read
       actions: read

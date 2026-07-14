@@ -91,7 +91,7 @@ perl -pi -e "s|<version>.*</version>|<version>${VERSION}</version>|" "${STAGING}
 
 if ! command -v choco >/dev/null 2>&1; then
   echo "Chocolatey CLI (choco) is required to pack packages with Chocolatey nuspec metadata." >&2
-  echo "Run .github/scripts/setup-chocolatey-cli.sh first, or install choco locally." >&2
+  echo "Run on windows-latest in CI, or install choco locally." >&2
   exit 1
 fi
 

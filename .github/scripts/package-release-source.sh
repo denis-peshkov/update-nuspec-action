@@ -23,5 +23,14 @@ fi
 ARCHIVE="${OUT_DIR}/update-nuspec-${VERSION}-src.tar.gz"
 mkdir -p "${OUT_DIR}"
 rm -f "${ARCHIVE}"
-git -C "${REPO_ROOT}" archive --format=tar.gz --prefix=update-nuspec/ HEAD:update-nuspec -o "${ARCHIVE}"
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "${WORK}"' EXIT
+
+git -C "${REPO_ROOT}" archive --format=tar --prefix=update-nuspec/ HEAD:update-nuspec \
+  | tar -x -C "${WORK}"
+
+perl -pi -e "s/^version = .*/version = \"${VERSION}\"/" "${WORK}/update-nuspec/Cargo.toml"
+
+tar -czf "${ARCHIVE}" -C "${WORK}" update-nuspec
 echo "${ARCHIVE}"

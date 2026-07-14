@@ -29,10 +29,6 @@ runs:
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v2
 
-    - name: Setup Chocolatey CLI
-      shell: bash
-      run: ./.github/scripts/setup-chocolatey-cli.sh
-
     - name: Stage and pack Chocolatey package
       shell: bash
       env:
