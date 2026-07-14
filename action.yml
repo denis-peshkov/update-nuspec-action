@@ -27,6 +27,7 @@ inputs:
 outputs:
   packageVersion:
     description: 'The packageVersion input value when package.json processing ran.'
+    value: ${{ steps.run.outputs.packageVersion }}
 runs:
   using: composite
   steps:
