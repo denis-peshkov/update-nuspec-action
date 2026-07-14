@@ -116,8 +116,8 @@ jobs:
           major: ${{ needs.version.outputs.major }}
           minor: ${{ needs.version.outputs.minor }}
 
-  publish-ado-extension:
-    name: Publish ADO Extension
+  build-ado-extension:
+    name: Build ADO Extension
     needs:
       - version
       - release-binaries
@@ -125,13 +125,27 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-ado-extension
+        with:
+          version: ${{ needs.version.outputs.version }}
+          channel: ${{ needs.version.outputs.channel }}
+
+  publish-ado-extension:
+    name: Publish ADO Extension
+    needs:
+      - build-ado-extension
+    if: ${{ !failure() && !cancelled() && needs.build-ado-extension.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/publish-ado-extension
         with:
-          version: ${{ needs.version.outputs.version }}
-          channel: ${{ needs.version.outputs.channel }}
           azdo_marketplace_pat: ${{ secrets.AZDO_MARKETPLACE_PAT }}
 
   publish-chocolatey:
@@ -194,8 +208,8 @@ jobs:
       - version
       - release-binaries
       - push-tags
-      - publish-ado-extension
-    if: ${{ !failure() && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.release-binaries.result == 'success' && needs.push-tags.result == 'success' && needs.publish-ado-extension.result == 'success' }}
+      - build-ado-extension
+    if: ${{ !failure() && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.release-binaries.result == 'success' && needs.push-tags.result == 'success' && needs.build-ado-extension.result == 'success' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: write
