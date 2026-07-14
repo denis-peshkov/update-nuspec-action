@@ -8,9 +8,7 @@ class UpdateNuspec < Formula
   depends_on "rust" => :build
 
   def install
-    cd "update-nuspec" do
-      system "cargo", "install", *std_cargo_args
-    end
+    system "cargo", "install", *std_cargo_args
   end
 
   test do
