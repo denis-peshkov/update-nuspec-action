@@ -219,7 +219,7 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | `.github/actions/publish-chocolatey/` | Chocolatey `.nupkg` pack + push |
 | `.github/actions/publish-homebrew/` | homebrew-core formula PR / bump (`master` only) |
 | `.github/actions/publish-homebrew-tap/` | Preview tap branch `homebrew-preview-tap` (`release/*`, `hotfix/*`) |
-| `.github/actions/publish-github-release/` | GitHub Release assets (`master` only) |
+| `.github/actions/publish-release/` | GitHub Release assets (`master` only) |
 | `.github/scripts/` | CI shell scripts — [Scripts](#scripts) below |
 | `docs/` | [ci-cd.md](docs/ci-cd.md) (pipeline), [distribution.md](docs/distribution.md) (registries + ADO), `examples/` |
 | `update-nuspec-icon.png` | Project / marketplace icon |

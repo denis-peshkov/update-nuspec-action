@@ -37,7 +37,7 @@ flowchart TD
     HBT["publish-homebrew-tap<br/>release/hotfix"]
   end
 
-  REL["publish-github-release<br/>master only"]
+  REL["publish-release<br/>master only"]
 
   triggers --> V
   V --> matrix
@@ -99,14 +99,14 @@ ci.yml
 │     ├─ download release-binary-*
 │     └─ .nupkg → chocolatey.org
 │
-└─ publish-github-release               [needs: push-tags, publish-ado-extension]
+└─ publish-release               [needs: push-tags, publish-ado-extension]
       ├─ package update-nuspec-{version}-src.tar.gz
       ├─ download ado-extension-vsix
       ├─ download release-binary-*
       ├─ SHA256SUMS (binaries + src)
       └─ GitHub Release v{version}
 
-publish-homebrew                        if: push + master [needs: publish-github-release]
+publish-homebrew                        if: push + master [needs: publish-release]
       ├─ download src archive from Release → sha256
       ├─ brew install / test / audit
       └─ brew bump-formula-pr / fork PR
@@ -125,7 +125,7 @@ publish-homebrew                        if: push + master [needs: publish-github
 | `publish-chocolatey` | [`publish-chocolatey`](../.github/actions/publish-chocolatey/action.yml) | Chocolatey pack/push |
 | `publish-homebrew` | [`publish-homebrew`](../.github/actions/publish-homebrew/action.yml) | Homebrew core formula |
 | `publish-homebrew-tap` | [`publish-homebrew-tap`](../.github/actions/publish-homebrew-tap/action.yml) | Preview tap branch `homebrew-preview-tap` |
-| `publish-github-release` | [`publish-github-release`](../.github/actions/publish-github-release/action.yml) | GitHub Release assets |
+| `publish-release` | [`publish-release`](../.github/actions/publish-release/action.yml) | GitHub Release assets |
 
 ---
 
@@ -137,17 +137,17 @@ release-binaries (matrix)
   │                               └─→ publish-ado-extension (task binaries)
   ├─ ado-binary-windows-msvc    ────→ publish-ado-extension
   └─ release-binary-*           ──┬─→ publish-chocolatey
-                                  └─→ publish-github-release
+                                  └─→ publish-release
 
 publish-ado-extension
-  └─ ado-extension-vsix         ────→ publish-github-release
+  └─ ado-extension-vsix         ────→ publish-release
 ```
 
 | Артефакт | Создаёт | Потребляет |
 |----------|---------|------------|
 | `ado-binary-{target}` | `release-binary` (linux + windows) | `publish-github-action`, `publish-ado-extension` |
-| `release-binary-{target}` | `release-binary` (на push) | `publish-chocolatey`, `publish-github-release` |
-| `ado-extension-vsix` | `publish-ado-extension` | `publish-github-release` |
+| `release-binary-{target}` | `release-binary` (на push) | `publish-chocolatey`, `publish-release` |
+| `ado-extension-vsix` | `publish-ado-extension` | `publish-release` |
 
 ---
 
@@ -162,9 +162,9 @@ publish-ado-extension
 | `publish-github-action` | `version`, `release-binaries` | `release-binaries` success |
 | `publish-ado-extension` | `version`, `release-binaries` | `release-binaries` success |
 | `publish-chocolatey` | `version`, `release-binaries` | `release-binaries` success + `push` на `master` / `release/*` / `hotfix/*` |
-| `publish-homebrew` | `version`, `publish-github-release` | `push` + `master` |
+| `publish-homebrew` | `version`, `publish-release` | `push` + `master` |
 | `publish-homebrew-tap` | `version`, `test` | `push` + `release/*` / `hotfix/*` |
-| `publish-github-release` | `version`, `release-binaries`, `push-tags`, `publish-ado-extension` | `push` + `master`, all needs success |
+| `publish-release` | `version`, `release-binaries`, `push-tags`, `publish-ado-extension` | `push` + `master`, all needs success |
 
 ### Критический путь (`master` push)
 
@@ -175,11 +175,11 @@ matrix (4 OS, самый долгий)
          ├─ push-tags (master only)
          ├─ параллельно: publish-github-action | publish-ado-extension | chocolatey
          └─ publish-ado-extension
-               → publish-github-release (release-binaries + push-tags + ado)
+               → publish-release (release-binaries + push-tags + ado)
                  → publish-homebrew
 ```
 
-`publish-github-release` **не ждёт** `publish-github-action`.
+`publish-release` **не ждёт** `publish-github-action`.
 
 ---
 
@@ -209,7 +209,7 @@ version → matrix → test → release-binaries
                               ├─ publish-ado-extension        (VSIX + ADO)
                               ├─ publish-chocolatey
                               └─ publish-ado-extension
-                                    └─ publish-github-release
+                                    └─ publish-release
                                           └─ publish-homebrew
 ```
 
@@ -223,7 +223,7 @@ version → matrix → test
                     └─ publish-homebrew-tap    (branch homebrew-preview-tap)
 ```
 
-`push-tags`, `publish-homebrew`, `publish-github-release` — **skipped**.
+`push-tags`, `publish-homebrew`, `publish-release` — **skipped**.
 
 | Job | GHCR | ADO | Chocolatey | Homebrew preview tap |
 |-----|------|-----|------------|----------------------|

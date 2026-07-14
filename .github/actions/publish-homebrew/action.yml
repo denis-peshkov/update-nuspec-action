@@ -77,7 +77,6 @@ runs:
         cp "${FORMULA}" "${TAP}/Formula/update-nuspec.rb"
         git -C "${TAP}" add Formula/update-nuspec.rb
         git -C "${TAP}" commit -m "CI validation"
-        export HOMEBREW_NO_INSTALL_FROM_API=1
         brew install --build-from-source update-nuspec/ci/update-nuspec
         brew test update-nuspec
         brew audit --strict --new update-nuspec

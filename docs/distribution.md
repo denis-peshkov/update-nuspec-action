@@ -12,13 +12,13 @@ On each **push** to `master`, `release/*`, or `hotfix/*`:
 
 - **`push-tags`** runs after `test` on **`master` only**
 - Then in parallel: **`publish-github-action`**, **`publish-ado-extension`**, **`publish-chocolatey`**, **`publish-homebrew-tap`** (release/hotfix)
-- **`publish-github-release`** runs after **`publish-ado-extension`** (`master` only)
-- **`publish-homebrew`** runs after **`publish-github-release`** (`master` only)
+- **`publish-release`** runs after **`publish-ado-extension`** (`master` only)
+- **`publish-homebrew`** runs after **`publish-release`** (`master` only)
 
 | Composite action | What it publishes |
 |------------------|-------------------|
 | [`push-tags`](../.github/actions/push-tags/action.yml) | Push git tags (`master` only) |
-| [`publish-github-release`](../.github/actions/publish-github-release/action.yml) | GitHub Release assets (`master` only; after `publish-ado-extension`) |
+| [`publish-release`](../.github/actions/publish-release/action.yml) | GitHub Release assets (`master` only; after `publish-ado-extension`) |
 | [`publish-chocolatey`](../.github/actions/publish-chocolatey/action.yml) | chocolatey.org `.nupkg` (embedded Windows exe) |
 | [`publish-homebrew`](../.github/actions/publish-homebrew/action.yml) | homebrew-core formula PR / bump (`master` only) |
 | [`publish-homebrew-tap`](../.github/actions/publish-homebrew-tap/action.yml) | Preview formula on branch `homebrew-preview-tap` (`release/*`, `hotfix/*`; commit SHA, no git tag) |
@@ -34,11 +34,11 @@ Upstream jobs (same pipeline run):
 | [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | GHCR + Docker smoke |
 | [`publish-ado-extension`](../.github/actions/publish-ado-extension/action.yml) | VSIX + ADO Marketplace |
 
-After `test`, `release-binaries` runs; then `push-tags` (master), `publish-github-action`, `publish-ado-extension`, and `publish-chocolatey` run. `publish-github-release` waits for `publish-ado-extension` and `push-tags`; `publish-homebrew` waits for `publish-github-release`.
+After `test`, `release-binaries` runs; then `push-tags` (master), `publish-github-action`, `publish-ado-extension`, and `publish-chocolatey` run. `publish-release` waits for `publish-ado-extension` and `push-tags`; `publish-homebrew` waits for `publish-release`.
 
 ## GitHub Release assets
 
-Published by `publish-github-release` action:
+Published by `publish-release` action:
 
 | Asset | Platform |
 |-------|----------|
@@ -64,7 +64,7 @@ That works only after the formula is merged into [Homebrew/homebrew-core](https:
 
 | Step | What happens |
 |------|----------------|
-| `package-release-source.sh` | Build `update-nuspec-{version}-src.tar.gz` via `git archive` (only tracked `update-nuspec/` files) — in `publish-github-release` |
+| `package-release-source.sh` | Build `update-nuspec-{version}-src.tar.gz` via `git archive` (only tracked `update-nuspec/` files) — in `publish-release` |
 | inline in action | Download src archive from Release, compute `sha256`, patch formula draft |
 | Detect formula in core | HTTP check on `Formula/u/update-nuspec.rb` in homebrew-core |
 | inline in action | **If not in core:** `brew install --build-from-source`, `brew test`, `brew audit --strict --new` on formula draft (Release URL) |
@@ -121,7 +121,7 @@ Source: [`distribution/azure-devops-extension/`](../distribution/azure-devops-ex
 
 Marketplace listing: [`marketplace/overview.md`](../distribution/azure-devops-extension/marketplace/overview.md).
 
-Built and published by `publish-ado-extension` (VSIX artifact → `publish-github-release`; Marketplace on `master`).
+Built and published by `publish-ado-extension` (VSIX artifact → `publish-release`; Marketplace on `master`).
 
 ## Chocolatey
 

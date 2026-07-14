@@ -13,8 +13,8 @@
   <Folder Name="/.github/actions/publish-chocolatey/">
     <File Path=".github\actions\publish-chocolatey\action.yml" />
   </Folder>
-  <Folder Name="/.github/actions/publish-github-release/">
-    <File Path=".github\actions\publish-github-release\action.yml" />
+  <Folder Name="/.github/actions/publish-release/">
+    <File Path=".github\actions\publish-release\action.yml" />
   </Folder>
   <Folder Name="/.github/actions/publish-homebrew/">
     <File Path=".github\actions\publish-homebrew\action.yml" />

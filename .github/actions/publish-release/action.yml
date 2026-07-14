@@ -1,4 +1,4 @@
-name: Publish GitHub Release
+name: Publish Release
 description: Create GitHub Release with binaries, checksums, source archive, and VSIX
 
 inputs:

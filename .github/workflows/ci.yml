@@ -174,9 +174,9 @@ jobs:
     name: Publish Homebrew
     needs:
       - version
-      - publish-github-release
-    if: ${{ !failure() && !cancelled() && needs.publish-github-release.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-    runs-on: ubuntu-22.04
+      - publish-release
+    if: ${{ !failure() && !cancelled() && needs.publish-release.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    runs-on: macos-latest
     permissions:
       contents: read
     steps:
@@ -188,8 +188,8 @@ jobs:
           tagtoken: ${{ secrets.TAGTOKEN }}
           homebrew_github_api_key: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
 
-  publish-github-release:
-    name: Publish GitHub Release
+  publish-release:
+    name: Publish Release
     needs:
       - version
       - release-binaries
@@ -202,7 +202,7 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/publish-github-release
+      - uses: ./.github/actions/publish-release
         with:
           version: ${{ needs.version.outputs.version }}
           version_commit: ${{ needs.version.outputs.version_commit }}

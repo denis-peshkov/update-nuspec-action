@@ -69,11 +69,11 @@ PR_BODY="$(cat <<'EOF'
 - [x] Have you followed the [guidelines for contributing](https://github.com/Homebrew/homebrew-core/blob/HEAD/CONTRIBUTING.md)?
 - [x] Have you ensured that your commits follow the [commit style guide](https://docs.brew.sh/Formula-Cookbook#commit)?
 - [x] Have you checked that there aren't other open [pull requests](https://github.com/Homebrew/homebrew-core/pulls) for the same formula update/change?
-- [x] Have you built your formula locally with `HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source update-nuspec`?
+- [x] Have you built your formula locally with `brew install --build-from-source update-nuspec`?
 - [x] Is your test running fine `brew test update-nuspec`?
-- [x] Does your build pass `brew audit --strict update-nuspec` (after doing `HOMEBREW_NO_INSTALL_FROM_API=1 brew install --build-from-source update-nuspec`)? If this is a new formula, does it pass `brew audit --new update-nuspec`?
+- [x] Does your build pass `brew audit --strict update-nuspec` (after doing `brew install --build-from-source update-nuspec`)? If this is a new formula, does it pass `brew audit --new update-nuspec`?
 
-Automated release CI (`publish-homebrew`) verified the formula draft from the GitHub Release source archive before opening this PR.
+Automated release CI (`publish-homebrew` on macOS) validated the formula draft from the GitHub Release source archive before opening this PR.
 
 ```bash
 brew install update-nuspec
