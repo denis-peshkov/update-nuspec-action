@@ -97,8 +97,8 @@ jobs:
           minor: ${{ needs.version.outputs.minor }}
           tagtoken: ${{ secrets.TAGTOKEN }}
 
-  publish-github-action:
-    name: Publish GitHub Action
+  build-github-action:
+    name: Build GitHub Action
     needs:
       - version
       - release-binaries
@@ -106,10 +106,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
       actions: read
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-github-action
+
+  publish-github-action:
+    name: Publish GitHub Action
+    needs:
+      - version
+      - build-github-action
+    if: ${{ !failure() && !cancelled() && needs.build-github-action.result == 'success' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    steps:
       - uses: ./.github/actions/publish-github-action
         with:
           version: ${{ needs.version.outputs.version }}

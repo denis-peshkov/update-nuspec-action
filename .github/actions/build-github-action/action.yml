@@ -1,0 +1,64 @@
+name: Build GitHub Action
+description: Build Docker image for the GitHub Action and run smoke tests
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Download binaries from matrix
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ado-binary-*
+        path: dist/ado-binaries
+        merge-multiple: true
+
+    - name: Build Docker image
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p distribution/github-action/docker
+        cp dist/ado-binaries/update-nuspec distribution/github-action/docker/update-nuspec
+        chmod +x distribution/github-action/docker/update-nuspec
+        docker build -t update-nuspec-action:ci distribution/github-action
+
+    - name: Smoke test (repo root, recursive scan)
+      shell: bash
+      run: |
+        set -euo pipefail
+        smoke_output="$(docker run --rm \
+          -v "${{ github.workspace }}:/github/workspace" \
+          update-nuspec-action:ci .)"
+        grep -Fq 'Start processing file' <<< "${smoke_output}"
+
+    - name: Smoke test (relative path under workspace)
+      shell: bash
+      run: |
+        set -euo pipefail
+        smoke_output="$(docker run --rm \
+          -v "${{ github.workspace }}:/github/workspace" \
+          update-nuspec-action:ci .github)"
+        grep -Fq 'nuspec files not found' <<< "${smoke_output}"
+
+    - name: Smoke test (dry-run)
+      shell: bash
+      run: |
+        set -euo pipefail
+        smoke_output="$(docker run --rm \
+          -v "${{ github.workspace }}:/github/workspace" \
+          update-nuspec-action:ci UpdateNuspecTool.Tests/TestData true)"
+        grep -Fq '[DRY RUN]' <<< "${smoke_output}"
+
+    - name: Save Docker image
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p dist
+        docker save update-nuspec-action:ci -o dist/github-action-image.tar
+
+    - name: Upload GitHub Action image
+      uses: actions/upload-artifact@v4
+      with:
+        name: github-action-image
+        path: dist/github-action-image.tar
+        if-no-files-found: error

@@ -11,14 +11,14 @@ Orchestrator: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 On each **push** to `master`, `release/*`, or `hotfix/*`:
 
 - **`push-tags`** runs after `test` on **`master` only**
-- Then in parallel: **`publish-github-action`**, **`publish-ado-extension`**, **`publish-chocolatey`**, **`publish-homebrew-tap`** (release/hotfix)
-- **`publish-release`** runs after **`publish-ado-extension`** (`master` only)
+- Then in parallel: **`build-github-action`** → **`publish-github-action`** (push only), **`build-ado-extension`** → **`publish-ado-extension`** (master), **`publish-chocolatey`**, **`publish-homebrew-tap`** (release/hotfix)
+- **`publish-release`** runs after **`build-ado-extension`** (`master` only)
 - **`publish-homebrew`** runs after **`publish-release`** (`master` only)
 
 | Composite action | What it publishes |
 |------------------|-------------------|
 | [`push-tags`](../.github/actions/push-tags/action.yml) | Push git tags (`master` only) |
-| [`publish-release`](../.github/actions/publish-release/action.yml) | GitHub Release assets (`master` only; after `publish-ado-extension`) |
+| [`publish-release`](../.github/actions/publish-release/action.yml) | GitHub Release assets (`master` only; after `build-ado-extension`) |
 | [`publish-chocolatey`](../.github/actions/publish-chocolatey/action.yml) | chocolatey.org `.nupkg` (embedded Windows exe) |
 | [`publish-homebrew`](../.github/actions/publish-homebrew/action.yml) | homebrew-core formula PR / bump (`master` only) |
 | [`publish-homebrew-tap`](../.github/actions/publish-homebrew-tap/action.yml) | Preview formula on branch `homebrew-preview-tap` (`release/*`, `hotfix/*`; commit SHA, no git tag) |
@@ -31,10 +31,12 @@ Upstream jobs (same pipeline run):
 | [`build-release-binary`](../.github/actions/build-release-binary/action.yml) | Matrix build (4 targets in `ci.yml`); `release-binary-*` artifacts for publish |
 | [`test`](../.github/actions/test/action.yml) | Rust/.NET tests, SonarCloud (after matrix) |
 | [`push-tags`](../.github/actions/push-tags/action.yml) | Git tags on `master` (after matrix) |
-| [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | GHCR + Docker smoke |
-| [`publish-ado-extension`](../.github/actions/publish-ado-extension/action.yml) | VSIX + ADO Marketplace |
+| [`build-github-action`](../.github/actions/build-github-action/action.yml) | Docker image build + smoke tests |
+| [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | GHCR push (`master` / `release/*` / `hotfix/*`) |
+| [`build-ado-extension`](../.github/actions/build-ado-extension/action.yml) | VSIX build |
+| [`publish-ado-extension`](../.github/actions/publish-ado-extension/action.yml) | ADO Marketplace (`master` only) |
 
-After `test`, `release-binaries` runs; then `push-tags` (master), `publish-github-action`, `publish-ado-extension`, and `publish-chocolatey` run. `publish-release` waits for `publish-ado-extension` and `push-tags`; `publish-homebrew` waits for `publish-release`.
+After `test`, `release-binaries` runs; then `push-tags` (master), `build-github-action`, `build-ado-extension`, and `publish-chocolatey` run. `publish-github-action` and `publish-ado-extension` run on push only. `publish-release` waits for `build-ado-extension` and `push-tags`; `publish-homebrew` waits for `publish-release`.
 
 ## GitHub Release assets
 
