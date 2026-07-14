@@ -11,6 +11,7 @@ NUPKG="${2:-}"
 PACKAGE_ID="update-nuspec"
 PUSH_SOURCE="https://push.chocolatey.org/api/v2/package"
 PACKAGE_URL="https://community.chocolatey.org/packages/${PACKAGE_ID}"
+FEED_URL="https://community.chocolatey.org/api/v2/Packages?\$filter=Id%20eq%20'${PACKAGE_ID}'&\$orderby=Published%20desc&\$top=20"
 
 if [[ -z "${VERSION}" || -z "${NUPKG}" ]]; then
   usage
@@ -26,46 +27,73 @@ if [[ -z "${CHOCOLATEY_API_KEY:-}" ]]; then
   exit 1
 fi
 
-package_submitted_status() {
-  local check_version="$1"
-  local url="https://community.chocolatey.org/api/v2/Packages(Id='${PACKAGE_ID}',Version='${check_version}')"
-  curl -fsSL "${url}" 2>/dev/null \
-    | sed -n 's#.*<d:PackageSubmittedStatus>\([^<]*\)</d:PackageSubmittedStatus>.*#\1#p' \
-    | head -n 1
+fetch_recent_versions_feed() {
+  curl -fsSL "${FEED_URL}" 2>/dev/null || true
 }
 
-find_pending_version() {
-  local target_version="$1"
+find_moderation_block() {
+  local feed="$1"
 
-  if [[ ! "${target_version}" =~ ^([0-9]+\.[0-9]+\.)([0-9]+)(.*)$ ]]; then
+  if [[ -z "${feed}" ]]; then
     return 1
   fi
 
-  local prefix="${BASH_REMATCH[1]}"
-  local run_num="${BASH_REMATCH[2]}"
-  local suffix="${BASH_REMATCH[3]}"
-  local i check_version status
+  FEED="${feed}" perl -0777 -ne '
+    my @entries;
+    for my $entry (split(/<entry>/, $_)) {
+      next unless $entry =~ /<\/entry>/;
+      my ($version) = $entry =~ /<d:Version>([^<]+)<\/d:Version>/;
+      my ($status) = $entry =~ /<d:PackageSubmittedStatus>([^<]+)<\/d:PackageSubmittedStatus>/;
+      my ($approved) = $entry =~ /<d:IsApproved m:type="Edm.Boolean">([^<]+)<\/d:IsApproved>/;
+      push @entries, {
+        version  => $version // "",
+        status   => $status // "",
+        approved => ($approved // "") eq "true",
+      };
+    }
 
-  for (( i=run_num-1; i>=run_num-10 && i>=0; i-- )); do
-    check_version="${prefix}${i}${suffix}"
-    status="$(package_submitted_status "${check_version}")"
-    if [[ "${status}" == "Pending" ]]; then
-      echo "${check_version}"
-      return 0
-    fi
-  done
+    for my $entry (@entries) {
+      next unless $entry->{status} eq "Pending" || $entry->{status} eq "Waiting";
+      print "$entry->{version}|$entry->{status}\n";
+      exit 0;
+    }
 
-  return 1
+    my $has_approved = grep { $_->{approved} } @entries;
+    if (!$has_approved && @entries) {
+      print "none|no-approved-versions\n";
+      exit 0;
+    }
+  '
 }
 
 report_moderation_block() {
-  local pending_version="$1"
-  echo "::error title=Chocolatey moderation queue::Push failed: ${PACKAGE_ID} ${pending_version} is still in moderation (PackageSubmittedStatus=Pending). chocolatey.org returns HTTP 403 for the next version until the previous one is approved. Open ${PACKAGE_URL}/${pending_version} and re-run this job after approval." >&2
+  local block_version="$1"
+  local block_status="$2"
+
+  if [[ "${block_version}" == "none" && "${block_status}" == "no-approved-versions" ]]; then
+    echo "::error title=Chocolatey moderation queue::Push blocked: ${PACKAGE_ID} has no approved versions on chocolatey.org yet. The community repository rejects new pushes with HTTP 403 until at least one version passes moderation. Open ${PACKAGE_URL}#versionhistory and re-run this job after approval." >&2
+    return
+  fi
+
+  echo "::error title=Chocolatey moderation queue::Push blocked: ${PACKAGE_ID} ${block_version} is still in moderation (PackageSubmittedStatus=${block_status}). chocolatey.org returns HTTP 403 for new versions until it is approved. Open ${PACKAGE_URL}/${block_version} and re-run this job after approval." >&2
 }
 
-PENDING_VERSION="$(find_pending_version "${VERSION}" || true)"
-if [[ -n "${PENDING_VERSION}" ]]; then
-  report_moderation_block "${PENDING_VERSION}"
+check_moderation_block() {
+  local feed block_info block_version block_status
+
+  feed="$(fetch_recent_versions_feed)"
+  block_info="$(find_moderation_block "${feed}" || true)"
+  if [[ -z "${block_info}" ]]; then
+    return 1
+  fi
+
+  block_version="${block_info%%|*}"
+  block_status="${block_info#*|}"
+  report_moderation_block "${block_version}" "${block_status}"
+  return 0
+}
+
+if check_moderation_block; then
   exit 1
 fi
 
@@ -80,9 +108,7 @@ if nuget push "${NUPKG}" \
 fi
 
 if grep -q '403' "${PUSH_LOG}" || grep -qi 'Forbidden' "${PUSH_LOG}"; then
-  PENDING_VERSION="$(find_pending_version "${VERSION}" || true)"
-  if [[ -n "${PENDING_VERSION}" ]]; then
-    report_moderation_block "${PENDING_VERSION}"
+  if check_moderation_block; then
     exit 1
   fi
 
