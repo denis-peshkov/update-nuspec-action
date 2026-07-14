@@ -198,23 +198,23 @@ jobs:
           commit_sha: ${{ needs.version.outputs.version_commit }}
           tagtoken: ${{ secrets.TAGTOKEN }}
 
-  publish-homebrew:
-    name: Publish Homebrew
-    needs:
-      - version
-      - publish-release
-    if: ${{ !failure() && !cancelled() && needs.publish-release.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-    runs-on: macos-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/publish-homebrew
-        with:
-          version: ${{ needs.version.outputs.version }}
-          version_commit: ${{ needs.version.outputs.version_commit }}
-          tagtoken: ${{ secrets.TAGTOKEN }}
-          homebrew_github_api_key: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
+#  publish-homebrew:
+#    name: Publish Homebrew
+#    needs:
+#      - version
+#      - publish-release
+#    if: ${{ !failure() && !cancelled() && needs.publish-release.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+#    runs-on: macos-latest
+#    permissions:
+#      contents: read
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: ./.github/actions/publish-homebrew
+#        with:
+#          version: ${{ needs.version.outputs.version }}
+#          version_commit: ${{ needs.version.outputs.version_commit }}
+#          tagtoken: ${{ secrets.TAGTOKEN }}
+#          homebrew_github_api_key: ${{ secrets.HOMEBREW_GITHUB_API_KEY }}
 
   publish-release:
     name: Publish Release
