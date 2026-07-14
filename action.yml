@@ -1,4 +1,4 @@
-﻿name: 'Update *.nuspec'
+name: 'Update *.nuspec'
 description: 'Sync *.nuspec dependencies with csproj PackageReference versions; optionally update package.json and scoped npm.'
 branding:
   icon: 'activity'
