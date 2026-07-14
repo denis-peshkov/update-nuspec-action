@@ -3,8 +3,10 @@ description: Build ADO VSIX and upload artifact
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   channel:
+    description: release or preview (from version job)
     required: true
 
 runs:

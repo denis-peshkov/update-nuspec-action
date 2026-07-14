@@ -9,14 +9,19 @@ outputs:
     description: Commit SHA for the current workflow ref
     value: ${{ steps.commit.outputs.sha }}
   major:
+    description: Major version from GitVersion
     value: ${{ steps.gitversion.outputs.major }}
   minor:
+    description: Minor version from GitVersion
     value: ${{ steps.gitversion.outputs.minor }}
   semver:
+    description: Full SemVer from GitVersion
     value: ${{ steps.gitversion.outputs.semVer }}
   channel:
+    description: release or preview based on branch
     value: ${{ steps.channel.outputs.name }}
   prerelease:
+    description: true for preview branches, false for master
     value: ${{ steps.channel.outputs.prerelease }}
 
 runs:

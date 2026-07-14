@@ -211,10 +211,11 @@ The same tool is available as pipeline task **`UpdateNuspec@1`** on [Visual Stud
 | `distribution/azure-devops-extension/task/` | Pipeline task `UpdateNuspec@1` (TypeScript + bundled binaries) |
 | `.github/workflows/ci.yml` | CI orchestrator — [docs/ci-cd.md](docs/ci-cd.md) |
 | `.github/actions/version/` | GitVersion → `version`, `major`, `minor`, `prerelease` |
-| `.github/actions/release-binary/` | Matrix `cargo build --release`; `ado-binary-*` / `release-binary-*` artifacts |
+| `.github/actions/build-release-binary/` | Matrix `cargo build --release`; `ado-binary-*` / `release-binary-*` artifacts |
 | `.github/actions/test/` | Rust + .NET tests, SonarCloud |
 | `.github/actions/push-tags/` | Push git tags `v{version}`, `v{X.Y}`, `v{X}` (`master` only) |
-| `.github/actions/publish-github-action/` | GHCR push + Docker smoke |
+| `.github/actions/build-github-action/` | Docker image build + smoke tests |
+| `.github/actions/publish-github-action/` | GHCR push (`github-action-image` artifact) |
 | `.github/actions/publish-ado-extension/` | VSIX build + ADO Marketplace (`master` only) |
 | `.github/actions/publish-chocolatey/` | Chocolatey `.nupkg` pack + push |
 | `.github/actions/publish-homebrew/` | homebrew-core formula PR / bump (`master` only) |

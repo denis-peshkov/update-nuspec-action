@@ -68,7 +68,7 @@ jobs:
       actions: write
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/release-binary
+      - uses: ./.github/actions/build-release-binary
         with:
           version: ${{ needs.version.outputs.version }}
           target: ${{ matrix.target }}
@@ -97,12 +97,26 @@ jobs:
           minor: ${{ needs.version.outputs.minor }}
           tagtoken: ${{ secrets.TAGTOKEN }}
 
-  publish-github-action:
-    name: Publish GitHub Action
+  build-github-action:
+    name: Build GitHub Action
     needs:
       - version
       - release-binaries
     if: ${{ !failure() && !cancelled() && needs.release-binaries.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-github-action
+
+  publish-github-action:
+    name: Publish GitHub Action
+    needs:
+      - version
+      - build-github-action
+    if: ${{ !failure() && !cancelled() && needs.build-github-action.result == 'success' && github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -28,7 +28,8 @@ flowchart TD
   TEST["test<br/>Rust + .NET + Sonar"]
   PT["push-tags<br/>master only"]
 
-  PGA["publish-github-action<br/>GHCR + Docker smoke"]
+  BGA["build-github-action<br/>Docker + smoke"]
+  PGA["publish-github-action<br/>GHCR"]
   PADO["publish-ado-extension<br/>VSIX + ADO Marketplace"]
 
   subgraph pkg["Package managers"]
@@ -43,7 +44,8 @@ flowchart TD
   V --> matrix
   matrix --> TEST
   TEST --> PT
-  PT --> PGA
+  PT --> BGA
+  BGA --> PGA
   PT --> PADO
   PT --> CHR
   PT --> HB
@@ -81,11 +83,15 @@ ci.yml
 │
 ├─ ═════════ параллельно (после test; на master — после push-tags) ═════════
 │
-├─ publish-github-action                «GHCR + Docker smoke»
+├─ build-github-action                 «Docker build + smoke»
 │     ├─ download ado-binary-*
 │     ├─ docker build
 │     ├─ smoke × 3
-│     └─ GHCR push (if push):
+│     └─ artifact github-action-image
+│
+├─ publish-github-action               if: push (master/release/hotfix) [needs: build-github-action]
+│     ├─ download github-action-image
+│     └─ GHCR push:
 │           master:         :version, :X.Y, :X, :latest
 │           release/hotfix:  :version only
 │
@@ -99,7 +105,7 @@ ci.yml
 │     ├─ download release-binary-*
 │     └─ .nupkg → chocolatey.org
 │
-└─ publish-release               [needs: push-tags, publish-ado-extension]
+└─ publish-release               [needs: push-tags, build-ado-extension]
       ├─ package update-nuspec-{version}-src.tar.gz
       ├─ download ado-extension-vsix
       ├─ download release-binary-*
@@ -117,10 +123,11 @@ publish-homebrew                        if: push + master [needs: publish-releas
 | Job (UI name) | Action | Что делает |
 |---------------|--------|------------|
 | `version` | [`version`](../.github/actions/version/action.yml) | GitVersion |
-| `binary-*` | [`release-binary`](../.github/actions/release-binary/action.yml) | `cargo build --release` |
+| `binary-*` | [`build-release-binary`](../.github/actions/build-release-binary/action.yml) | `cargo build --release` |
 | `test` | [`test`](../.github/actions/test/action.yml) | Rust + .NET + Sonar |
 | `push-tags` | [`push-tags`](../.github/actions/push-tags/action.yml) | Push git tags `v{version}`, `v{X.Y}`, `v{X}` |
-| `publish-github-action` (**GHCR + Docker smoke**) | [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | Docker smoke + GHCR |
+| `build-github-action` | [`build-github-action`](../.github/actions/build-github-action/action.yml) | Docker build + smoke |
+| `publish-github-action` | [`publish-github-action`](../.github/actions/publish-github-action/action.yml) | GHCR push |
 | `publish-ado-extension` (**VSIX + ADO Marketplace**) | [`publish-ado-extension`](../.github/actions/publish-ado-extension/action.yml) | VSIX + Marketplace |
 | `publish-chocolatey` | [`publish-chocolatey`](../.github/actions/publish-chocolatey/action.yml) | Chocolatey pack/push |
 | `publish-homebrew` | [`publish-homebrew`](../.github/actions/publish-homebrew/action.yml) | Homebrew core formula |
@@ -133,21 +140,25 @@ publish-homebrew                        if: push + master [needs: publish-releas
 
 ```
 release-binaries (matrix)
-  ├─ ado-binary-linux-musl      ──┬─→ publish-github-action (Docker)
-  │                               └─→ publish-ado-extension (task binaries)
-  ├─ ado-binary-windows-msvc    ────→ publish-ado-extension
+  ├─ ado-binary-linux-musl      ──┬─→ build-github-action (Docker)
+  │                               └─→ build-ado-extension (task binaries)
+  ├─ ado-binary-windows-msvc    ────→ build-ado-extension
   └─ release-binary-*           ──┬─→ publish-chocolatey
                                   └─→ publish-release
 
-publish-ado-extension
-  └─ ado-extension-vsix         ────→ publish-release
+build-github-action
+  └─ github-action-image        ────→ publish-github-action
+
+build-ado-extension
+  └─ ado-extension-vsix         ────→ publish-ado-extension, publish-release
 ```
 
 | Артефакт | Создаёт | Потребляет |
 |----------|---------|------------|
-| `ado-binary-{target}` | `release-binary` (linux + windows) | `publish-github-action`, `publish-ado-extension` |
-| `release-binary-{target}` | `release-binary` (на push) | `publish-chocolatey`, `publish-release` |
-| `ado-extension-vsix` | `publish-ado-extension` | `publish-release` |
+| `ado-binary-{target}` | `build-release-binary` (linux + windows) | `build-github-action`, `build-ado-extension` |
+| `release-binary-{target}` | `build-release-binary` (на push) | `publish-chocolatey`, `publish-release` |
+| `github-action-image` | `build-github-action` | `publish-github-action` |
+| `ado-extension-vsix` | `build-ado-extension` | `publish-ado-extension`, `publish-release` |
 
 ---
 
@@ -159,12 +170,14 @@ publish-ado-extension
 | `release-binaries` | `version`, `test` | всегда |
 | `test` | `version` | всегда |
 | `push-tags` | `version`, `release-binaries` | `push` + `master` |
-| `publish-github-action` | `version`, `release-binaries` | `release-binaries` success |
-| `publish-ado-extension` | `version`, `release-binaries` | `release-binaries` success |
+| `build-github-action` | `version`, `release-binaries` | `release-binaries` success |
+| `publish-github-action` | `version`, `build-github-action` | `build-github-action` success + `push` на `master` / `release/*` / `hotfix/*` |
+| `build-ado-extension` | `version`, `release-binaries` | `release-binaries` success |
+| `publish-ado-extension` | `version`, `build-ado-extension` | `build-ado-extension` success + `push` + `master` |
 | `publish-chocolatey` | `version`, `release-binaries` | `release-binaries` success + `push` на `master` / `release/*` / `hotfix/*` |
 | `publish-homebrew` | `version`, `publish-release` | `push` + `master` |
 | `publish-homebrew-tap` | `version`, `test` | `push` + `release/*` / `hotfix/*` |
-| `publish-release` | `version`, `release-binaries`, `push-tags`, `publish-ado-extension` | `push` + `master`, all needs success |
+| `publish-release` | `version`, `release-binaries`, `push-tags`, `build-ado-extension` | `push` + `master`, all needs success |
 
 ### Критический путь (`master` push)
 
@@ -173,9 +186,9 @@ matrix (4 OS, самый долгий)
   → test
     → release-binaries
          ├─ push-tags (master only)
-         ├─ параллельно: publish-github-action | publish-ado-extension | chocolatey
-         └─ publish-ado-extension
-               → publish-release (release-binaries + push-tags + ado)
+         ├─ параллельно: build-github-action → publish-github-action | build-ado-extension → publish-ado-extension | chocolatey
+         └─ build-ado-extension
+               → publish-release (release-binaries + push-tags + ado VSIX)
                  → publish-homebrew
 ```
 
@@ -189,36 +202,36 @@ matrix (4 OS, самый долгий)
 
 ```
 version → matrix → test
-                    ├─ publish-github-action  (только smoke)
-                    └─ publish-ado-extension  (только VSIX artifact)
+                    ├─ build-github-action  (Docker + smoke)
+                    └─ build-ado-extension  (VSIX artifact)
 ```
 
 `push-tags` и все `publish-*` (кроме пропущенных publish-jobs) — **skipped**.
 
 | Job | GHCR | ADO Marketplace | VSIX artifact | Publish |
 |-----|------|-----------------|---------------|---------|
-| `publish-github-action` | ❌ (только smoke) | — | — | — |
-| `publish-ado-extension` | — | ❌ | ✅ | — |
+| `build-github-action` | — | — | — | — |
+| `publish-github-action` | ❌ skipped | — | — | — |
+| `build-ado-extension` | — | ❌ | ✅ | — |
+| `publish-ado-extension` | — | ❌ skipped | — | — |
 
 ### `push` → `master`
 
 ```
 version → matrix → test → release-binaries
                               ├─ push-tags (master)
-                              ├─ publish-github-action      (GHCR)
-                              ├─ publish-ado-extension        (VSIX + ADO)
+                              ├─ build-github-action → publish-github-action (GHCR)
+                              ├─ build-ado-extension ─┬→ publish-ado-extension (VSIX + ADO)
+                              │                       └→ publish-release → publish-homebrew
                               ├─ publish-chocolatey
-                              └─ publish-ado-extension
-                                    └─ publish-release
-                                          └─ publish-homebrew
 ```
 
 ### `push` → `release/*`, `hotfix/*`
 
 ```
 version → matrix → test
-                    ├─ publish-github-action   (GHCR :version)
-                    ├─ publish-ado-extension   (VSIX artifact)
+                    ├─ build-github-action → publish-github-action (GHCR :version)
+                    ├─ build-ado-extension (VSIX artifact)
                     ├─ publish-chocolatey
                     └─ publish-homebrew-tap    (branch homebrew-preview-tap)
 ```
@@ -227,8 +240,10 @@ version → matrix → test
 
 | Job | GHCR | ADO | Chocolatey | Homebrew preview tap |
 |-----|------|-----|------------|----------------------|
+| `build-github-action` | — | — | — | — |
 | `publish-github-action` | `:version` only | — | — | — |
-| `publish-ado-extension` | — | ❌ | — | — |
+| `build-ado-extension` | — | — | ✅ | — |
+| `publish-ado-extension` | — | ❌ skipped | — | — |
 | `publish-chocolatey` | — | — | ✅ | — |
 | `publish-homebrew-tap` | — | — | — | ✅ (`homebrew-preview-tap`) |
 

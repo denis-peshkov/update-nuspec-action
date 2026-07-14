@@ -3,10 +3,13 @@ description: Push moving git tags and release version tag on master
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   major:
+    description: Major version segment for moving tags
     required: true
   minor:
+    description: Minor version segment for moving tags
     required: true
   tagtoken:
     description: GitHub PAT for git tag push

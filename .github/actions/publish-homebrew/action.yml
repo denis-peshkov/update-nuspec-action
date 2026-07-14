@@ -3,6 +3,7 @@ description: Update homebrew-core formula and open PR or bump
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   version_commit:
     description: Commit SHA for the release (from version job)

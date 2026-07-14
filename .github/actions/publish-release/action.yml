@@ -3,11 +3,13 @@ description: Create GitHub Release with binaries, checksums, source archive, and
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   version_commit:
     description: Commit SHA for the release (from version job)
     required: true
   prerelease:
+    description: Whether the GitHub Release is marked as prerelease
     required: true
 
 runs:

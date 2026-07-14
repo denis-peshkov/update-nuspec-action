@@ -1,64 +1,33 @@
 name: Publish GitHub Action
-description: GHCR + Docker smoke
+description: Push the GitHub Action Docker image to GHCR
 
 inputs:
   version:
+    description: Release version (Major.Minor.run_number)
     required: true
   major:
+    description: Major version segment for GHCR image tags
     required: true
   minor:
+    description: Minor version segment for GHCR image tags
     required: true
 
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
-
-    - name: Download binaries from matrix
+    - name: Download GitHub Action image
       uses: actions/download-artifact@v4
       with:
-        pattern: ado-binary-*
-        path: dist/ado-binaries
-        merge-multiple: true
+        name: github-action-image
+        path: dist
 
-    - name: Build Docker image
+    - name: Load Docker image
       shell: bash
       run: |
         set -euo pipefail
-        mkdir -p distribution/github-action/docker
-        cp dist/ado-binaries/update-nuspec distribution/github-action/docker/update-nuspec
-        chmod +x distribution/github-action/docker/update-nuspec
-        docker build -t update-nuspec-action:ci distribution/github-action
-
-    - name: Smoke test (repo root, recursive scan)
-      shell: bash
-      run: |
-        set -euo pipefail
-        smoke_output="$(docker run --rm \
-          -v "${{ github.workspace }}:/github/workspace" \
-          update-nuspec-action:ci .)"
-        grep -Fq 'Start processing file' <<< "${smoke_output}"
-
-    - name: Smoke test (relative path under workspace)
-      shell: bash
-      run: |
-        set -euo pipefail
-        smoke_output="$(docker run --rm \
-          -v "${{ github.workspace }}:/github/workspace" \
-          update-nuspec-action:ci .github)"
-        grep -Fq 'nuspec files not found' <<< "${smoke_output}"
-
-    - name: Smoke test (dry-run)
-      shell: bash
-      run: |
-        set -euo pipefail
-        smoke_output="$(docker run --rm \
-          -v "${{ github.workspace }}:/github/workspace" \
-          update-nuspec-action:ci UpdateNuspecTool.Tests/TestData true)"
-        grep -Fq '[DRY RUN]' <<< "${smoke_output}"
+        docker load -i dist/github-action-image.tar
 
     - name: Log in to GHCR
-      if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
@@ -66,7 +35,6 @@ runs:
         password: ${{ github.token }}
 
     - name: Push image to GHCR
-      if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/hotfix/')) }}
       shell: bash
       run: |
         set -euo pipefail
